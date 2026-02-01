@@ -1,0 +1,73 @@
+[
+    {
+        "groupType" : "Basic",
+        "functions" : [
+            {
+                "funcBit" : "forever",
+                "funcPyIni" : "def on_forever():",
+                "funcPyFin" : "basic.forever(on_forever)"
+            },
+            {
+                "funcBit" : "on start",
+                "funcPy" : ""
+            },
+            {
+                "funcBit" : "show number",
+                "funcPyIni" : "basic.show_number(",
+                "num" : 0,
+                "funcPyFin" : ")"
+                
+            },
+            {
+                "funcBit" : "show icon",
+                "funcPyIni" : "basic.show_icon(",
+                "icon" : "IconNames.Heart",
+                "funcPyFin" : ")"
+            },
+            {
+                "funcBit" : "show string",
+                "funcPyIni" : "basic.show_string(",
+                "string" : "Hello!",
+                "funcPyFin" : ")"
+            },
+            {
+                "funcBit" : "clear screen",
+                "funcPy" : "basic.clear_screen()"
+            },
+            {
+                "funcBit" : "pause (ms)",
+                "funcPyIni" : "basic.pause(",
+                "time" : 100,
+                "funcPyFin" : ")"
+            },
+            {
+                "funcBit" : "show arrow",
+                "funcPyIni" : "basic.show_arrow(",
+                "arrow" : "ArrowNames.NORTH",
+                "funcPyFin" : ")"
+            },
+            {
+                "funcBit" : "show leds",
+                "funcPyIni" : "basic.show_leds(",
+                "matLed" : "",
+                "funcPyFin" : ")"
+            }
+        ],
+        "variables" : [
+            {
+                "varType" : "time",
+                "values" : [100,200,500,1000,2000,5000]
+            },
+            {
+                "varType" : "arrow",
+                "values" : ["ArrowNames.NORTH","ArrowNames.NORTH_EAST","ArrowNames.EAST",
+                            "ArrowNames.SOUTH_EAST","ArrowNames.SOUTH","ArrowNames.SOUTH_WEST",
+                            "ArrowNames.WEST","ArrowNames.NORTH_WEST"]
+            },
+            {
+                "varType" : "icons",
+                "values" : ["IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.",]
+            }
+        ]
+    }
+]
