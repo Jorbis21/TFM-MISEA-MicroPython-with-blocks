@@ -66,7 +66,16 @@
             },
             {
                 "varType" : "icons",
-                "values" : ["IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.","IconNames.",]
+                "values" : ["IconNames.HEART","IconNames.SMALL_HEART","IconNames.YES","IconNames.NO",
+                            "IconNames.HAPPY","IconNames.SAD","IconNames.CONFUSED","IconNames.ANGRY",
+                            "IconNames.ASLEEP","IconNames.SURPRISED","IconNames.SILLY","IconNames.FABULOUS",
+                            "IconNames.MEH","IconNames.TSHIRT","IconNames.ROLLERSKATE","IconNames.DUCK",
+                            "IconNames.HOUSE","IconNames.TORTOISE","IconNames.BUTTERFLY","IconNames.STICK_FIGURE",
+                            "IconNames.GHOST","IconNames.SWORD","IconNames.GIRAFFE","IconNames.SKULL",
+                            "IconNames.UMBRELLA","IconNames.SANKE","IconNames.RABBIT","IconNames.COW",
+                            "IconNames.QUARTER_NOTE","IconNames.EIGHTH_NOTE","IconNames.PITCHFORK","IconNames.TARGET",
+                            "IconNames.TRIANGLE","IconNames.LEFT_TRIANGLE","IconNames.CHESS_BOARD","IconNames.DIAMOND",
+                            "IconNames.SMALL_DIAMOND","IconNames.SQUARE","IconNames.SMALL_SQUARE","IconNames.SCISSORS"]
             }
         ]
     }
