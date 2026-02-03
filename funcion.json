@@ -4,53 +4,66 @@
         "functions" : [
             {
                 "funcBit" : "forever",
-                "funcPyIni" : "def on_forever():",
-                "funcPyFin" : "basic.forever(on_forever)"
+                "funcPyIni" : "while True:",
+                "var" : "",
+                "funcPyFin" : "",
+                "header" : true
             },
             {
                 "funcBit" : "on start",
-                "funcPy" : ""
+                "funcPyIni" : "",
+                "var" : "",
+                "funcPyFin" : "",
+                "header" : false
             },
             {
                 "funcBit" : "show number",
-                "funcPyIni" : "basic.show_number(",
-                "num" : 0,
-                "funcPyFin" : ")"
-                
+                "funcPyIni" : "display.show(",
+                "var" : 0,
+                "funcPyFin" : ")",
+                "header" : false
             },
             {
                 "funcBit" : "show icon",
-                "funcPyIni" : "basic.show_icon(",
-                "icon" : "IconNames.Heart",
-                "funcPyFin" : ")"
+                "funcPyIni" : "display.show(",
+                "var" : "Image.HEART",
+                "funcPyFin" : ")",
+                "header" : false
             },
             {
                 "funcBit" : "show string",
-                "funcPyIni" : "basic.show_string(",
-                "string" : "Hello!",
-                "funcPyFin" : ")"
+                "funcPyIni" : "display.scroll(",
+                "var" : "Hello!",
+                "funcPyFin" : ")",
+                "header" : false
             },
             {
                 "funcBit" : "clear screen",
-                "funcPy" : "basic.clear_screen()"
+                "funcPyIni" : "display.clear()",
+                "var" : "",
+                "funcPyFin" : "",
+                "header" : false
             },
             {
                 "funcBit" : "pause (ms)",
-                "funcPyIni" : "basic.pause(",
-                "time" : 100,
-                "funcPyFin" : ")"
+                "funcPyIni" : "sleep(",
+                "var" : 100,
+                "funcPyFin" : ")",
+                "header" : false
             },
             {
                 "funcBit" : "show arrow",
-                "funcPyIni" : "basic.show_arrow(",
-                "arrow" : "ArrowNames.NORTH",
-                "funcPyFin" : ")"
+                "funcPyIni" : "display.show(",
+                "var" : "Image.ARROW_N",
+                "funcPyFin" : ")",
+                "header" : false
             },
             {
                 "funcBit" : "show leds",
-                "funcPyIni" : "basic.show_leds(",
-                "matLed" : "",
-                "funcPyFin" : ")"
+                "funcPyIni" : "display.show(",
+                "var" : "",
+                "funcPyFin" : ")",
+                "header" : false
             }
         ],
         "variables" : [
