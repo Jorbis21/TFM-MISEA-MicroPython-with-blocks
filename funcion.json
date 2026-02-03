@@ -69,26 +69,236 @@
         "variables" : [
             {
                 "varType" : "time",
-                "values" : [100,200,500,1000,2000,5000]
+                "values" : [
+                            {
+                                "varType" : "100ms",
+                                "var" : "100"
+                            },
+                            {
+                                "varType" : "200ms",
+                                "var" : "200"
+                            },
+                            {
+                                "varType" : "500ms",
+                                "var" : "500"
+                            },
+                            {
+                                "varType" : "1000ms",
+                                "var" : "1000"
+                            },
+                            {
+                                "varType" : "2000ms",
+                                "var" : "2000"
+                            },
+                            {
+                                "varType" : "5000ms",
+                                "var" : "5000"
+                            }]
             },
             {
-                "varType" : "arrow",
-                "values" : ["ArrowNames.NORTH","ArrowNames.NORTH_EAST","ArrowNames.EAST",
-                            "ArrowNames.SOUTH_EAST","ArrowNames.SOUTH","ArrowNames.SOUTH_WEST",
-                            "ArrowNames.WEST","ArrowNames.NORTH_WEST"]
-            },
-            {
-                "varType" : "icons",
-                "values" : ["IconNames.HEART","IconNames.SMALL_HEART","IconNames.YES","IconNames.NO",
-                            "IconNames.HAPPY","IconNames.SAD","IconNames.CONFUSED","IconNames.ANGRY",
-                            "IconNames.ASLEEP","IconNames.SURPRISED","IconNames.SILLY","IconNames.FABULOUS",
-                            "IconNames.MEH","IconNames.TSHIRT","IconNames.ROLLERSKATE","IconNames.DUCK",
-                            "IconNames.HOUSE","IconNames.TORTOISE","IconNames.BUTTERFLY","IconNames.STICK_FIGURE",
-                            "IconNames.GHOST","IconNames.SWORD","IconNames.GIRAFFE","IconNames.SKULL",
-                            "IconNames.UMBRELLA","IconNames.SANKE","IconNames.RABBIT","IconNames.COW",
-                            "IconNames.QUARTER_NOTE","IconNames.EIGHTH_NOTE","IconNames.PITCHFORK","IconNames.TARGET",
-                            "IconNames.TRIANGLE","IconNames.LEFT_TRIANGLE","IconNames.CHESS_BOARD","IconNames.DIAMOND",
-                            "IconNames.SMALL_DIAMOND","IconNames.SQUARE","IconNames.SMALL_SQUARE","IconNames.SCISSORS"]
+                "varType" : "image",
+                "values" : [
+                    {
+                        "varType" : "arrowN",
+                        "var" : "Image.ARROW_N"
+                    },
+                    {
+                        "varType" : "arrowNE",
+                        "var" : "Image.ARROW_NE"
+                    },
+                    {
+                        "varType" : "arrowE",
+                        "var" : "Image.ARROW_E"
+                    },
+                    {
+                        "varType" : "arrowSE",
+                        "var" : "Image.ARROW_SE"
+                    },
+                    {
+                        "varType" : "arrowS",
+                        "var" : "Image.ARROW_S"
+                    },
+                    {
+                        "varType" : "arrowSW",
+                        "var" : "Image.ARROW_SW"
+                    },
+                    {
+                        "varType" : "arrowW",
+                        "var" : "Image.ARROW_W"
+                    },
+                    {
+                        "varType" : "arrowNW",
+                        "var" : "Image.ARROW_NW"
+                    },
+                    {
+                        "varType" : "heart",
+                        "var" : "Image.HEART"
+                    },
+                    {
+                        "varType" : "smallheart",
+                        "var" : "Image.SMALL_HEART"
+                    },
+                    {
+                        "varType" : "yes",
+                        "var" : "Image.YES"
+                    },
+                    {
+                        "varType" : "no",
+                        "var" : "Image.NO"
+                    },
+                    {
+                        "varType" : "happy",
+                        "var" : "Image.HAPPY"
+                    },
+                    {
+                        "varType" : "sad",
+                        "var" : "Image.SAD"
+                    },
+                    {
+                        "varType" : "confused",
+                        "var" : "Image.CONFUSED"
+                    },
+                    {
+                        "varType" : "angry",
+                        "var" : "Image.ANGRY"
+                    },
+                    {
+                        "varType" : "asleep",
+                        "var" : "Image.ASLEEP"
+                    },
+                    {
+                        "varType" : "surprised",
+                        "var" : "Image.SURPRISED"
+                    },
+                    {
+                        "varType" : "silly",
+                        "var" : "Image.SILLY"
+                    },
+                    {
+                        "varType" : "fabulous",
+                        "var" : "Image.FABULOUS"
+                    },
+                    {
+                        "varType" : "meh",
+                        "var" : "Image.MEH"
+                    },
+                    {
+                        "varType" : "t-shirt",
+                        "var" : "Image.TSHIRT"
+                    },
+                    {
+                        "varType" : "rollerskate",
+                        "var" : "Image.ROLLERSKATE"
+                    },
+                    {
+                        "varType" : "duck",
+                        "var" : "Image.DUCK"
+                    },
+                    {
+                        "varType" : "house",
+                        "var" : "Image.HOUSE"
+                    },
+                    {
+                        "varType" : "tortoise",
+                        "var" : "Image.TORTOISE"
+                    },
+                    {
+                        "varType" : "butterfly",
+                        "var" : "Image.BUTTERFLY"
+                    },
+                    {
+                        "varType" : "stickfigure",
+                        "var" : "Image.STICK_FIGURE"
+                    },
+                    {
+                        "varType" : "ghost",
+                        "var" : "Image.GHOST"
+                    },
+                    {
+                        "varType" : "sword",
+                        "var" : "Image.SWORD"
+                    },
+                    {
+                        "varType" : "giraffe",
+                        "var" : "Image.GIRAFFE"
+                    },
+                    {
+                        "varType" : "skull",
+                        "var" : "Image.SKULL"
+                    },
+                    {
+                        "varType" : "umbrella",
+                        "var" : "Image.UMBRELLA"
+                    },
+                    {
+                        "varType" : "snake",
+                        "var" : "Image.SNAKE"
+                    },
+                    {
+                        "varType" : "rabbit",
+                        "var" : "Image.RABBIT"
+                    },
+                    {
+                        "varType" : "cow",
+                        "var" : "Image.COW"
+                    },
+                    {
+                        "varType" : "quarternote",
+                        "var" : "Image.QUARTER_NOTE"
+                    },
+                    {
+                        "varType" : "eighthnote",
+                        "var" : "Image.EIGHTH_NOTE"
+                    },
+                    {
+                        "varType" : "pitchfork",
+                        "var" : "Image.PITCHFORK"
+                    },
+                    {
+                        "varType" : "target",
+                        "var" : "Image.TARGET"
+                    },
+                    {
+                        "varType" : "triangle",
+                        "var" : "Image.TRIANGLE"
+                    },
+                    {
+                        "varType" : "lefttriangle",
+                        "var" : "Image.LEFT_TRIANGLE"
+                    },
+                    {
+                        "varType" : "chessboard",
+                        "var" : "Image.CHESS_BOARD"
+                    },
+                    {
+                        "varType" : "diamond",
+                        "var" : "Image.DIAMOND"
+                    },
+                    {
+                        "varType" : "smalldiamond",
+                        "var" : "Image.SMALL_DIAMOND"
+                    },
+                    {
+                        "varType" : "square",
+                        "var" : "Image.SQUARE"
+                    },
+                    {
+                        "varType" : "small square",
+                        "var" : "Image.SMALL_SQUARE"
+                    },
+                    {
+                        "varType" : "scissors",
+                        "var" : "Image.SCISSORS"
+                    },
+                    {
+                        "varType" : "allarrows",
+                        "var" : "Image.ALL_ARROWS"
+                    },
+                    {
+                        "varType" : "allclocks",
+                        "var" : "Image.ALL_CLOCKS"
+                    }
+                ]
             }
         ]
     }
