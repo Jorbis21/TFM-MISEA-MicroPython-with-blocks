@@ -5,13 +5,24 @@ from pyzbar.pyzbar import decode
 
 def leer_multiples_qr(ruta_imagen):
     img = cv2.imread(ruta_imagen)
-    codigos_encontrados = decode(img)
+    if img is None: return
+    
+    # 1. Convertir a escala de grises
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
+    # 2. Aumentar el contraste y binarizar (Umbralización adaptativa)
+    # Esto intentará separar el gris del azul de forma más agresiva
+    thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)[1]
 
-    funciones = [i for i in range(len(codigos_encontrados))]
-
+    # Intentar leer en la imagen original y en la procesada
+    codigos_encontrados = decode(thresh)
+    
     if not codigos_encontrados:
-        print("No se encontraron códigos QR.")
-        return
+        # Si falla, intentamos con un desenfoque ligero para eliminar ruido
+        blur = cv2.GaussianBlur(gray, (5,5), 0)
+        codigos_encontrados = decode(blur)
+    
+    funciones = [i for i in range(len(codigos_encontrados))]
 
     print(f"Se detectaron {len(codigos_encontrados)} códigos.")
     i = len(codigos_encontrados) - 1
