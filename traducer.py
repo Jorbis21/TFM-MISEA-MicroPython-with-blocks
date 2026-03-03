@@ -45,7 +45,7 @@ with open("MicroBit_Code.py", "w", encoding="utf-8") as file:
             file.write(funcBit["funcPyIni"] + "\n")
         else:
             file.write("\t" + funcBit["funcPyIni"])
-            file.write(f"{funcBit["var"]}")
+            file.write("'" + f"{funcBit["var"]}" + "'" )
             file.write(funcBit["funcPyFin"] + "\n")
 
 print("Enviando código a Micro:bit...")
