@@ -1,52 +1,126 @@
 import cv2
 import json
 import os
+import pytesseract
+from pytesseract import Output
 from pyzbar.pyzbar import decode
 
-def leer_multiples_qr(ruta_imagen):
+# Configuración de archivos (Asegúrate de incluir 'demo' si lo vas a usar)
+archives = ["basic", "input", "demo"]
+
+def leer_elementos_imagen(ruta_imagen):
     img = cv2.imread(ruta_imagen)
-    if img is None: return
+    if img is None: 
+        print("Error: No se pudo cargar la imagen.")
     
-    # 1. Convertir a escala de grises
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    
-    # 2. Aumentar el contraste y binarizar (Umbralización adaptativa)
-    # Esto intentará separar el gris del azul de forma más agresiva
     thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)[1]
 
-    # Intentar leer en la imagen original y en la procesada
-    codigos_encontrados = decode(thresh)
-    
-    if not codigos_encontrados:
-        # Si falla, intentamos con un desenfoque ligero para eliminar ruido
+    elementos_detectados = []
+
+    # 1. DETECCIÓN DE CÓDIGOS QR
+    codigos_qr = decode(thresh)
+    if not codigos_qr:
         blur = cv2.GaussianBlur(gray, (5,5), 0)
-        codigos_encontrados = decode(blur)
-    
-    funciones = [i for i in range(len(codigos_encontrados))]
+        codigos_qr = decode(blur)
 
-    print(f"Se detectaron {len(codigos_encontrados)} códigos.")
-    i = len(codigos_encontrados) - 1
-    for codigo in codigos_encontrados:
-        funciones[i] = codigo.data.decode('utf-8')
-        i=i-1
-    return funciones
+    for qr in codigos_qr:
+        elementos_detectados.append({
+            "tipo": "comando",
+            "data": qr.data.decode('utf-8'),
+            "top": qr.rect.top,
+            "left": qr.rect.left
+        })
 
+    # 2. DETECCIÓN DE NÚMEROS (OCR)
+    ocr_data = pytesseract.image_to_data(gray, output_type=Output.DICT, config='--psm 11')
+    for i in range(len(ocr_data['text'])):
+        texto = ocr_data['text'][i].strip()
+        if int(ocr_data['conf'][i]) > 60 and texto:
+            es_numero = texto.isdigit() or (texto.replace('.', '', 1).isdigit() and texto.count('.') < 2)
+            if es_numero:
+                elementos_detectados.append({
+                    "tipo": "numero",
+                    "data": texto,
+                    "top": ocr_data['top'][i],
+                    "left": ocr_data['left'][i]
+                })
 
-program = leer_multiples_qr('program.png')
+    # 3. ORDENAMIENTO ESPACIAL
+    elementos_detectados.sort(key=lambda obj: (obj["top"] // 50, obj["left"]))
 
-with open('funcion.json', 'r') as file:
-    data = json.load(file)
+    return [elem["data"] for elem in elementos_detectados]
 
-with open("MicroBit_Code.py", "w", encoding="utf-8") as file:
-    file.write("from microbit import *\n\n")
-    for i, func in enumerate(program):
-        funcBit = next((x for x in data[0]["functions"] if x["funcBit"] == func),None)
-        if(funcBit["header"] == True):
-            file.write(funcBit["funcPyIni"] + "\n")
-        else:
-            file.write("\t" + funcBit["funcPyIni"])
-            file.write("'" + f"{funcBit["var"]}" + "'" )
-            file.write(funcBit["funcPyFin"] + "\n")
+def buscar_en_json(comando, lista_data):
+    for d in lista_data:
+        for categoria in ["functions", "conditionals", "variables"]:
+            for f in d.get(categoria, []):
+                if f.get("funcBit") == comando or f.get("condType") == comando or f.get("varType") == comando:
+                    return f
+    return None
 
-print("Enviando código a Micro:bit...")
-os.system("python -m uflash MicroBit_Code.py")
+def traducir():
+    program = leer_elementos_imagen('program.jpg')
+    if not program:
+        return
+
+    data_consolidada = []
+    for arch in archives:
+        try:
+            with open(f'{arch}.json', 'r', encoding='utf-8') as f:
+                data_consolidada.append(json.load(f))
+        except FileNotFoundError:
+            print(f"Advertencia: No se encontró {arch}.json")
+
+    with open("MicroBit_Code.py", "w", encoding="utf-8") as file:
+        file.write("from microbit import *\n\n")
+        
+        nivel_identacion = 0
+        ultimo_parametro_numerico = None
+
+        for comando in program:
+            # Caso especial: Bloque de cierre "end"
+            if comando.lower() == "end":
+                nivel_identacion = max(0, nivel_identacion - 1)
+                continue
+
+            # Verificación de números (OCR)
+            es_numero = comando.isdigit() or (comando.replace('.', '', 1).isdigit() and comando.count('.') < 2)
+            if es_numero:
+                ultimo_parametro_numerico = comando
+                continue 
+
+            func_data = buscar_en_json(comando, data_consolidada)
+            
+            if func_data:
+                tabulaciones = "\t" * nivel_identacion
+                
+                # Determinar el valor/parámetro
+                if ultimo_parametro_numerico is not None:
+                    valor = str(ultimo_parametro_numerico)
+                    ultimo_parametro_numerico = None
+                else:
+                    valor = str(func_data.get("var", ""))
+                
+                # Formatear strings
+                is_val_number = valor.isdigit() or (valor.replace('.', '', 1).isdigit() and valor.count('.') < 2)
+                if valor and not valor.startswith("Image.") and not is_val_number:
+                    valor = f"'{valor}'"
+                
+                # Construir la instrucción de Python PURA (sin tabulaciones ni saltos de línea)
+                codigo_puro = f"{func_data.get('funcPyIni', '')}{valor}{func_data.get('funcPyFin', '')}"
+                
+                # Escribir en el archivo
+                file.write(f"{tabulaciones}{codigo_puro}\n")
+
+                # REVISIÓN DE DOS PUNTOS: Si el código puro termina en ':', la siguiente línea se tabula
+                if codigo_puro.strip().endswith(":"):
+                    nivel_identacion += 1
+            else:
+                print(f"Comando '{comando}' no reconocido.")
+
+    print(f"Código generado con éxito. Nivel final de identación: {nivel_identacion}")
+    os.system("python -m uflash MicroBit_Code.py")
+
+if __name__ == "__main__":
+    traducir()

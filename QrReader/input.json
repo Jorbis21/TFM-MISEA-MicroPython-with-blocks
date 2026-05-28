@@ -1,0 +1,263 @@
+{
+    "functions": [
+        {
+            "funcBit": "on pin P0 pressed",
+            "funcPyIni": "if pin0.is_touched():",
+            "var": "",
+            "funcPyFin": "",
+            "header": true
+        },
+        {
+            "funcBit": "on pin P1 pressed",
+            "funcPyIni": "if pin1.is_touched():",
+            "var": "",
+            "funcPyFin": "",
+            "header": true
+        },
+        {
+            "funcBit": "on pin P2 pressed",
+            "funcPyIni": "if pin2.is_touched():",
+            "var": "",
+            "funcPyFin": "",
+            "header": true
+        },
+        {
+            "funcBit": "on shake",
+            "funcPyIni": "if accelerometer.was_gesture('shake'):",
+            "var": "",
+            "funcPyFin": "",
+            "header": true
+        },
+        {
+            "funcBit": "on logo up",
+            "funcPyIni": "if accelerometer.was_gesture('up'):",
+            "var": "",
+            "funcPyFin": "",
+            "header": true
+        },
+        {
+            "funcBit": "on logo down",
+            "funcPyIni": "if accelerometer.was_gesture('down'):",
+            "var": "",
+            "funcPyFin": "",
+            "header": true
+        },
+        {
+            "funcBit": "on screen up",
+            "funcPyIni": "if accelerometer.was_gesture('face up'):",
+            "var": "",
+            "funcPyFin": "",
+            "header": true
+        },
+        {
+            "funcBit": "on screen down",
+            "funcPyIni": "if accelerometer.was_gesture('face down'):",
+            "var": "",
+            "funcPyFin": "",
+            "header": true
+        },
+        {
+            "funcBit": "on tilt left",
+            "funcPyIni": "if accelerometer.was_gesture('left'):",
+            "var": "",
+            "funcPyFin": "",
+            "header": true
+        },
+        {
+            "funcBit": "on tilt right",
+            "funcPyIni": "if accelerometer.was_gesture('right'):",
+            "var": "",
+            "funcPyFin": "",
+            "header": true
+        },
+        {
+            "funcBit": "on free fall",
+            "funcPyIni": "if accelerometer.was_gesture('freefall'):",
+            "var": "",
+            "funcPyFin": "",
+            "header": true
+        },
+        {
+            "funcBit": "on loud sound",
+            "funcPyIni": "if microphone.current_event() == SoundEvent.LOUD:",
+            "var": "",
+            "funcPyFin": "",
+            "header": true
+        },
+        {
+            "funcBit": "on quiet sound",
+            "funcPyIni": "if microphone.current_event() == SoundEvent.QUIET:",
+            "var": "",
+            "funcPyFin": "",
+            "header": true
+        },
+        {
+            "funcBit": "set loud sound threshold to",
+            "funcPyIni": "microphone.set_threshold(SoundEvent.LOUD, ",
+            "var": 200,
+            "funcPyFin": ")",
+            "header": false
+        },
+        {
+            "funcBit": "set quiet sound threshold to",
+            "funcPyIni": "microphone.set_threshold(SoundEvent.QUIET, ",
+            "var": 30,
+            "funcPyFin": ")",
+            "header": false
+        },
+        {
+            "funcBit": "on logo touched",
+            "funcPyIni": "if pin_logo.is_touched():",
+            "var": "",
+            "funcPyFin": "",
+            "header": true
+        },
+        {
+            "funcBit": "on button A pressed",
+            "funcPyIni": "if button_a.is_pressed():",
+            "var": "",
+            "funcPyFin": "",
+            "header": true
+        },
+        {
+            "funcBit": "on button B pressed",
+            "funcPyIni": "if button_b.is_pressed():",
+            "var": "",
+            "funcPyFin": "",
+            "header": true
+        },
+        {
+            "funcBit": "on button A+B pressed",
+            "funcPyIni": "if button_a.is_pressed() and button_b.is_pressed():",
+            "var": "",
+            "funcPyFin": "",
+            "header": true
+        },
+        {
+            "funcBit": "set accelerometer range",
+            "funcPyIni": "accelerometer.set_range(",
+            "var": 1,
+            "funcPyFin": ")",
+            "header": true
+        },
+        {
+            "funcBit": "calibrate compass",
+            "funcPyIni": "compass.calibrate()",
+            "var": "",
+            "funcPyFin": "",
+            "header": true
+        }
+    ],
+    "conditionals": [
+         {
+            "condType": "is shake gesture",
+            "cond": "accelerometer.was_gesture('shake')"
+        },
+        {
+            "condType": "is logo up gesture",
+            "cond": "accelerometer.was_gesture('up')"
+        },
+        {
+            "condType": "is logo down gesture",
+            "cond": "accelerometer.was_gesture('down')"
+        },
+        {
+            "condType": "is screen up gesture",
+            "cond": "accelerometer.was_gesture('face up')"
+        },
+        {
+            "condType": "is screen down gesture",
+            "cond": "accelerometer.was_gesture('face down')"
+        },
+        {
+            "condType": "is tilt left gesture",
+            "cond": "accelerometer.was_gesture('left')"
+        },
+        {
+            "condType": "is tilt right gesture",
+            "cond": "accelerometer.was_gesture('right')"
+        },
+        {
+            "condType": "is free fall gesture",
+            "cond": "accelerometer.was_gesture('freefall')"
+        },
+        {
+            "condType": "pin P0 is pressed",
+            "cond": "pin0.is_touched()"
+        },
+        {
+            "condType": "pin P1 is pressed",
+            "cond": "pin1.is_touched()"
+        },
+        {
+            "condType": "pin P2 is pressed",
+            "cond": "pin2.is_touched()"
+        },
+        {
+            "condType": "logo is pressed",
+            "cond": "pin_logo.is_touched()"
+        },
+        {
+            "condType": "button A is pressed",
+            "cond": "button_a.is_pressed()"
+        },
+        {
+            "condType": "button B is pressed",
+            "cond": "button_b.is_pressed()"
+        },
+        {
+            "condType": "button A+B is pressed",
+            "cond": "button_a.is_pressed() and button_b.is_pressed()"
+        }
+    ],
+    "variables": [ 
+        {
+            "varType": "light level",
+            "var": "display.read_light_level()"
+        },
+        {
+            "varType": "temperature",
+            "var": "temperature()"
+        },
+        {
+            "varType": "compass heading",
+            "var": "compass.heading()"
+        },
+        {
+            "varType": "magnetic force x",
+            "var": "compass.get_x()"
+        },
+        {
+            "varType": "magnetic force y",
+            "var": "compass.get_y()"
+        },
+        {
+            "varType": "magnetic force z",
+            "var": "compass.get_z()"
+        },
+        {
+            "varType": "acceleration x",
+            "var": "accelerometer.get_x()"
+        },
+        {
+            "varType": "acceleration y",
+            "var": "accelerometer.get_y()"
+        },
+        {
+            "varType": "acceleration z",
+            "var": "accelerometer.get_z()"
+        },
+        {
+            "varType": "sound level",
+            "var": "microphone.sound_level()"
+        },
+        {
+            "varType": "running time ms",
+            "var": "ticks_ms()"
+        },
+        {
+            "varType": "running time micros",
+            "var": "ticks_us()"
+        }
+    ]
+}

@@ -1,4 +1,5 @@
 from microbit import *
 
 while True:
-	display.scroll('Hello!')
+	if button_a.is_pressed():
+		display.scroll('Hello!')
