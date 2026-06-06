@@ -12,7 +12,6 @@ class VisionEngine:
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
         
         # --- CARGA DEL MODELO CNN (MNIST) ---
-        # El archivo onnx debe estar en la misma ruta desde donde ejecutas main.py
         self.ruta_modelo = os.path.join(cnn_dir, 'mnist.onnx')
         if os.path.exists(self.ruta_modelo):
             self.net = cv2.dnn.readNetFromONNX(self.ruta_modelo)
@@ -98,27 +97,35 @@ class VisionEngine:
                 'x2': qr.rect.left + qr.rect.width + 15,
                 'y2': qr.rect.top + qr.rect.height + 15
             })
+            
+        # --- BARRERA 1: CÁLCULO DINÁMICO DE ÁREA RELATIVA ---
+        # Calculamos cuánto mide un QR en esta imagen concreta según la altura a la que esté la cámara
+        areas_qrs = [qr.rect.width * qr.rect.height for qr in codigos_qr]
+        
+        if areas_qrs:
+            area_media_qr = sum(areas_qrs) / len(areas_qrs)
+            # Un número (la tinta negra) suele ser entre un 5% y un 80% del área total del bloque QR que lo acompaña
+            area_minima = area_media_qr * 0.05
+            area_maxima = area_media_qr * 0.80
+        else:
+            # Valores de rescate estáticos por si en este frame exacto no hemos visto ningún QR
+            area_minima, area_maxima = 2500, 20000
         
         for c in contornos:
             x, y, w, h = cv2.boundingRect(c)
             area_caja = w * h
             
-            # BARRERA 1: Subimos el área mínima drásticamente. 
-            # Viendo la foto, tus números reales rondan los 3000-5000 píxeles.
-            if 2500 < area_caja < 20000:
+            # Aplicamos el filtro dinámico en lugar del estático
+            if area_minima < area_caja < area_maxima:
                 aspect_ratio = float(w)/h
                 
-                # BARRERA 2: Proporción estricta. 
-                # Evitamos cuadrados perfectos (el suelo) o líneas ultra planas.
+                # BARRERA 2: Proporción estricta (Evitamos cuadrados perfectos o líneas planas)
                 if 0.15 < aspect_ratio < 0.9: 
                     
-                    # BARRERA 3: Densidad (Extent). 
-                    # Comparamos los píxeles reales de la mancha contra el total de la caja.
-                    # Una línea diagonal en el parquet tiene una densidad muy baja.
+                    # BARRERA 3: Densidad (Filtra las vetas del suelo)
                     area_real_trazo = cv2.contourArea(c)
                     densidad = area_real_trazo / float(area_caja)
                     
-                    # Un número escrito suele ocupar más del 15% de su caja delimitadora
                     if densidad > 0.15:
                     
                         centro_c_x = x + w/2
@@ -138,7 +145,6 @@ class VisionEngine:
                             
                             roi = thresh_inv[y1:y2, x1:x2]
                             
-                            # Validamos que el ROI no esté vacío por los recortes de los bordes
                             if roi.size == 0:
                                 continue
 
@@ -148,7 +154,6 @@ class VisionEngine:
                             lienzo = np.zeros((28, 28), dtype=np.float32)
                             h_r, w_r = roi_redimensionado.shape
                             
-                            # Protección extra por si el padding desborda el lienzo
                             if h_r > 28 or w_r > 28:
                                 roi_redimensionado = cv2.resize(roi_redimensionado, (28, 28), interpolation=cv2.INTER_AREA)
                                 h_r, w_r = 28, 28
@@ -169,7 +174,6 @@ class VisionEngine:
                             clase_predicha = np.argmax(probs)
                             confianza = probs[clase_predicha] * 100
                             
-                            # Volvemos a un umbral razonable para no perder los 6 y los 9
                             if confianza > 65.0:
                                 es_duplicado_num = any(abs(centro_c_x - elem["left"]) < 30 and abs(centro_c_y - elem["top"]) < 30 for elem in elementos_detectados if elem["tipo"] == "numero")
                                 if not es_duplicado_num:
