@@ -4,7 +4,7 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 from fpdf import FPDF
 
-archives = ["basic", "input", "demo"]
+archives = ["functions", "variables", "conditionals"]
 lista_de_imagenes = [] # Para guardar las rutas de los QRs generados
 
 def generar_qr_con_texto(contenido, nombre_archivo):

@@ -38,7 +38,7 @@ class MicrobitTranslator:
             return
 
         with open(ruta_salida, "w", encoding="utf-8") as file:
-            file.write("from microbit import *\n\n")
+            file.write("from microbit import *\n import speech\n import music\n\n")
             
             nivel_identacion = 0
             comando_abierto = False
@@ -110,7 +110,6 @@ class MicrobitTranslator:
         print(f"Código generado con éxito. Nivel final de identación: {nivel_identacion}")
 
     def subir(self, ruta_codigo):
-        """Flashea el código generado en la Micro:bit usando subprocess."""
         print(f"Iniciando el flasheo en la micro:bit con el archivo: {ruta_codigo}")
         
         try:
