@@ -1,6 +1,70 @@
 {
     "variables" : [
         {
+            "varType" : "boton a",
+            "var" : "button_a"
+        },
+        {
+            "varType" : "boton b",
+            "var" : "button_b"
+        },
+        {
+            "varType" : "logo",
+            "var" : "pin_logo"
+        },
+        {
+            "varType" : "pin 0",
+            "var" : "pin0"
+        },
+        {
+            "varType" : "pin 1",
+            "var" : "pin1"
+        },
+        {
+            "varType" : "pin 2",
+            "var" : "pin2"
+        },
+        {
+            "varType" : "0",
+            "var" : "0"
+        },
+        {
+            "varType" : "1",
+            "var" : "1"
+        },
+        {
+            "varType" : "2",
+            "var" : "2"
+        },
+        {
+            "varType" : "3",
+            "var" : "3"
+        },
+        {
+            "varType" : "4",
+            "var" : "4"
+        },
+        {
+            "varType" : "5",
+            "var" : "5"
+        },
+        {
+            "varType" : "6",
+            "var" : "6"
+        },
+        {
+            "varType" : "7",
+            "var" : "7"
+        },
+        {
+            "varType" : "8",
+            "var" : "8"
+        },
+        {
+            "varType" : "9",
+            "var" : "9"
+        },
+        {
             "varType" : "flecha norte",
             "var" : "Image.ARROW_N"
         },
@@ -33,7 +97,7 @@
             "var" : "Image.ARROW_NW"
         },
         {
-            "varType" : "corazón",
+            "varType" : "corazon",
             "var" : "Image.HEART"
         },
         {
@@ -41,7 +105,7 @@
             "var" : "Image.HEART_SMALL"
         },
         {
-            "varType" : "sí",
+            "varType" : "si",
             "var" : "Image.YES"
         },
         {
@@ -89,7 +153,7 @@
             "var" : "Image.TSHIRT"
         },
         {
-            "varType" : "patín",
+            "varType" : "patin",
             "var" : "Image.ROLLERSKATE"
         },
         {
@@ -161,11 +225,11 @@
             "var" : "Image.TARGET"
         },
         {
-            "varType" : "triángulo",
+            "varType" : "triangulo",
             "var" : "Image.TRIANGLE"
         },
         {
-            "varType" : "tríangulo izquierda",
+            "varType" : "triangulo izquierda",
             "var" : "Image.LEFT_TRIANGLE"
         },
         {
@@ -297,7 +361,7 @@
             "var" : "'tilt right'"
         },
         {
-            "varType" : "caída libre",
+            "varType" : "caida libre",
             "var" : "'free fall'"
         },
         {
@@ -349,7 +413,7 @@
             "var" : "music.PUNCHLINE"
         },
         {
-            "varType" : "cumpleaños",
+            "varType" : "cumpleanos",
             "var" : "music.BIRTHDAY"
         },
         {
@@ -357,7 +421,7 @@
             "var" : "music.BLUES"
         },
         {
-            "varType" : "persecución",
+            "varType" : "persecucion",
             "var" : "music.CHASE"
         },
         {
@@ -441,7 +505,7 @@
             "var": "temperature()"
         },
         {
-            "varType": "direccion brújula",
+            "varType": "direccion brujula",
             "var": "compass.heading()"
         },
         {
@@ -457,15 +521,15 @@
             "var": "compass.get_z()"
         },
         {
-            "varType": "aceleración x",
+            "varType": "aceleracion x",
             "var": "accelerometer.get_x()"
         },
         {
-            "varType": "aceleración y",
+            "varType": "aceleracion y",
             "var": "accelerometer.get_y()"
         },
         {
-            "varType": "aceleración z",
+            "varType": "aceleracion z",
             "var": "accelerometer.get_z()"
         },
         {

@@ -1,0 +1,22 @@
+{
+    "conditionals": [
+         {
+            "condType": "gesto",
+            "condIni": "accelerometer.is_gesture(",
+            "condFin": ")"
+        },
+        {
+            "condType": "es presionado",
+            "cond": ".is_touched()",
+            "condAux": ".is_pressed()"
+        },
+        {
+            "condType": "suma",
+            "cond": "+"
+        },
+        {
+            "condType": "igual",
+            "cond": "=="
+        }
+    ]
+}

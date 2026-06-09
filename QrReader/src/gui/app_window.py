@@ -6,7 +6,7 @@ from core.audio import GestorVoz
 from core.translator import MicrobitTranslator
 
 class AppCamara(ctk.CTk):
-    def __init__(self, workspace_dir, config_dir, cnn_dir):
+    def __init__(self, workspace_dir, config_dir):
         super().__init__()
         self.workspace_dir = workspace_dir
         self.ruta_img = os.path.join(self.workspace_dir, "inputs", "program.jpg")
@@ -16,7 +16,8 @@ class AppCamara(ctk.CTk):
         self.title("Analizador de Cámara USB")
         self.geometry("1920x1080") 
         
-        self.vision = VisionEngine(cnn_dir)
+        # Ya no hace falta pasarle el directorio de redes neuronales
+        self.vision = VisionEngine()
 
         self.grid_columnconfigure(0, weight=2)
         self.grid_columnconfigure(1, weight=0) 
@@ -32,7 +33,6 @@ class AppCamara(ctk.CTk):
         self.frame_botones = ctk.CTkFrame(self.sidebar, fg_color="transparent")
         self.frame_botones.pack(pady=5, fill="x", padx=5)
 
-        # Botón Tomar Foto
         self.btn_capturar = ctk.CTkButton(
             self.frame_botones, 
             text="Tomar Foto", 
@@ -44,9 +44,8 @@ class AppCamara(ctk.CTk):
             hover_color="#003d99",
             font=ctk.CTkFont(size=15, weight="bold")
         )
-        self.btn_capturar.pack(padx=5, pady=2, side = "left", expand = True)
+        self.btn_capturar.pack(padx=5, pady=2, side="left", expand=True)
         
-        # Botón Enviar a MicroBit
         self.btn_enviar = ctk.CTkButton(
             self.frame_botones, 
             text="Enviar a MicroBit", 
@@ -58,9 +57,8 @@ class AppCamara(ctk.CTk):
             hover_color="#106A43",
             font=ctk.CTkFont(size=15, weight="bold")
         )
-        self.btn_enviar.pack(padx=5, pady=2, side = "left", expand = True)
+        self.btn_enviar.pack(padx=5, pady=2, side="left", expand=True)
 
-        # Botón Leer Código
         self.btn_leer = ctk.CTkButton(
             self.frame_botones, 
             text="Leer Código en Alto", 
@@ -72,7 +70,7 @@ class AppCamara(ctk.CTk):
             hover_color="#D35400",
             font=ctk.CTkFont(size=15, weight="bold")
         )
-        self.btn_leer.pack(padx=5, pady=2, side = "left", expand = True)
+        self.btn_leer.pack(padx=5, pady=2, side="left", expand=True)
 
         self.btn_leer_qrs = ctk.CTkButton(
             self.frame_botones, 
@@ -90,13 +88,11 @@ class AppCamara(ctk.CTk):
         self.status_label = ctk.CTkLabel(self.sidebar, text="Estado: Cámara Activa", text_color="gray")
         self.status_label.pack(side="bottom", pady=5)
         
-        # Área de Visor
         self.contenedor_visor = ctk.CTkFrame(self)
         self.contenedor_visor.grid(row=0, column=1, rowspan=2, padx=(5, 2), pady=5, sticky="nsew")
         self.video_label = ctk.CTkLabel(self.contenedor_visor, text="")
         self.video_label.pack(expand=True, fill="both")
 
-        # Área de Código
         self.contenedor_codigo = ctk.CTkFrame(self)
         self.contenedor_codigo.grid(row=1, column=0, padx=(10, 20), pady=20, sticky="nsew")
         self.caja_texto = ctk.CTkTextbox(self.contenedor_codigo, wrap="none", font=ctk.CTkFont(family="Consolas", size=14))
@@ -123,7 +119,8 @@ class AppCamara(ctk.CTk):
     def accion_capturar(self):
         if hasattr(self, 'frame_actual_bgr'):
             self.vision.takePhoto(self.frame_actual_bgr, self.ruta_img)
-            self.traductor.generar_codigo( self.textos_qr_actuales, self.ruta_codigo) 
+            matriz_espacial = self.vision.get_command_matrix()
+            self.traductor.generar_codigo(matriz_espacial, self.ruta_codigo) 
             self.leer_codigo_generado()
 
     def accion_enviar(self):

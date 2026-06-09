@@ -1,0 +1,508 @@
+{
+    "variables" : [
+        {
+            "varType" : "boton a",
+            "var" : "button_a"
+        },
+        {
+            "varType" : "boton b",
+            "var" : "button_b"
+        },
+        {
+            "varType" : "logo",
+            "var" : "pin_logo"
+        },
+        {
+            "varType" : "pin 0",
+            "var" : "pin0"
+        },
+        {
+            "varType" : "pin 1",
+            "var" : "pin1"
+        },
+        {
+            "varType" : "pin 2",
+            "var" : "pin2"
+        },
+        {
+            "varType" : "flecha norte",
+            "var" : "Image.ARROW_N"
+        },
+        {
+            "varType" : "flecha noreste",
+            "var" : "Image.ARROW_NE"
+        },
+        {
+            "varType" : "flecha este",
+            "var" : "Image.ARROW_E"
+        },
+        {
+            "varType" : "flecha sureste",
+            "var" : "Image.ARROW_SE"
+        },
+        {
+            "varType" : "flecha sur",
+            "var" : "Image.ARROW_S"
+        },
+        {
+            "varType" : "flecha suroeste",
+            "var" : "Image.ARROW_SW"
+        },
+        {
+            "varType" : "flecha oeste",
+            "var" : "Image.ARROW_W"
+        },
+        {
+            "varType" : "flecha noroeste",
+            "var" : "Image.ARROW_NW"
+        },
+        {
+            "varType" : "corazón",
+            "var" : "Image.HEART"
+        },
+        {
+            "varType" : "corazoncito",
+            "var" : "Image.HEART_SMALL"
+        },
+        {
+            "varType" : "sí",
+            "var" : "Image.YES"
+        },
+        {
+            "varType" : "no",
+            "var" : "Image.NO"
+        },
+        {
+            "varType" : "feliz",
+            "var" : "Image.HAPPY"
+        },
+        {
+            "varType" : "triste",
+            "var" : "Image.SAD"
+        },
+        {
+            "varType" : "confundido",
+            "var" : "Image.CONFUSED"
+        },
+        {
+            "varType" : "enfadado",
+            "var" : "Image.ANGRY"
+        },
+        {
+            "varType" : "dormido",
+            "var" : "Image.ASLEEP"
+        },
+        {
+            "varType" : "sorprendido",
+            "var" : "Image.SURPRISED"
+        },
+        {
+            "varType" : "tonto",
+            "var" : "Image.SILLY"
+        },
+        {
+            "varType" : "fabuloso",
+            "var" : "Image.FABULOUS"
+        },
+        {
+            "varType" : "meh",
+            "var" : "Image.MEH"
+        },
+        {
+            "varType" : "camiseta",
+            "var" : "Image.TSHIRT"
+        },
+        {
+            "varType" : "patín",
+            "var" : "Image.ROLLERSKATE"
+        },
+        {
+            "varType" : "pato",
+            "var" : "Image.DUCK"
+        },
+        {
+            "varType" : "casa",
+            "var" : "Image.HOUSE"
+        },
+        {
+            "varType" : "tortuga",
+            "var" : "Image.TORTOISE"
+        },
+        {
+            "varType" : "mariposa",
+            "var" : "Image.BUTTERFLY"
+        },
+        {
+            "varType" : "figurita",
+            "var" : "Image.STICK_FIGURE"
+        },
+        {
+            "varType" : "fantasma",
+            "var" : "Image.GHOST"
+        },
+        {
+            "varType" : "espada",
+            "var" : "Image.SWORD"
+        },
+        {
+            "varType" : "jirafa",
+            "var" : "Image.GIRAFFE"
+        },
+        {
+            "varType" : "calavera",
+            "var" : "Image.SKULL"
+        },
+        {
+            "varType" : "paraguas",
+            "var" : "Image.UMBRELLA"
+        },
+        {
+            "varType" : "serpiente",
+            "var" : "Image.SNAKE"
+        },
+        {
+            "varType" : "conejito",
+            "var" : "Image.RABBIT"
+        },
+        {
+            "varType" : "vaca",
+            "var" : "Image.COW"
+        },
+        {
+            "varType" : "nota cuarta",
+            "var" : "Image.QUARTER_NOTE"
+        },
+        {
+            "varType" : "nota octava",
+            "var" : "Image.EIGHTH_NOTE"
+        },
+        {
+            "varType" : "tridente",
+            "var" : "Image.PITCHFORK"
+        },
+        {
+            "varType" : "diana",
+            "var" : "Image.TARGET"
+        },
+        {
+            "varType" : "triángulo",
+            "var" : "Image.TRIANGLE"
+        },
+        {
+            "varType" : "tríangulo izquierda",
+            "var" : "Image.LEFT_TRIANGLE"
+        },
+        {
+            "varType" : "ajedrez",
+            "var" : "Image.CHESS_BOARD"
+        },
+        {
+            "varType" : "diamante",
+            "var" : "Image.DIAMOND"
+        },
+        {
+            "varType" : "diamantito",
+            "var" : "Image.SMALL_DIAMOND"
+        },
+        {
+            "varType" : "cuadrado",
+            "var" : "Image.SQUARE"
+        },
+        {
+            "varType" : "cuadradito",
+            "var" : "Image.SMALL_SQUARE"
+        },
+        {
+            "varType" : "tijeras",
+            "var" : "Image.SCISSORS"
+        },
+        {
+            "varType" : "todas las flechas",
+            "var" : "Image.ALL_ARROWS"
+        },
+        {
+            "varType" : "todos los relojes",
+            "var" : "Image.ALL_CLOCKS"
+        },
+        {
+            "varType" : "reloj 1",
+            "var" : "Image.CLOCK1"
+        },
+        {
+            "varType" : "reloj 2",
+            "var" : "Image.CLOCK2"
+        },
+        {
+            "varType" : "reloj3",
+            "var" : "Image.CLOCK3"
+        },
+        {
+            "varType" : "reloj 4",
+            "var" : "Image.CLOCk4"
+        },
+        {
+            "varType" : "reloj 5",
+            "var" : "Image.CLOCK5"
+        },
+        {
+            "varType" : "reloj 6",
+            "var" : "Image.CLOCK6"
+        },
+        {
+            "varType" : "reloj 7",
+            "var" : "Image.CLOCK7"
+        },
+        {
+            "varType" : "reloj 8",
+            "var" : "Image.CLOCK8"
+        },
+        {
+            "varType" : "reloj 9",
+            "var" : "Image.CLOCK9"
+        },
+        {
+            "varType" : "reloj 10",
+            "var" : "Image.CLOCK10"
+        },
+        {
+            "varType" : "reloj 11",
+            "var" : "Image.CLOCK11"
+        },
+        {
+            "varType" : "reloj 12",
+            "var" : "Image.CLOCK12"
+        },
+        {
+            "varType" : "corchete",
+            "var" : "Image.MUSIC_CROTCHET"
+        },
+        {
+            "varType" : "corchea",
+            "var" : "Image.MUSIC_QUAVER"
+        },
+        {
+            "varType" : "corcheas",
+            "var" : "Image.MUSIC_QUAVERS"
+        },
+        {
+            "varType" : "navidad",
+            "var" : "Image.XMAS"
+        },
+        {
+            "varType" : "sonrisa",
+            "var" : "Image.SMILE"
+        },
+        {
+            "varType" : "pacman",
+            "var" : "Image.pacman"
+        },
+        {
+            "varType" : "agitar",
+            "var" : "'shake'"
+        },
+        {
+            "varType" : "logo arriba",
+            "var" : "'logo up'"
+        },
+        {
+            "varType" : "logo abajo",
+            "var" : "'logo down'"
+        },
+        {
+            "varType" : "pantalla arriba",
+            "var" : "'face up'"
+        },
+        {
+            "varType" : "inclinar izquierda",
+            "var" : "'tilt left'"
+        },
+        {
+            "varType" : "inclinar derecha",
+            "var" : "'tilt right'"
+        },
+        {
+            "varType" : "caída libre",
+            "var" : "'free fall'"
+        },
+        {
+            "varType" : "3g",
+            "var" : "'3g'"
+        },
+        {
+            "varType" : "6g",
+            "var" : "'6g'"
+        },
+        {
+            "varType" : "ba ding",
+            "var" : "music.BA_DING"
+        },
+        {
+            "varType" : "baddy",
+            "var" : "music.BADDY"
+        },
+        {
+            "varType" : "dadadadum",
+            "var" : "music.DADADADUM"
+        },
+        {
+            "varType" : "wawawawaa",
+            "var" : "music.WAWAWAWAA"
+        },
+        {
+            "varType" : "entretenimiento",
+            "var" : "music.ENTERTAINER"
+        },
+        {
+            "varType" : "funeral",
+            "var" : "music.FUNERAL"
+        },
+        {
+            "varType" : "funk",
+            "var" : "music.FUNK"
+        },
+        {
+            "varType" : "salto arriba",
+            "var" : "music.JUMP_UP"
+        },
+        {
+            "varType" : "salto abajo",
+            "var" : "music.JUMP_DOWN"
+        },
+        {
+            "varType" : "punchline",
+            "var" : "music.PUNCHLINE"
+        },
+        {
+            "varType" : "cumpleaños",
+            "var" : "music.BIRTHDAY"
+        },
+        {
+            "varType" : "blues",
+            "var" : "music.BLUES"
+        },
+        {
+            "varType" : "persecución",
+            "var" : "music.CHASE"
+        },
+        {
+            "varType" : "nyan",
+            "var" : "music.NYAN"
+        },
+        {
+            "varType" : "oda",
+            "var" : "music.ODE"
+        },
+        {
+            "varType" : "apagar",
+            "var" : "music.POWER_DOWN"
+        },
+        {
+            "varType" : "encender",
+            "var" : "music.POWER_UP"
+        },
+        {
+            "varType" : "preludio",
+            "var" : "music.PRELUDE"
+        },
+        {
+            "varType" : "python",
+            "var" : "music.PYTHON"
+        },
+        {
+            "varType" : "sonitono",
+            "var" : "music.RINGTONE"
+        },
+        {
+            "varType" : "boda",
+            "var" : "music.WEDDING"
+        },
+        {
+            "varType" : "brillos",
+            "var" : "Sound.TWINKLE"
+        },
+        {
+            "varType" : "muelle",
+            "var" : "Sound.SPRING"
+        },
+        {
+            "varType" : "planeo",
+            "var" : "Sound.SOARING"
+        },
+        {
+            "varType" : "risita",
+            "var" : "Sound.GIGGLE"
+        },
+        {
+            "varType" : "contento",
+            "var" : "Sound.HAPPY"
+        },
+        {
+            "varType" : "saludo",
+            "var" : "Sound.HELLO"
+        },
+        {
+            "varType" : "misterio",
+            "var" : "Sound.MYSTERIOUS"
+        },
+        {
+            "varType" : "tristeza",
+            "var" : "Sound.SAD"
+        },
+        {
+            "varType" : "desliz",
+            "var" : "Sound.SLIDE"
+        },
+        {
+            "varType" : "bostezo",
+            "var" : "Sound.YAWN"
+        },
+        {
+            "varType": "nivel de luz",
+            "var": "display.read_light_level()"
+        },
+        {
+            "varType": "temperatura",
+            "var": "temperature()"
+        },
+        {
+            "varType": "direccion brújula",
+            "var": "compass.heading()"
+        },
+        {
+            "varType": "fuerza magnetica x",
+            "var": "compass.get_x()"
+        },
+        {
+            "varType": "fuerza magnetica y",
+            "var": "compass.get_y()"
+        },
+        {
+            "varType": "fuerza magnetica z",
+            "var": "compass.get_z()"
+        },
+        {
+            "varType": "aceleración x",
+            "var": "accelerometer.get_x()"
+        },
+        {
+            "varType": "aceleración y",
+            "var": "accelerometer.get_y()"
+        },
+        {
+            "varType": "aceleración z",
+            "var": "accelerometer.get_z()"
+        },
+        {
+            "varType": "nivel de ruido",
+            "var": "microphone.sound_level()"
+        },
+        {
+            "varType": "tiempo en ms",
+            "var": "ticks_ms()"
+        },
+        {
+            "varType": "tiempo en micros",
+            "var": "ticks_us()"
+        }
+    ]
+}

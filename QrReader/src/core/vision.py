@@ -2,26 +2,20 @@ import cv2
 import numpy as np
 import threading
 import time
-import os
 from pyzbar.pyzbar import decode, ZBarSymbol
 
 class VisionEngine:
-    def __init__(self, cnn_dir):
+    def __init__(self):
         self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
         
-        # --- CARGA DEL MODELO CNN (MNIST) ---
-        self.ruta_modelo = os.path.join(cnn_dir, 'mnist.onnx')
-        if os.path.exists(self.ruta_modelo):
-            self.net = cv2.dnn.readNetFromONNX(self.ruta_modelo)
-        else:
-            print(f"ADVERTENCIA: No se encontró {self.ruta_modelo}. Los números no se detectarán.")
-            self.net = None
-
-        # --- MEMORIA COMPARTIDA ENTRE HILOS ---
         self.frame_actual = None
         self.elementos_detectados = []
+        
+        # Memoria de Tracking para evitar parpadeos
+        self.historial_qrs = [] 
+        
         self.lock = threading.Lock()
         self.corriendo = True
         
@@ -42,7 +36,7 @@ class VisionEngine:
                 with self.lock:
                     self.elementos_detectados = nuevos_elementos
             
-            time.sleep(0.2)
+            time.sleep(0.1) # Optimizado (no necesitamos tanta frecuencia al quitar la IA)
 
     def getProcessedFrame(self, frame):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -57,136 +51,62 @@ class VisionEngine:
                              decode(thresh_otsu, symbols=[ZBarSymbol.QRCODE]) + \
                              decode(gray_clahe, symbols=[ZBarSymbol.QRCODE])
 
-        codigos_qr = []
-        centros = []
+        qrs_frame_actual = []
+        centros_frame = []
 
         for qr in detecciones_brutas:
-            centro_x = qr.rect.left + (qr.rect.width / 2)
-            centro_y = qr.rect.top + (qr.rect.height / 2)
-            es_dup = any(abs(centro_x - cx) < 30 and abs(centro_y - cy) < 30 for cx, cy in centros)
+            cx = qr.rect.left + (qr.rect.width / 2)
+            cy = qr.rect.top + (qr.rect.height / 2)
+            es_dup = any(abs(cx - c[0]) < 20 and abs(cy - c[1]) < 20 for c in centros_frame)
             if not es_dup:
-                codigos_qr.append(qr)
-                centros.append((centro_x, centro_y))
+                qrs_frame_actual.append(qr)
+                centros_frame.append((cx, cy))
+                
+        # --- LÓGICA DE MEMORIA (ANTI-PARPADEO) ---
+        for item in self.historial_qrs:
+            item['ttl'] -= 1
+            
+        for qr, (cx, cy) in zip(qrs_frame_actual, centros_frame):
+            encontrado = False
+            for item in self.historial_qrs:
+                if abs(item['centro'][0] - cx) < 60 and abs(item['centro'][1] - cy) < 60:
+                    item['qr_obj'] = qr
+                    item['centro'] = (cx, cy)
+                    item['rect'] = qr.rect
+                    item['data'] = qr.data.decode('utf-8')
+                    item['ttl'] = 10 
+                    encontrado = True
+                    break
+            
+            if not encontrado:
+                self.historial_qrs.append({
+                    'qr_obj': qr,
+                    'centro': (cx, cy),
+                    'rect': qr.rect,
+                    'data': qr.data.decode('utf-8'),
+                    'ttl': 10
+                })
+                
+        self.historial_qrs = [item for item in self.historial_qrs if item['ttl'] > 0]
         
         elementos_detectados = []
 
-        for qr in codigos_qr:
+        for item in self.historial_qrs:
+            texto = item['data']
+            # Discriminamos visualmente si el QR contiene solo un número
+            es_numero = texto.isdigit() or (texto.replace('.', '', 1).isdigit() and texto.count('.') < 2)
+            tipo = "numero" if es_numero else "comando"
+
             elementos_detectados.append({
-                "tipo": "comando",
-                "data": qr.data.decode('utf-8'),
-                "top": qr.rect.top,
-                "left": qr.rect.left,
-                "qr_obj": qr
+                "tipo": tipo,
+                "data": texto,
+                "top": item['rect'].top,
+                "left": item['rect'].left,
+                "qr_obj": item['qr_obj']
             })
-
-        # Preprocesamiento para números
-        blur_ocr = cv2.GaussianBlur(gray, (7, 7), 0)
-        thresh_ocr = cv2.adaptiveThreshold(blur_ocr, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 41, 15)
-        kernel = np.ones((3,3), np.uint8)
-        processed_ocr = cv2.morphologyEx(thresh_ocr, cv2.MORPH_OPEN, kernel)
-        
-        # Para MNIST, necesitamos fondo negro y número blanco
-        thresh_inv = cv2.bitwise_not(processed_ocr)
-        contornos, _ = cv2.findContours(thresh_inv, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        zonas_prohibidas = []
-        for qr in codigos_qr:
-            zonas_prohibidas.append({
-                'x1': qr.rect.left - 15,
-                'y1': qr.rect.top - 15,
-                'x2': qr.rect.left + qr.rect.width + 15,
-                'y2': qr.rect.top + qr.rect.height + 15
-            })
-            
-        # --- BARRERA 1: CÁLCULO DINÁMICO DE ÁREA RELATIVA ---
-        # Calculamos cuánto mide un QR en esta imagen concreta según la altura a la que esté la cámara
-        areas_qrs = [qr.rect.width * qr.rect.height for qr in codigos_qr]
-        
-        if areas_qrs:
-            area_media_qr = sum(areas_qrs) / len(areas_qrs)
-            # Un número (la tinta negra) suele ser entre un 5% y un 80% del área total del bloque QR que lo acompaña
-            area_minima = area_media_qr * 0.05
-            area_maxima = area_media_qr * 0.80
-        else:
-            # Valores de rescate estáticos por si en este frame exacto no hemos visto ningún QR
-            area_minima, area_maxima = 2500, 20000
-        
-        for c in contornos:
-            x, y, w, h = cv2.boundingRect(c)
-            area_caja = w * h
-            
-            # Aplicamos el filtro dinámico en lugar del estático
-            if area_minima < area_caja < area_maxima:
-                aspect_ratio = float(w)/h
-                
-                # BARRERA 2: Proporción estricta (Evitamos cuadrados perfectos o líneas planas)
-                if 0.15 < aspect_ratio < 0.9: 
-                    
-                    # BARRERA 3: Densidad (Filtra las vetas del suelo)
-                    area_real_trazo = cv2.contourArea(c)
-                    densidad = area_real_trazo / float(area_caja)
-                    
-                    if densidad > 0.15:
-                    
-                        centro_c_x = x + w/2
-                        centro_c_y = y + h/2
-
-                        en_zona_prohibida = any(
-                            z['x1'] < centro_c_x < z['x2'] and z['y1'] < centro_c_y < z['y2'] 
-                            for z in zonas_prohibidas
-                        )
-                        
-                        if not en_zona_prohibida and self.net is not None:
-                            pad = 15
-                            y1 = max(0, y - pad)
-                            y2 = min(processed_ocr.shape[0], y + h + pad)
-                            x1 = max(0, x - pad)
-                            x2 = min(processed_ocr.shape[1], x + w + pad)
-                            
-                            roi = thresh_inv[y1:y2, x1:x2]
-                            
-                            if roi.size == 0:
-                                continue
-
-                            escala = 20.0 / max(w, h)
-                            roi_redimensionado = cv2.resize(roi, (0,0), fx=escala, fy=escala, interpolation=cv2.INTER_AREA)
-                            
-                            lienzo = np.zeros((28, 28), dtype=np.float32)
-                            h_r, w_r = roi_redimensionado.shape
-                            
-                            if h_r > 28 or w_r > 28:
-                                roi_redimensionado = cv2.resize(roi_redimensionado, (28, 28), interpolation=cv2.INTER_AREA)
-                                h_r, w_r = 28, 28
-
-                            y_off = (28 - h_r) // 2
-                            x_off = (28 - w_r) // 2
-                            
-                            lienzo[y_off:y_off+h_r, x_off:x_off+w_r] = roi_redimensionado / 255.0
-                            
-                            blob = cv2.dnn.blobFromImage(lienzo, 1.0, (28, 28), (0,0,0), swapRB=False, crop=False)
-                            self.net.setInput(blob)
-                            out = self.net.forward()
-                            
-                            logits = out[0]
-                            exp_logits = np.exp(logits - np.max(logits))
-                            probs = exp_logits / np.sum(exp_logits)
-                            
-                            clase_predicha = np.argmax(probs)
-                            confianza = probs[clase_predicha] * 100
-                            
-                            if confianza > 65.0:
-                                es_duplicado_num = any(abs(centro_c_x - elem["left"]) < 30 and abs(centro_c_y - elem["top"]) < 30 for elem in elementos_detectados if elem["tipo"] == "numero")
-                                if not es_duplicado_num:
-                                    elementos_detectados.append({
-                                        "tipo": "numero",
-                                        "data": str(clase_predicha),
-                                        "top": y,
-                                        "left": centro_c_x,
-                                        "bbox": (x, y, w, h)
-                                    })
 
         elementos_detectados.sort(key=lambda obj: (obj["top"] // 50, obj["left"]))
-        return elementos_detectados 
+        return elementos_detectados
 
     def markElems(self):
         ret, frame = self.cap.read()
@@ -201,29 +121,68 @@ class VisionEngine:
 
         for elem in elementos:
             texto = elem["data"]
+            qr = elem["qr_obj"]
+            puntos = qr.polygon
             
-            if elem["tipo"] == "comando":
-                qr = elem["qr_obj"]
-                puntos = qr.polygon
-                if len(puntos) == 4:
-                    pts = np.array(puntos, dtype=np.int32).reshape((-1, 1, 2))
-                    cv2.polylines(frame, [pts], True, (0, 255, 255), 3)
-                else:
-                    rect = qr.rect
-                    cv2.rectangle(frame, (rect.left, rect.top), (rect.left + rect.width, rect.top + rect.height), (0, 255, 255), 3)
-                
-                x_texto = qr.rect.left
-                y_texto = max(0, qr.rect.top - 10) 
-                cv2.putText(frame, texto, (x_texto, y_texto), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2, cv2.LINE_AA)
+            # Pintamos de Verde si es número, Amarillo si es bloque de código
+            color = (0, 255, 0) if elem["tipo"] == "numero" else (0, 255, 255)
+            prefijo = "Num: " if elem["tipo"] == "numero" else ""
+
+            if len(puntos) == 4:
+                pts = np.array(puntos, dtype=np.int32).reshape((-1, 1, 2))
+                cv2.polylines(frame, [pts], True, color, 3)
+            else:
+                rect = qr.rect
+                cv2.rectangle(frame, (rect.left, rect.top), (rect.left + rect.width, rect.top + rect.height), color, 3)
             
-            elif elem["tipo"] == "numero":
-                x, y, w, h = elem["bbox"]
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 3)
-                y_texto = max(0, y - 10)
-                cv2.putText(frame, f"Num: {texto}", (x, y_texto), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2, cv2.LINE_AA)
+            x_texto = qr.rect.left
+            y_texto = max(0, qr.rect.top - 10) 
+            cv2.putText(frame, f"{prefijo}{texto}", (x_texto, y_texto), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2, cv2.LINE_AA)
         
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         return frame, frame_rgb, [elem["data"] for elem in elementos]
+    
+    def get_command_matrix(self):
+        with self.lock:
+            elementos = list(self.elementos_detectados)
+            
+        elementos.sort(key=lambda obj: obj["top"])
+        
+        filas = []
+        fila_actual = []
+        top_referencia = -1
+        
+        for elem in elementos:
+            if top_referencia == -1:
+                top_referencia = elem["top"]
+                fila_actual.append(elem)
+            elif abs(elem["top"] - top_referencia) < 50:
+                fila_actual.append(elem)
+            else:
+                fila_actual.sort(key=lambda obj: obj["left"])
+                filas.append(fila_actual)
+                fila_actual = [elem]
+                top_referencia = elem["top"]
+                
+        if fila_actual:
+            fila_actual.sort(key=lambda obj: obj["left"])
+            filas.append(fila_actual)
+            
+        matriz = []
+        if filas:
+            min_left = min(f[0]["left"] for f in filas)
+            ancho_columna = 90 
+            
+            for fila in filas:
+                num_indentaciones = max(0, int(round((fila[0]["left"] - min_left) / ancho_columna)))
+                
+                fila_strings = [""] * num_indentaciones
+                for elem in fila:
+                    fila_strings.append(elem["data"])
+                    
+                matriz.append(fila_strings)
+                
+        return matriz
     
     def takePhoto(self, frame, ruta_destino):
         cv2.imwrite(ruta_destino, frame)

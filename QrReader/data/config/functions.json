@@ -1,5 +1,5 @@
 {
-    "funciones": [
+    "functions": [
         {
             "funcBit":"para siempre",
             "funcPyIni": "while True:",
@@ -42,12 +42,12 @@
             "funcPyFinAux": ".is_touched():"
         },
         {
-            "funcBit":"reproducir melodía",
+            "funcBit":"reproducir melodia",
             "funcPyIni": "music.play(",
             "funcPyFin": ")"
         },
         {
-            "funcBit":"parar melodía",
+            "funcBit":"parar melodia",
             "funcPyIni": "music.stop(",
             "funcPyFin": ")"
         },
@@ -82,7 +82,7 @@
             "funcPyFin": ""
         },
         {
-            "funcBit": "calibrar brújula",
+            "funcBit": "calibrar brujula",
             "funcPyIni": "compass.calibrate()",
             "funcPyFin": ""
         }

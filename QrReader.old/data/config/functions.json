@@ -1,0 +1,90 @@
+{
+    "functions": [
+        {
+            "funcBit":"para siempre",
+            "funcPyIni": "while True:",
+            "funcPyFin": ""
+        },
+        {
+            "funcBit":"mostrar",
+            "funcPyIni": "display.show(",
+            "funcPyFin": ")"
+        },
+        {
+            "funcBit":"desplazar",
+            "funcPyIni": "display.scroll(",
+            "funcPyFin": ")"
+        },
+        {
+            "funcBit":"dormir",
+            "funcPyIni": "sleep(",
+            "funcPyFin": ")"
+        },
+        {
+            "funcBit":"limpiar",
+            "funcPyIni": "display.clear(",
+            "funcPyFin": ")"
+        },
+        {
+            "funcBit":"si",
+            "funcPyIni": "if ",
+            "funcPyFin": ":"
+        },
+        {
+            "funcBit":"si no",
+            "funcPyIni": "else",
+            "funcPyFin": ":"
+        },
+        {
+            "funcBit":"al presionar",
+            "funcPyIni": "if ",
+            "funcPyFin": ".is_pressed():",
+            "funcPyFinAux": ".is_touched():"
+        },
+        {
+            "funcBit":"reproducir melodía",
+            "funcPyIni": "music.play(",
+            "funcPyFin": ")"
+        },
+        {
+            "funcBit":"parar melodía",
+            "funcPyIni": "music.stop(",
+            "funcPyFin": ")"
+        },
+        {
+            "funcBit":"decir",
+            "funcPyIni": "speech.say(",
+            "funcPyFin": ")"
+        },
+        {
+            "funcBit":"reproducir sonido",
+            "funcPyIni": "audio.play(",
+            "funcPyFin": ")"
+        },
+         {
+            "funcBit" : "fin",
+            "funcPyIni" : "",
+            "funcPyFin" : ""
+        },
+        {
+            "funcBit": "al gesto",
+            "funcPyIni": "if accelerometer.is_gesture(",
+            "funcPyFin": "):"
+        },
+        {
+            "funcBit": "al sonido alto",
+            "funcPyIni": "if microphone.current_event() == SoundEvent.LOUD:",
+            "funcPyFin": ""
+        },
+        {
+            "funcBit": "al silencio",
+            "funcPyIni": "if microphone.current_event() == SoundEvent.QUIET:",
+            "funcPyFin": ""
+        },
+        {
+            "funcBit": "calibrar brújula",
+            "funcPyIni": "compass.calibrate()",
+            "funcPyFin": ""
+        }
+    ]
+}
