@@ -1,11 +1,12 @@
 from microbit import *
 import speech
 import music
+import random
+from math import *
 
+music.pitch(587,100)
+music.pitch(698,100)
+music.pitch(783,100)
 while True:
 	if  button_a.is_pressed():
 		music.play(music.BIRTHDAY)
-	if  button_b.is_pressed():
-		display.show(Image.ALL_CLOCKS)
-	if accelerometer.is_gesture('shake'):
-		audio.play(Sound.GIGGLE)

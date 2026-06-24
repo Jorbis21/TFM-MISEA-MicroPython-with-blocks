@@ -39,8 +39,9 @@ class MicrobitTranslator:
             return
 
         with open(ruta_salida, "w", encoding="utf-8") as file:
-            file.write("from microbit import *\nimport speech\nimport music\n\n")
+            file.write("from microbit import *\nimport speech\nimport music\nimport random\nfrom math import *\n\n")
             
+            file.write("music.pitch(587,100)\nmusic.pitch(698,100)\nmusic.pitch(783,100)\n\n")
             for fila in matriz_comandos:
                 # 1. Calcular la indentación FÍSICA
                 num_tabs = 0
