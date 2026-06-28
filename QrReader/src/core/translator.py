@@ -1,143 +1,146 @@
-import json
 import os
-import sys
+import json
 import subprocess
+import sys
 
-class MicrobitTranslator:
+class MicrobitCompiler:
     def __init__(self, config_dir):
         self.config_dir = config_dir
-        self.archives = ["functions", "variables", "conditionals"]
-        self.data_consolidada = self._cargar_jsons()
+        # Hash Map maestro O(1)
+        self.tabla_simbolos = self._construir_tabla_simbolos()
 
-    def _cargar_jsons(self):
-        data = []
-        for arch in self.archives:
+    def _construir_tabla_simbolos(self):
+        tabla = {}
+        for arch in ["functions", "variables", "conditionals"]:
             ruta_json = os.path.join(self.config_dir, f'{arch}.json')
             try:
                 with open(ruta_json, 'r', encoding='utf-8') as f:
-                    data.append(json.load(f))
+                    # Como ahora son diccionarios planos, usamos .update() para fusionarlos
+                    tabla.update(json.load(f)) 
             except FileNotFoundError:
                 print(f"Advertencia: No se encontró {ruta_json}")
-        return data
+        return tabla
 
-    def _buscar_en_json(self, comando):
-        for d in self.data_consolidada:
-            for categoria in ["functions", "conditionals", "variables"]:
-                for f in d.get(categoria, []):
-                    if f.get("funcBit") == comando:
-                        return (f, "funcion")
-                    if f.get("condType") == comando:
-                        return (f, "condicion")
-                    if f.get("varType") == comando:
-                        return (f, "variable")
-        return None
-
+    def _es_valor_numerico(self, token):
+        """
+        Determina si un token debe tratarse como un número.
+        Es agnóstico a la fuente: funciona igual si viene de un QR,
+        de texto o de voz.
+        """
+        try:
+            float(token)
+            return True
+        except ValueError:
+            return False
+        
     def generar_codigo(self, matriz_comandos, ruta_salida):
-
         if not matriz_comandos:
-            print("No se recibieron comandos para traducir.")
+            print("No se recibieron comandos para compilar.")
             return
 
-        with open(ruta_salida, "w", encoding="utf-8") as file:
-            file.write("from microbit import *\nimport speech\nimport music\nimport random\nfrom math import *\n\n")
+        codigo_final = [
+            "from microbit import *",
+            "import speech",
+            "import music",
+            "import random",
+            "from math import *",
+            "\n# --- Sonido de inicialización ---",
+            "music.pitch(587, 100)",
+            "music.pitch(698, 100)",
+            "music.pitch(783, 100)",
+            "\n# --- Programa Principal ---"
+        ]
+
+        # LA PILA (Stack): Controla el alcance vertical (Scopes)
+        pila_contexto = []
+
+        for fila in matriz_comandos:
+            # 1. Análisis Léxico: Separar indentación de los tokens útiles
+            num_tabs_fisicos = 0
+            for elem in fila:
+                if elem == "":
+                    num_tabs_fisicos += 1
+                else:
+                    break
             
-            file.write("music.pitch(587,100)\nmusic.pitch(698,100)\nmusic.pitch(783,100)\n\n")
-            for fila in matriz_comandos:
-                # 1. Calcular la indentación FÍSICA
-                num_tabs = 0
-                for elem in fila:
-                    if elem == "":
-                        num_tabs += 1
-                    else:
+            tokens = [e for e in fila if e != ""]
+            if not tokens:
+                continue
+
+            # 2. Gestión de Pila (Pushdown Automaton logic)
+            # Si la indentación física baja, sacamos contextos de la pila
+            while len(pila_contexto) > num_tabs_fisicos:
+                pila_contexto.pop()
+
+            linea_str = "\t" * num_tabs_fisicos
+            
+            # 3. MÁQUINA DE ESTADOS FINITA (Autómata Horizontal)
+            estado = "INICIO"
+            args_pendientes = 0
+            
+            for token in tokens:
+                # Recuperar el nodo de la tabla de símbolos (O(1))
+                if self._es_valor_numerico(token):
+                    nodo = {"codigo": token, "tipo": "valor"}
+                else:
+                    nodo = self.tabla_simbolos.get(token)
+                    if not nodo:
+                        linea_str += f"# ERROR_SINTAXIS: Bloque '{token}' desconocido #"
                         break
-                
-                elementos = [e for e in fila if e != ""]
-                if not elementos or elementos[0].lower() in ["end", "fin"]:
-                    continue
 
-                linea_str = "\t" * num_tabs
-                stack_cierres = []  # Pila LIFO para los cierres anidados
-                last_tipo = None
-                
-                for i, comando in enumerate(elementos):
-                    # Identificar si el bloque es un número suelto
-                    es_numero = comando.isdigit() or (comando.replace('.', '', 1).isdigit() and comando.count('.') < 2)
-                    
-                    if es_numero:
-                        str_ini = str(comando)
-                        str_fin = ""
-                        tipo = "variable"
-                    else:
-                        func_data = self._buscar_en_json(comando)
-                        if func_data:
-                            data_json, tipo = func_data
-                            
-                            if tipo == "funcion":
-                                str_ini = data_json.get('funcPyIni', '')
-                                str_fin = data_json.get('funcPyFin', '')
-                                
-                                # --- CASO ESPECIAL (VISIÓN HACIA ADELANTE) ---
-                                aux_fin = data_json.get('funcPyFinAux') or data_json.get('FuncPyFinAux')
-                                if aux_fin:
-                                    es_boton = False
-                                    # Miramos el SIGUIENTE bloque en la línea física
-                                    if i + 1 < len(elementos):
-                                        sig_comando = elementos[i+1]
-                                        sig_data = self._buscar_en_json(sig_comando)
-                                        # Comprobamos si la traducción de esa variable contiene "button"
-                                        if sig_data and sig_data[1] == "variable":
-                                            var_py = sig_data[0].get('var', '')
-                                            if 'button' in var_py.lower():
-                                                es_boton = True
-                                    
-                                    # Si el bloque que viene después NO es un botón, usamos el cierre auxiliar
-                                    if not es_boton:
-                                        str_fin = aux_fin
-                                # ----------------------------------------------
-                                
-                            elif tipo == "condicion":
-                                str_ini = data_json.get('condIni', data_json.get('cond', ''))
-                                str_fin = data_json.get('condFin', '')
-                                
-                            elif tipo == "variable":
-                                str_ini = data_json.get('var', '')
-                                str_fin = ""
-                                is_val_number = str_ini.isdigit() or (str_ini.replace('.', '', 1).isdigit() and str_ini.count('.') < 2)
-                                if str_ini and not str_ini.startswith("Image.") and not is_val_number:
-                                    str_ini = f"{str_ini}"
-                        else:
-                            print(f"Comando '{comando}' no reconocido.")
-                            str_ini = f"#{comando}#"
-                            str_fin = ""
-                            tipo = "desconocido"
-
-                    # --- LÓGICA REGLAMENTARIA DE ENSAMBLAJE ---
-                    prefix = ""
-                    if i > 0:
-                        if str_ini.startswith('.'):
-                            prefix = ""
-                        elif last_tipo == "variable" and tipo == "variable":
-                            prefix = ", "
-                        elif linea_str and not linea_str.endswith('(') and not linea_str.endswith('['):
-                            prefix = " "
-                            
-                    linea_str += prefix + str_ini
-                    
-                    if str_fin:
-                        stack_cierres.append(str_fin)
+                # --- TRANSICIONES DE ESTADO ---
+                if estado == "INICIO":
+                    if nodo["tipo"] == "control":
+                        linea_str += nodo["codigo"]
+                        pila_contexto.append("BLOQUE_CONTROL") # Push a la pila
                         
-                    last_tipo = tipo
-                
-                # --- CIERRE DE LA LÍNEA ---
-                while stack_cierres:
-                    linea_str += stack_cierres.pop()
-                    
-                if not linea_str.endswith('\n'):
-                    linea_str += '\n'
-                    
-                file.write(linea_str)
+                    elif nodo["tipo"] == "funcion":
+                        linea_str += nodo["codigo"] + "("
+                        args_pendientes = nodo.get("args", 0)
+                        if args_pendientes > 0:
+                            estado = "ESPERANDO_ARG"
+                        else:
+                            linea_str += ")"
+                            
+                    elif nodo["tipo"] == "sujeto":
+                        linea_str += nodo["codigo"]
+                        estado = "ESPERANDO_METODO"
 
-        print("Código generado con éxito basado en matriz espacial.")
+                elif estado == "ESPERANDO_ARG":
+                    if nodo["tipo"] == "valor":
+                        linea_str += nodo["codigo"]
+                        args_pendientes -= 1
+                        if args_pendientes == 0:
+                            linea_str += ")"
+                            estado = "INICIO"
+                        else:
+                            linea_str += ", "
+                    else:
+                        linea_str += f" # ERROR: Se esperaba un Valor, se recibió {nodo['tipo']}"
+                        break
+
+                elif estado == "ESPERANDO_METODO":
+                    if nodo["tipo"] == "metodo":
+                        # Verificación de compatibilidad (Tipado fuerte)
+                        if nodo.get("requiere") and nodo["requiere"] != self.tabla_simbolos.get(tokens[0], {}).get("clase"):
+                            linea_str += f" # ERROR: El método no es compatible con el sujeto"
+                        else:
+                            linea_str += nodo["codigo"]
+                            pila_contexto.append("BLOQUE_METODO") # Push a la pila
+                        estado = "INICIO"
+                        
+                    elif nodo["tipo"] == "operador_logico":
+                        linea_str += nodo["codigo"]
+                        estado = "INICIO"
+
+            # 4. Cierre de línea y volcado
+            codigo_final.append(linea_str)
+
+        # Escritura a disco
+        with open(ruta_salida, "w", encoding="utf-8") as file:
+            file.write("\n".join(codigo_final) + "\n")
+
+        print("Código compilado con éxito mediante Autómata de Pila.")
 
     def subir(self, ruta_codigo):
         print(f"Iniciando el flasheo en la micro:bit con el archivo: {ruta_codigo}")

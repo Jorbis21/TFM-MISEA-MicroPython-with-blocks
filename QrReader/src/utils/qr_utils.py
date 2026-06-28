@@ -147,36 +147,34 @@ if __name__ == "__main__":
             
             if os.path.exists(ruta_json):
                 with open(ruta_json, 'r', encoding='utf-8') as f:
+                    # Cargamos el nuevo JSON aplanado
                     subdat = json.load(f)
+                    
+                    # Determinamos en qué carpeta meter el PNG basándonos en el nombre del archivo
+                    if arch == "functions":
+                        carpeta_dest = "funciones"
+                    elif arch == "conditionals":
+                        carpeta_dest = "condiciones"
+                    else:
+                        carpeta_dest = "variables"
 
-                    for func in subdat.get("functions", []):
-                        contenido = func["funcBit"]
-                        ruta_dest = os.path.join(QRCODES_DIR, "funciones", f"{contenido}.png")
-                        lista_de_imagenes.append(generar_qr_con_texto(contenido, ruta_dest))
-
-                    for cond in subdat.get("conditionals", []):
-                        contenido = cond["condType"]
-                        ruta_dest = os.path.join(QRCODES_DIR, "condiciones", f"{contenido}.png")
-                        lista_de_imagenes.append(generar_qr_con_texto(contenido, ruta_dest))
-
-                    for var in subdat.get("variables", []):
-                        contenido = var["varType"]
-                        ruta_dest = os.path.join(QRCODES_DIR, "variables", f"{contenido}.png")
-                        lista_de_imagenes.append(generar_qr_con_texto(contenido, ruta_dest))
+                    # Iteramos solo por las claves maestras (el texto del bloque)
+                    for comando in subdat.keys():
+                        ruta_dest = os.path.join(QRCODES_DIR, carpeta_dest, f"{comando}.png")
+                        lista_de_imagenes.append(generar_qr_con_texto(comando, ruta_dest))
             else:
                 print(f"Advertencia: No se encontró el archivo {ruta_json}, se omitirá.")
 
         crear_pdf_de_qrs(lista_de_imagenes, nombre_pdf="hoja_qrs_completa.pdf", tamano_mm=tamano_mm)
 
     elif opcion == "2":
-        comando_prueba = input("\nEscribe el nombre del comando para la prueba (ej. 'forever'): ").strip()
+        comando_prueba = input("\nEscribe el nombre del comando para la prueba (ej. 'para siempre'): ").strip()
         if not comando_prueba:
-            comando_prueba = "forever"
+            comando_prueba = "para siempre"
             
         crear_pdf_pruebas(comando_prueba)
         
     elif opcion == "3":
-        # Opción 3: Personalizada
         try:
             input_tam = input("\n¿De qué tamaño quieres los QR? (Introduce el valor en cm, ej: 3, 4.5, 5) [Por defecto: 5]: ").strip()
             if input_tam == "":
@@ -188,20 +186,18 @@ if __name__ == "__main__":
             tamano_mm = 50
 
         print("\nIntroduce los comandos que deseas generar separados por comas.")
-        print("Ejemplo: forever, show icon, pause, 8, heart")
+        print("Ejemplo: para siempre, mostrar, corazon, numero")
         comandos_input = input("Comandos: ").strip()
         
         if not comandos_input:
             print("No se introdujeron comandos. Abortando.")
         else:
-            # Procesamos el input separando por comas y quitando espacios en blanco innecesarios
             lista_comandos = [cmd.strip() for cmd in comandos_input.split(",") if cmd.strip()]
             
             print(f"\nGenerando {len(lista_comandos)} QRs personalizados a {tamano_mm / 10} cm...")
             
             lista_de_imagenes = []
             for comando in lista_comandos:
-                # Los guardamos en una subcarpeta llamada "personalizados" para no mezclar
                 ruta_dest = os.path.join(QRCODES_DIR, "personalizados", f"{comando}.png")
                 lista_de_imagenes.append(generar_qr_con_texto(comando, ruta_dest))
                 

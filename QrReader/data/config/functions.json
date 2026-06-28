@@ -1,90 +1,32 @@
 {
-    "functions": [
-        {
-            "funcBit":"para siempre",
-            "funcPyIni": "while True:",
-            "funcPyFin": ""
-        },
-        {
-            "funcBit":"mostrar",
-            "funcPyIni": "display.show(",
-            "funcPyFin": ")"
-        },
-        {
-            "funcBit":"desplazar",
-            "funcPyIni": "display.scroll(",
-            "funcPyFin": ")"
-        },
-        {
-            "funcBit":"dormir",
-            "funcPyIni": "sleep(",
-            "funcPyFin": ")"
-        },
-        {
-            "funcBit":"limpiar",
-            "funcPyIni": "display.clear(",
-            "funcPyFin": ")"
-        },
-        {
-            "funcBit":"si",
-            "funcPyIni": "if ",
-            "funcPyFin": ":"
-        },
-        {
-            "funcBit":"si no",
-            "funcPyIni": "else",
-            "funcPyFin": ":"
-        },
-        {
-            "funcBit":"al presionar",
-            "funcPyIni": "if ",
-            "funcPyFin": ".is_pressed():",
-            "funcPyFinAux": ".is_touched():"
-        },
-        {
-            "funcBit":"reproducir melodia",
-            "funcPyIni": "music.play(",
-            "funcPyFin": ")"
-        },
-        {
-            "funcBit":"parar melodia",
-            "funcPyIni": "music.stop(",
-            "funcPyFin": ")"
-        },
-        {
-            "funcBit":"decir",
-            "funcPyIni": "speech.say(",
-            "funcPyFin": ")"
-        },
-        {
-            "funcBit":"reproducir sonido",
-            "funcPyIni": "audio.play(",
-            "funcPyFin": ")"
-        },
-         {
-            "funcBit" : "fin",
-            "funcPyIni" : "",
-            "funcPyFin" : ""
-        },
-        {
-            "funcBit": "al gesto",
-            "funcPyIni": "if accelerometer.is_gesture(",
-            "funcPyFin": "):"
-        },
-        {
-            "funcBit": "al sonido alto",
-            "funcPyIni": "if microphone.current_event() == SoundEvent.LOUD:",
-            "funcPyFin": ""
-        },
-        {
-            "funcBit": "al silencio",
-            "funcPyIni": "if microphone.current_event() == SoundEvent.QUIET:",
-            "funcPyFin": ""
-        },
-        {
-            "funcBit": "calibrar brujula",
-            "funcPyIni": "compass.calibrate()",
-            "funcPyFin": ""
-        }
-    ]
+    "para siempre": {"codigo": "while True:", "tipo": "control"},
+    "si": {"codigo": "if ", "tipo": "control"},
+    "y si": {"codigo": "elif ", "tipo": "control"},
+    "si no": {"codigo": "else:", "tipo": "control"},
+    "mientras": {"codigo": "while ", "tipo": "control"},
+    "para cada": {"codigo": "for ", "tipo": "control"},
+    
+    "mostrar": {"codigo": "display.show", "tipo": "funcion", "args": 1},
+    "desplazar": {"codigo": "display.scroll", "tipo": "funcion", "args": 1},
+    "dormir": {"codigo": "sleep", "tipo": "funcion", "args": 1},
+    "limpiar": {"codigo": "display.clear()", "tipo": "funcion", "args": 0},
+    "encender pixel": {"codigo": "display.set_pixel", "tipo": "funcion", "args": 3},
+    
+    "reproducir melodia": {"codigo": "music.play", "tipo": "funcion", "args": 1},
+    "parar melodia": {"codigo": "music.stop()", "tipo": "funcion", "args": 0},
+    "poner tempo a": {"codigo": "music.set_tempo", "tipo": "funcion", "args": 1},
+    "reproducir frecuencia": {"codigo": "music.pitch", "tipo": "funcion", "args": 1},
+    
+    "decir": {"codigo": "speech.say", "tipo": "funcion", "args": 1},
+    "reproducir sonido": {"codigo": "audio.play", "tipo": "funcion", "args": 1},
+    "poner volumen a": {"codigo": "set_volume", "tipo": "funcion", "args": 1},
+    "apagar altavoz": {"codigo": "speaker.off()", "tipo": "funcion", "args": 0},
+    "encender altavoz": {"codigo": "speaker.on()", "tipo": "funcion", "args": 0},
+    
+    "calibrar brujula": {"codigo": "compass.calibrate()", "tipo": "funcion", "args": 0},
+    "leer por ordenador": {"codigo": "print", "tipo": "funcion", "args": 1},
+    
+    "configurar radio": {"codigo": "radio.config", "tipo": "funcion", "args": 2},
+    "encender radio": {"codigo": "radio.on()", "tipo": "funcion", "args": 0},
+    "enviar por radio": {"codigo": "radio.send", "tipo": "funcion", "args": 1}
 }

@@ -12,7 +12,7 @@ from google.genai import types
 from PIL import Image
 from core.vision import VisionEngine
 from core.audio import GestorVoz
-from core.translator import MicrobitTranslator
+from core.translator import MicrobitCompiler
 
 # === CONFIGURACIÓN DE GEMINI (NUEVO SDK) ===
 cliente_gemini = genai.Client(api_key="AQ.Ab8RN6JQTC-SYK-S--HwCZ1vUbUvZ6-z-Frek--H-vkNUdFJ-w")
@@ -129,7 +129,7 @@ class AppCamara(ctk.CTk):
 
         self.leer_codigo_generado()
         self.actualizar_frame()
-        self.traductor = MicrobitTranslator(config_dir=config_dir)
+        self.traductor = MicrobitCompiler(config_dir=config_dir)
 
         # Atajos de teclado para guardar
         self.bind("<Control-s>", self.accion_atajo_guardar)

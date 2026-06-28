@@ -1,22 +1,79 @@
 {
-    "conditionals": [
-         {
-            "condType": "gesto",
-            "condIni": "accelerometer.is_gesture(",
-            "condFin": ")"
-        },
-        {
-            "condType": "es presionado",
-            "cond": ".is_touched()",
-            "condAux": ".is_pressed()"
-        },
-        {
-            "condType": "suma",
-            "cond": "+"
-        },
-        {
-            "condType": "igual",
-            "cond": "=="
-        }
-    ]
+    "al presionar": {"codigo": ".is_pressed()", "tipo": "metodo", "requiere": "boton"},
+    "es presionado": {"codigo": ".is_touched()", "tipo": "metodo", "requiere": "pin"},
+    "veces presionado": {"codigo": ".get_presses()", "tipo": "metodo", "requiere": "boton"},
+    "gesto": {"codigo": "accelerometer.is_gesture", "tipo": "funcion", "args": 1},
+    "ruido": {"codigo": "microphone.current_event() == SoundEvent.LOUD", "tipo": "valor"},
+    "silencio": {"codigo": "microphone.current_event() == SoundEvent.QUIET", "tipo": "valor"},
+    
+    "mas": {"codigo": " + ", "tipo": "operador_logico"},
+    "menos": {"codigo": " - ", "tipo": "operador_logico"},
+    "por": {"codigo": " * ", "tipo": "operador_logico"},
+    "entre": {"codigo": " / ", "tipo": "operador_logico"},
+    "elevado": {"codigo": " ** ", "tipo": "operador_logico"},
+    "modulo": {"codigo": " % ", "tipo": "operador_logico"},
+    "division y redondeo": {"codigo": " // ", "tipo": "operador_logico"},
+    
+    "igual": {"codigo": " == ", "tipo": "operador_logico"},
+    "menor o igual": {"codigo": " <= ", "tipo": "operador_logico"},
+    "mayor o igual": {"codigo": " >= ", "tipo": "operador_logico"},
+    "menor": {"codigo": " < ", "tipo": "operador_logico"},
+    "mayor": {"codigo": " > ", "tipo": "operador_logico"},
+    "distinto": {"codigo": " != ", "tipo": "operador_logico"},
+    "y": {"codigo": " and ", "tipo": "operador_logico"},
+    "o": {"codigo": " or ", "tipo": "operador_logico"},
+    "no": {"codigo": " not ", "tipo": "operador_logico"},
+    "contiene": {"codigo": " in ", "tipo": "operador_logico"},
+    
+    "absoluto": {"codigo": "abs", "tipo": "funcion", "args": 1},
+    "numero aleatorio": {"codigo": "random.randint", "tipo": "funcion", "args": 2},
+    "redondeo hacia abajo": {"codigo": "floor", "tipo": "funcion", "args": 1},
+    "redondeo hacia arriba": {"codigo": "ceil", "tipo": "funcion", "args": 1},
+    "redondeo segun posicion decimal": {"codigo": "round", "tipo": "funcion", "args": 2},
+    "cambio a int": {"codigo": "int", "tipo": "funcion", "args": 1},
+    "raiz": {"codigo": "sqrt", "tipo": "funcion", "args": 1},
+    "coseno": {"codigo": "cos", "tipo": "funcion", "args": 1},
+    "seno": {"codigo": "sin", "tipo": "funcion", "args": 1},
+    "tangente": {"codigo": "tan", "tipo": "funcion", "args": 1},
+    "arcocoseno": {"codigo": "acos", "tipo": "funcion", "args": 1},
+    "arcoseno": {"codigo": "asin", "tipo": "funcion", "args": 1},
+    "arcotangente": {"codigo": "atan", "tipo": "funcion", "args": 1},
+    "arcotangente2": {"codigo": "atan2", "tipo": "funcion", "args": 2},
+    "radianes": {"codigo": "radians", "tipo": "funcion", "args": 1},
+    "grados": {"codigo": "degrees", "tipo": "funcion", "args": 1},
+    "logaritmo": {"codigo": "log", "tipo": "funcion", "args": 1},
+    "a binario": {"codigo": "bin", "tipo": "funcion", "args": 1},
+    
+    "and bin": {"codigo": " & ", "tipo": "operador_logico"},
+    "or bin": {"codigo": " | ", "tipo": "operador_logico"},
+    "xor bin": {"codigo": " ^ ", "tipo": "operador_logico"},
+    "desplazamiento izquierda": {"codigo": " << ", "tipo": "operador_logico"},
+    "desplazamiento derecha": {"codigo": " >> ", "tipo": "operador_logico"},
+    "complementario": {"codigo": " ~", "tipo": "operador_logico"},
+    
+    "dos puntos": {"codigo": ":\n", "tipo": "sintaxis"},
+    "array": {"codigo": "[", "tipo": "sintaxis"},
+    
+    "sustituir": {"codigo": ".replace", "tipo": "metodo", "args": 2},
+    "quitar": {"codigo": ".strip()", "tipo": "metodo", "args": 0},
+    "longitud": {"codigo": "len", "tipo": "funcion", "args": 1},
+    "a mayusculas": {"codigo": ".upper()", "tipo": "metodo", "args": 0},
+    "a minusculas": {"codigo": ".lower()", "tipo": "metodo", "args": 0},
+    "encontrar desde el inicio": {"codigo": ".find", "tipo": "metodo", "args": 1},
+    "encontrar desde el final": {"codigo": ".rfind", "tipo": "metodo", "args": 1},
+    "numero de": {"codigo": ".count", "tipo": "metodo", "args": 1},
+    "esta en minuscula": {"codigo": ".islower()", "tipo": "metodo", "args": 0},
+    "esta en mayuscula": {"codigo": ".isupper()", "tipo": "metodo", "args": 0},
+    "es letra": {"codigo": ".isalpha()", "tipo": "metodo", "args": 0},
+    "es numero": {"codigo": ".isdigit()", "tipo": "metodo", "args": 0},
+    "es espacio": {"codigo": ".isspace()", "tipo": "metodo", "args": 0},
+    "empieza con": {"codigo": ".startswith", "tipo": "metodo", "args": 1},
+    "finaliza con": {"codigo": ".endswith", "tipo": "metodo", "args": 1},
+    "ASCII": {"codigo": "ord", "tipo": "funcion", "args": 1},
+    "caracter": {"codigo": "chr", "tipo": "funcion", "args": 1},
+    
+    "leer digital": {"codigo": ".read_digital()", "tipo": "metodo", "requiere": "pin"},
+    "escribir digital": {"codigo": ".write_digital", "tipo": "metodo", "args": 1, "requiere": "pin"},
+    "leer analogico": {"codigo": ".read_analog()", "tipo": "metodo", "requiere": "pin"},
+    "escribir analogico": {"codigo": ".write_analog", "tipo": "metodo", "args": 1, "requiere": "pin"}
 }

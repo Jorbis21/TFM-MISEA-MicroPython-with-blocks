@@ -20,7 +20,7 @@ class GestorVoz:
     motor_offline.setProperty('rate', 160) 
 
     @staticmethod
-    def leer_texto(texto, sin_internet):
+    def leer_texto(texto, sin_internet=False):
         """
         Lanza un hilo secundario para no congelar la interfaz gráfica 
         mientras se gestionan las voces.
@@ -29,7 +29,7 @@ class GestorVoz:
         hilo.start()
 
     @staticmethod
-    def _procesar_voz(texto, sin_internet):
+    def _procesar_voz(texto, sin_internet=False):
         if not sin_internet:
             # Si hay un audio de Edge TTS sonando, lo callamos
             if pygame.mixer.music.get_busy():

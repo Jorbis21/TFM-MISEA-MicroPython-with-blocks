@@ -93,9 +93,12 @@ class VisionEngine:
 
         for item in self.historial_qrs:
             texto = item['data']
-            # Discriminamos visualmente si el QR contiene solo un número
-            es_numero = texto.isdigit() or (texto.replace('.', '', 1).isdigit() and texto.count('.') < 2)
-            tipo = "numero" if es_numero else "comando"
+            
+            try:
+                float(texto)
+                tipo = "numero"
+            except ValueError:
+                tipo = "comando"
 
             elementos_detectados.append({
                 "tipo": tipo,
