@@ -1,0 +1,1064 @@
+{
+    "para siempre": {
+        "codigo": "while True:",
+        "tipo": "control"
+    },
+    "al presionar": {
+        "codigo": ".is_pressed()",
+        "tipo": "control_metodo"
+    },
+    "al gesto": {
+        "codigo": "accelerometer.is_gesture",
+        "tipo": "control_funcion"
+    },
+    "si": {
+        "codigo": "Image.YES",
+        "tipo": "valor"
+    },
+    "y si": {
+        "codigo": "elif ",
+        "tipo": "control"
+    },
+    "si no": {
+        "codigo": "else:",
+        "tipo": "control"
+    },
+    "mientras": {
+        "codigo": "while ",
+        "tipo": "control"
+    },
+    "para cada": {
+        "codigo": "for ",
+        "tipo": "control"
+    },
+    "mostrar": {
+        "codigo": "display.show",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "desplazar": {
+        "codigo": "display.scroll",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "dormir": {
+        "codigo": "sleep",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "limpiar": {
+        "codigo": "display.clear()",
+        "tipo": "funcion",
+        "args": 0
+    },
+    "encender pixel": {
+        "codigo": "display.set_pixel",
+        "tipo": "funcion",
+        "args": 3
+    },
+    "reproducir melodia": {
+        "codigo": "music.play",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "parar melodia": {
+        "codigo": "music.stop()",
+        "tipo": "funcion",
+        "args": 0
+    },
+    "poner tempo a": {
+        "codigo": "music.set_tempo",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "reproducir frecuencia": {
+        "codigo": "music.pitch",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "decir": {
+        "codigo": "speech.say",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "reproducir sonido": {
+        "codigo": "audio.play",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "poner volumen a": {
+        "codigo": "set_volume",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "apagar altavoz": {
+        "codigo": "speaker.off()",
+        "tipo": "funcion",
+        "args": 0
+    },
+    "encender altavoz": {
+        "codigo": "speaker.on()",
+        "tipo": "funcion",
+        "args": 0
+    },
+    "calibrar brujula": {
+        "codigo": "compass.calibrate()",
+        "tipo": "funcion",
+        "args": 0
+    },
+    "leer por ordenador": {
+        "codigo": "print",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "configurar radio": {
+        "codigo": "radio.config",
+        "tipo": "funcion",
+        "args": 2
+    },
+    "encender radio": {
+        "codigo": "radio.on()",
+        "tipo": "funcion",
+        "args": 0
+    },
+    "enviar por radio": {
+        "codigo": "radio.send",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "es presionado": {
+        "codigo": ".is_pressed()",
+        "tipo": "metodo",
+        "requiere": "boton"
+    },
+    "es tocado": {
+        "codigo": ".is_touched()",
+        "tipo": "metodo",
+        "requiere": "pin"
+    },
+    "veces presionado": {
+        "codigo": ".get_presses()",
+        "tipo": "metodo",
+        "requiere": "boton"
+    },
+    "gesto": {
+        "codigo": "accelerometer.is_gesture",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "ruido": {
+        "codigo": "microphone.current_event() == SoundEvent.LOUD",
+        "tipo": "valor"
+    },
+    "silencio": {
+        "codigo": "microphone.current_event() == SoundEvent.QUIET",
+        "tipo": "valor"
+    },
+    "mas": {
+        "codigo": " + ",
+        "tipo": "operador_logico"
+    },
+    "menos": {
+        "codigo": " - ",
+        "tipo": "operador_logico"
+    },
+    "por": {
+        "codigo": " * ",
+        "tipo": "operador_logico"
+    },
+    "entre": {
+        "codigo": " / ",
+        "tipo": "operador_logico"
+    },
+    "elevado": {
+        "codigo": " ** ",
+        "tipo": "operador_logico"
+    },
+    "modulo": {
+        "codigo": " % ",
+        "tipo": "operador_logico"
+    },
+    "division y redondeo": {
+        "codigo": " // ",
+        "tipo": "operador_logico"
+    },
+    "igual": {
+        "codigo": " == ",
+        "tipo": "operador_logico"
+    },
+    "menor o igual": {
+        "codigo": " <= ",
+        "tipo": "operador_logico"
+    },
+    "mayor o igual": {
+        "codigo": " >= ",
+        "tipo": "operador_logico"
+    },
+    "menor": {
+        "codigo": " < ",
+        "tipo": "operador_logico"
+    },
+    "mayor": {
+        "codigo": " > ",
+        "tipo": "operador_logico"
+    },
+    "distinto": {
+        "codigo": " != ",
+        "tipo": "operador_logico"
+    },
+    "y": {
+        "codigo": " and ",
+        "tipo": "operador_logico"
+    },
+    "o": {
+        "codigo": " or ",
+        "tipo": "operador_logico"
+    },
+    "no": {
+        "codigo": "Image.NO",
+        "tipo": "valor"
+    },
+    "contiene": {
+        "codigo": " in ",
+        "tipo": "operador_logico"
+    },
+    "absoluto": {
+        "codigo": "abs",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "numero aleatorio": {
+        "codigo": "random.randint",
+        "tipo": "funcion",
+        "args": 2
+    },
+    "redondeo hacia abajo": {
+        "codigo": "floor",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "redondeo hacia arriba": {
+        "codigo": "ceil",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "redondeo segun posicion decimal": {
+        "codigo": "round",
+        "tipo": "funcion",
+        "args": 2
+    },
+    "cambio a int": {
+        "codigo": "int",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "raiz": {
+        "codigo": "sqrt",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "coseno": {
+        "codigo": "cos",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "seno": {
+        "codigo": "sin",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "tangente": {
+        "codigo": "tan",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "arcocoseno": {
+        "codigo": "acos",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "arcoseno": {
+        "codigo": "asin",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "arcotangente": {
+        "codigo": "atan",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "arcotangente2": {
+        "codigo": "atan2",
+        "tipo": "funcion",
+        "args": 2
+    },
+    "radianes": {
+        "codigo": "radians",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "grados": {
+        "codigo": "degrees",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "logaritmo": {
+        "codigo": "log",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "a binario": {
+        "codigo": "bin",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "and bin": {
+        "codigo": " & ",
+        "tipo": "operador_logico"
+    },
+    "or bin": {
+        "codigo": " | ",
+        "tipo": "operador_logico"
+    },
+    "xor bin": {
+        "codigo": " ^ ",
+        "tipo": "operador_logico"
+    },
+    "desplazamiento izquierda": {
+        "codigo": " << ",
+        "tipo": "operador_logico"
+    },
+    "desplazamiento derecha": {
+        "codigo": " >> ",
+        "tipo": "operador_logico"
+    },
+    "complementario": {
+        "codigo": " ~",
+        "tipo": "operador_logico"
+    },
+    "dos puntos": {
+        "codigo": ":\n",
+        "tipo": "sintaxis"
+    },
+    "array": {
+        "codigo": "[",
+        "tipo": "sintaxis"
+    },
+    "sustituir": {
+        "codigo": ".replace",
+        "tipo": "metodo",
+        "args": 2
+    },
+    "quitar": {
+        "codigo": ".strip()",
+        "tipo": "metodo",
+        "args": 0
+    },
+    "longitud": {
+        "codigo": "len",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "a mayusculas": {
+        "codigo": ".upper()",
+        "tipo": "metodo",
+        "args": 0
+    },
+    "a minusculas": {
+        "codigo": ".lower()",
+        "tipo": "metodo",
+        "args": 0
+    },
+    "encontrar desde el inicio": {
+        "codigo": ".find",
+        "tipo": "metodo",
+        "args": 1
+    },
+    "encontrar desde el final": {
+        "codigo": ".rfind",
+        "tipo": "metodo",
+        "args": 1
+    },
+    "numero de": {
+        "codigo": ".count",
+        "tipo": "metodo",
+        "args": 1
+    },
+    "esta en minuscula": {
+        "codigo": ".islower()",
+        "tipo": "metodo",
+        "args": 0
+    },
+    "esta en mayuscula": {
+        "codigo": ".isupper()",
+        "tipo": "metodo",
+        "args": 0
+    },
+    "es letra": {
+        "codigo": ".isalpha()",
+        "tipo": "metodo",
+        "args": 0
+    },
+    "es numero": {
+        "codigo": ".isdigit()",
+        "tipo": "metodo",
+        "args": 0
+    },
+    "es espacio": {
+        "codigo": ".isspace()",
+        "tipo": "metodo",
+        "args": 0
+    },
+    "empieza con": {
+        "codigo": ".startswith",
+        "tipo": "metodo",
+        "args": 1
+    },
+    "finaliza con": {
+        "codigo": ".endswith",
+        "tipo": "metodo",
+        "args": 1
+    },
+    "ASCII": {
+        "codigo": "ord",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "caracter": {
+        "codigo": "chr",
+        "tipo": "funcion",
+        "args": 1
+    },
+    "leer digital": {
+        "codigo": ".read_digital()",
+        "tipo": "metodo",
+        "requiere": "pin"
+    },
+    "escribir digital": {
+        "codigo": ".write_digital",
+        "tipo": "metodo",
+        "args": 1,
+        "requiere": "pin"
+    },
+    "leer analogico": {
+        "codigo": ".read_analog()",
+        "tipo": "metodo",
+        "requiere": "pin"
+    },
+    "escribir analogico": {
+        "codigo": ".write_analog",
+        "tipo": "metodo",
+        "args": 1,
+        "requiere": "pin"
+    },
+    "boton a": {
+        "codigo": "button_a",
+        "tipo": "sujeto",
+        "clase": "boton"
+    },
+    "boton b": {
+        "codigo": "button_b",
+        "tipo": "sujeto",
+        "clase": "boton"
+    },
+    "logo": {
+        "codigo": "pin_logo",
+        "tipo": "sujeto",
+        "clase": "pin_tactil"
+    },
+    "pin 0": {
+        "codigo": "pin0",
+        "tipo": "sujeto",
+        "clase": "pin"
+    },
+    "pin 1": {
+        "codigo": "pin1",
+        "tipo": "sujeto",
+        "clase": "pin"
+    },
+    "pin 2": {
+        "codigo": "pin2",
+        "tipo": "sujeto",
+        "clase": "pin"
+    },
+    "valor": {
+        "codigo": "Inserte_valor",
+        "tipo": "valor"
+    },
+    "numero": {
+        "codigo": "num",
+        "tipo": "valor"
+    },
+    "0": {
+        "codigo": "0",
+        "tipo": "valor"
+    },
+    "1": {
+        "codigo": "1",
+        "tipo": "valor"
+    },
+    "2": {
+        "codigo": "2",
+        "tipo": "valor"
+    },
+    "3": {
+        "codigo": "3",
+        "tipo": "valor"
+    },
+    "4": {
+        "codigo": "4",
+        "tipo": "valor"
+    },
+    "5": {
+        "codigo": "5",
+        "tipo": "valor"
+    },
+    "6": {
+        "codigo": "6",
+        "tipo": "valor"
+    },
+    "7": {
+        "codigo": "7",
+        "tipo": "valor"
+    },
+    "8": {
+        "codigo": "8",
+        "tipo": "valor"
+    },
+    "9": {
+        "codigo": "9",
+        "tipo": "valor"
+    },
+    "verdadero": {
+        "codigo": "True",
+        "tipo": "valor"
+    },
+    "falso": {
+        "codigo": "False",
+        "tipo": "valor"
+    },
+    "pi": {
+        "codigo": "pi",
+        "tipo": "valor"
+    },
+    "numero e": {
+        "codigo": "e",
+        "tipo": "valor"
+    },
+    "nivel de luz": {
+        "codigo": "display.read_light_level()",
+        "tipo": "valor"
+    },
+    "temperatura": {
+        "codigo": "temperature()",
+        "tipo": "valor"
+    },
+    "direccion brujula": {
+        "codigo": "compass.heading()",
+        "tipo": "valor"
+    },
+    "fuerza magnetica x": {
+        "codigo": "compass.get_x()",
+        "tipo": "valor"
+    },
+    "fuerza magnetica y": {
+        "codigo": "compass.get_y()",
+        "tipo": "valor"
+    },
+    "fuerza magnetica z": {
+        "codigo": "compass.get_z()",
+        "tipo": "valor"
+    },
+    "campo magnetico": {
+        "codigo": "compass.get_field_strength()",
+        "tipo": "valor"
+    },
+    "aceleracion x": {
+        "codigo": "accelerometer.get_x()",
+        "tipo": "valor"
+    },
+    "aceleracion y": {
+        "codigo": "accelerometer.get_y()",
+        "tipo": "valor"
+    },
+    "aceleracion z": {
+        "codigo": "accelerometer.get_z()",
+        "tipo": "valor"
+    },
+    "nivel de ruido": {
+        "codigo": "microphone.sound_level()",
+        "tipo": "valor"
+    },
+    "tiempo en ms": {
+        "codigo": "ticks_ms()",
+        "tipo": "valor"
+    },
+    "tiempo en micros": {
+        "codigo": "ticks_us()",
+        "tipo": "valor"
+    },
+    "recibir por radio": {
+        "codigo": "radio.receive()",
+        "tipo": "valor"
+    },
+    "flecha norte": {
+        "codigo": "Image.ARROW_N",
+        "tipo": "valor"
+    },
+    "flecha noreste": {
+        "codigo": "Image.ARROW_NE",
+        "tipo": "valor"
+    },
+    "flecha este": {
+        "codigo": "Image.ARROW_E",
+        "tipo": "valor"
+    },
+    "flecha sureste": {
+        "codigo": "Image.ARROW_SE",
+        "tipo": "valor"
+    },
+    "flecha sur": {
+        "codigo": "Image.ARROW_S",
+        "tipo": "valor"
+    },
+    "flecha suroeste": {
+        "codigo": "Image.ARROW_SW",
+        "tipo": "valor"
+    },
+    "flecha oeste": {
+        "codigo": "Image.ARROW_W",
+        "tipo": "valor"
+    },
+    "flecha noroeste": {
+        "codigo": "Image.ARROW_NW",
+        "tipo": "valor"
+    },
+    "corazon": {
+        "codigo": "Image.HEART",
+        "tipo": "valor"
+    },
+    "corazoncito": {
+        "codigo": "Image.HEART_SMALL",
+        "tipo": "valor"
+    },
+    "feliz": {
+        "codigo": "Image.HAPPY",
+        "tipo": "valor"
+    },
+    "triste": {
+        "codigo": "Image.SAD",
+        "tipo": "valor"
+    },
+    "confundido": {
+        "codigo": "Image.CONFUSED",
+        "tipo": "valor"
+    },
+    "enfadado": {
+        "codigo": "Image.ANGRY",
+        "tipo": "valor"
+    },
+    "dormido": {
+        "codigo": "Image.ASLEEP",
+        "tipo": "valor"
+    },
+    "sorprendido": {
+        "codigo": "Image.SURPRISED",
+        "tipo": "valor"
+    },
+    "tonto": {
+        "codigo": "Image.SILLY",
+        "tipo": "valor"
+    },
+    "fabuloso": {
+        "codigo": "Image.FABULOUS",
+        "tipo": "valor"
+    },
+    "meh": {
+        "codigo": "Image.MEH",
+        "tipo": "valor"
+    },
+    "camiseta": {
+        "codigo": "Image.TSHIRT",
+        "tipo": "valor"
+    },
+    "patin": {
+        "codigo": "Image.ROLLERSKATE",
+        "tipo": "valor"
+    },
+    "pato": {
+        "codigo": "Image.DUCK",
+        "tipo": "valor"
+    },
+    "casa": {
+        "codigo": "Image.HOUSE",
+        "tipo": "valor"
+    },
+    "tortuga": {
+        "codigo": "Image.TORTOISE",
+        "tipo": "valor"
+    },
+    "mariposa": {
+        "codigo": "Image.BUTTERFLY",
+        "tipo": "valor"
+    },
+    "figurita": {
+        "codigo": "Image.STICK_FIGURE",
+        "tipo": "valor"
+    },
+    "fantasma": {
+        "codigo": "Image.GHOST",
+        "tipo": "valor"
+    },
+    "espada": {
+        "codigo": "Image.SWORD",
+        "tipo": "valor"
+    },
+    "jirafa": {
+        "codigo": "Image.GIRAFFE",
+        "tipo": "valor"
+    },
+    "calavera": {
+        "codigo": "Image.SKULL",
+        "tipo": "valor"
+    },
+    "paraguas": {
+        "codigo": "Image.UMBRELLA",
+        "tipo": "valor"
+    },
+    "serpiente": {
+        "codigo": "Image.SNAKE",
+        "tipo": "valor"
+    },
+    "conejito": {
+        "codigo": "Image.RABBIT",
+        "tipo": "valor"
+    },
+    "vaca": {
+        "codigo": "Image.COW",
+        "tipo": "valor"
+    },
+    "nota cuarta": {
+        "codigo": "Image.QUARTER_NOTE",
+        "tipo": "valor"
+    },
+    "nota octava": {
+        "codigo": "Image.EIGHTH_NOTE",
+        "tipo": "valor"
+    },
+    "tridente": {
+        "codigo": "Image.PITCHFORK",
+        "tipo": "valor"
+    },
+    "diana": {
+        "codigo": "Image.TARGET",
+        "tipo": "valor"
+    },
+    "triangulo": {
+        "codigo": "Image.TRIANGLE",
+        "tipo": "valor"
+    },
+    "triangulo izquierda": {
+        "codigo": "Image.LEFT_TRIANGLE",
+        "tipo": "valor"
+    },
+    "ajedrez": {
+        "codigo": "Image.CHESS_BOARD",
+        "tipo": "valor"
+    },
+    "diamante": {
+        "codigo": "Image.DIAMOND",
+        "tipo": "valor"
+    },
+    "diamantito": {
+        "codigo": "Image.SMALL_DIAMOND",
+        "tipo": "valor"
+    },
+    "cuadrado": {
+        "codigo": "Image.SQUARE",
+        "tipo": "valor"
+    },
+    "cuadradito": {
+        "codigo": "Image.SMALL_SQUARE",
+        "tipo": "valor"
+    },
+    "tijeras": {
+        "codigo": "Image.SCISSORS",
+        "tipo": "valor"
+    },
+    "todas las flechas": {
+        "codigo": "Image.ALL_ARROWS",
+        "tipo": "valor"
+    },
+    "todos los relojes": {
+        "codigo": "Image.ALL_CLOCKS",
+        "tipo": "valor"
+    },
+    "reloj 1": {
+        "codigo": "Image.CLOCK1",
+        "tipo": "valor"
+    },
+    "reloj 2": {
+        "codigo": "Image.CLOCK2",
+        "tipo": "valor"
+    },
+    "reloj 3": {
+        "codigo": "Image.CLOCK3",
+        "tipo": "valor"
+    },
+    "reloj 4": {
+        "codigo": "Image.CLOCK4",
+        "tipo": "valor"
+    },
+    "reloj 5": {
+        "codigo": "Image.CLOCK5",
+        "tipo": "valor"
+    },
+    "reloj 6": {
+        "codigo": "Image.CLOCK6",
+        "tipo": "valor"
+    },
+    "reloj 7": {
+        "codigo": "Image.CLOCK7",
+        "tipo": "valor"
+    },
+    "reloj 8": {
+        "codigo": "Image.CLOCK8",
+        "tipo": "valor"
+    },
+    "reloj 9": {
+        "codigo": "Image.CLOCK9",
+        "tipo": "valor"
+    },
+    "reloj 10": {
+        "codigo": "Image.CLOCK10",
+        "tipo": "valor"
+    },
+    "reloj 11": {
+        "codigo": "Image.CLOCK11",
+        "tipo": "valor"
+    },
+    "reloj 12": {
+        "codigo": "Image.CLOCK12",
+        "tipo": "valor"
+    },
+    "corchete": {
+        "codigo": "Image.MUSIC_CROTCHET",
+        "tipo": "valor"
+    },
+    "corchea": {
+        "codigo": "Image.MUSIC_QUAVER",
+        "tipo": "valor"
+    },
+    "corcheas": {
+        "codigo": "Image.MUSIC_QUAVERS",
+        "tipo": "valor"
+    },
+    "navidad": {
+        "codigo": "Image.XMAS",
+        "tipo": "valor"
+    },
+    "sonrisa": {
+        "codigo": "Image.SMILE",
+        "tipo": "valor"
+    },
+    "pacman": {
+        "codigo": "Image.PACMAN",
+        "tipo": "valor"
+    },
+    "agitar": {
+        "codigo": "'shake'",
+        "tipo": "valor"
+    },
+    "logo arriba": {
+        "codigo": "'logo up'",
+        "tipo": "valor"
+    },
+    "logo abajo": {
+        "codigo": "'logo down'",
+        "tipo": "valor"
+    },
+    "pantalla arriba": {
+        "codigo": "'face up'",
+        "tipo": "valor"
+    },
+    "inclinar izquierda": {
+        "codigo": "'tilt left'",
+        "tipo": "valor"
+    },
+    "inclinar derecha": {
+        "codigo": "'tilt right'",
+        "tipo": "valor"
+    },
+    "caida libre": {
+        "codigo": "'free fall'",
+        "tipo": "valor"
+    },
+    "3g": {
+        "codigo": "'3g'",
+        "tipo": "valor"
+    },
+    "ba ding": {
+        "codigo": "music.BA_DING",
+        "tipo": "valor"
+    },
+    "baddy": {
+        "codigo": "music.BADDY",
+        "tipo": "valor"
+    },
+    "dadadadum": {
+        "codigo": "music.DADADADUM",
+        "tipo": "valor"
+    },
+    "wawawawaa": {
+        "codigo": "music.WAWAWAWAA",
+        "tipo": "valor"
+    },
+    "entretenimiento": {
+        "codigo": "music.ENTERTAINER",
+        "tipo": "valor"
+    },
+    "funeral": {
+        "codigo": "music.FUNERAL",
+        "tipo": "valor"
+    },
+    "funk": {
+        "codigo": "music.FUNK",
+        "tipo": "valor"
+    },
+    "salto arriba": {
+        "codigo": "music.JUMP_UP",
+        "tipo": "valor"
+    },
+    "salto abajo": {
+        "codigo": "music.JUMP_DOWN",
+        "tipo": "valor"
+    },
+    "punchline": {
+        "codigo": "music.PUNCHLINE",
+        "tipo": "valor"
+    },
+    "cumpleanos": {
+        "codigo": "music.BIRTHDAY",
+        "tipo": "valor"
+    },
+    "blues": {
+        "codigo": "music.BLUES",
+        "tipo": "valor"
+    },
+    "persecucion": {
+        "codigo": "music.CHASE",
+        "tipo": "valor"
+    },
+    "nyan": {
+        "codigo": "music.NYAN",
+        "tipo": "valor"
+    },
+    "oda": {
+        "codigo": "music.ODE",
+        "tipo": "valor"
+    },
+    "apagar": {
+        "codigo": "music.POWER_DOWN",
+        "tipo": "valor"
+    },
+    "encender": {
+        "codigo": "music.POWER_UP",
+        "tipo": "valor"
+    },
+    "preludio": {
+        "codigo": "music.PRELUDE",
+        "tipo": "valor"
+    },
+    "python": {
+        "codigo": "music.PYTHON",
+        "tipo": "valor"
+    },
+    "sonitono": {
+        "codigo": "music.RINGTONE",
+        "tipo": "valor"
+    },
+    "boda": {
+        "codigo": "music.WEDDING",
+        "tipo": "valor"
+    },
+    "brillos": {
+        "codigo": "Sound.TWINKLE",
+        "tipo": "valor"
+    },
+    "muelle": {
+        "codigo": "Sound.SPRING",
+        "tipo": "valor"
+    },
+    "planeo": {
+        "codigo": "Sound.SOARING",
+        "tipo": "valor"
+    },
+    "risita": {
+        "codigo": "Sound.GIGGLE",
+        "tipo": "valor"
+    },
+    "contento": {
+        "codigo": "Sound.HAPPY",
+        "tipo": "valor"
+    },
+    "saludo": {
+        "codigo": "Sound.HELLO",
+        "tipo": "valor"
+    },
+    "misterio": {
+        "codigo": "Sound.MYSTERIOUS",
+        "tipo": "valor"
+    },
+    "tristeza": {
+        "codigo": "Sound.SAD",
+        "tipo": "valor"
+    },
+    "desliz": {
+        "codigo": "Sound.SLIDE",
+        "tipo": "valor"
+    },
+    "bostezo": {
+        "codigo": "Sound.YAWN",
+        "tipo": "valor"
+    },
+    "do": {
+        "codigo": "'C'",
+        "tipo": "valor"
+    },
+    "re": {
+        "codigo": "'D'",
+        "tipo": "valor"
+    },
+    "mi": {
+        "codigo": "'E'",
+        "tipo": "valor"
+    },
+    "fa": {
+        "codigo": "'F'",
+        "tipo": "valor"
+    },
+    "sol": {
+        "codigo": "'G'",
+        "tipo": "valor"
+    },
+    "la": {
+        "codigo": "'A'",
+        "tipo": "valor"
+    },
+    "si nota": {
+        "codigo": "'B'",
+        "tipo": "valor"
+    },
+    "do5": {
+        "codigo": "'C5'",
+        "tipo": "valor"
+    },
+    "6g": {
+        "codigo": "'6g'",
+        "tipo": "valor"
+    },
+    "pantalla abajo": {
+        "codigo": "'face down'",
+        "tipo": "valor"
+    }
+}

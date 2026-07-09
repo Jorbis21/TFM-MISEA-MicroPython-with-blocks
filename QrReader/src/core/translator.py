@@ -10,16 +10,13 @@ class MicrobitCompiler:
         self.tabla_simbolos = self._construir_tabla_simbolos()
 
     def _construir_tabla_simbolos(self):
-        tabla = {}
-        for arch in ["functions", "variables", "conditionals"]:
-            ruta_json = os.path.join(self.config_dir, f'{arch}.json')
-            try:
-                with open(ruta_json, 'r', encoding='utf-8') as f:
-                    # Como ahora son diccionarios planos, usamos .update() para fusionarlos
-                    tabla.update(json.load(f)) 
-            except FileNotFoundError:
-                print(f"Advertencia: No se encontró {ruta_json}")
-        return tabla
+        ruta_json = os.path.join(self.config_dir, 'bloques.json')
+        try:
+            with open(ruta_json, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            print(f"Advertencia: No se encontró {ruta_json}")
+            return {}
 
     def _es_valor_numerico(self, token):
         """
