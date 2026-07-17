@@ -70,6 +70,9 @@ class AppCamara(QMainWindow):
         self.tabs.addTab(self.vista_qrs, "Generador de QRs")
         self.tabs.addTab(self.vista_json, "Editor de Diccionario")
 
+        # Conectar el cambio de pestaña a nuestra nueva función
+        self.tabs.currentChanged.connect(self._gestionar_estado_camara)
+
         # 6. Atajos globales (Ctrl+S / Cmd+S para guardar)
         # En PyQt6 se usa QShortcut, que captura la combinación a nivel de ventana global
         self.atajo_guardar = QShortcut(QKeySequence("Ctrl+S"), self)
@@ -123,3 +126,11 @@ class AppCamara(QMainWindow):
         else:
             # Si era otra tecla, o estamos dentro del editor de código, dejamos que actúe normal
             super().keyPressEvent(event)
+    
+    def _gestionar_estado_camara(self, index):
+        """Apaga la cámara si no estamos en la pestaña principal, y la enciende al volver."""
+        # El índice 0 corresponde a "Cámara y Control"
+        if index == 0:  
+            self.vista_camara.reanudar_camara()
+        else:
+            self.vista_camara.pausar_camara()

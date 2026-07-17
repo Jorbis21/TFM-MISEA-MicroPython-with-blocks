@@ -12,8 +12,8 @@
         "tipo": "control_funcion"
     },
     "si": {
-        "codigo": "Image.YES",
-        "tipo": "valor"
+        "codigo": "if",
+        "tipo": "control"
     },
     "y si": {
         "codigo": "elif ",
@@ -216,6 +216,10 @@
     },
     "no": {
         "codigo": "Image.NO",
+        "tipo": "valor"
+    },
+    "imagen si": {
+        "codigo": "Image.YES",
         "tipo": "valor"
     },
     "contiene": {

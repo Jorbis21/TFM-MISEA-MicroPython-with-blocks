@@ -11,12 +11,10 @@ class GestorVoz:
     # Puedes cambiar esto por "es-ES-ElviraNeural" si prefieres voz femenina
     VOICE = "es-ES-AlvaroNeural" 
     
-    # 1. Inicializamos el reproductor de audios de la nube
+    # 1. Inicializamos el reproductor de audios de la nube (pygame sí es Thread-Safe)
     pygame.mixer.init()
 
-    # 2. Inicializamos el motor de voz local (Plan B)
-    motor_offline = pyttsx3.init()
-    motor_offline.setProperty('rate', 160) 
+    # ELIMINAMOS LA INICIALIZACIÓN GLOBAL DE PYTTSX3 AQUÍ
 
     @staticmethod
     def leer_texto(texto, sin_internet=False):
@@ -46,8 +44,11 @@ class GestorVoz:
                 
         # INTENTO 2: FALLBACK LOCAL (pyttsx3)
         try:
-            GestorVoz.motor_offline.say(texto)
-            GestorVoz.motor_offline.runAndWait()
+            # SOLUCIÓN AL DEADLOCK: Inicializamos el motor estrictamente DENTRO del hilo
+            motor_offline = pyttsx3.init()
+            motor_offline.setProperty('rate', 160) 
+            motor_offline.say(texto)
+            motor_offline.runAndWait()
         except Exception as e_offline:
             print(f"Error crítico en el motor de voz offline: {e_offline}")
 

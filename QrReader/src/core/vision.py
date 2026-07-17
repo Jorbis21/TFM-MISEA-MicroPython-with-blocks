@@ -111,12 +111,13 @@ class VisionEngine:
         elementos_detectados.sort(key=lambda obj: (obj["top"] // 50, obj["left"]))
         return elementos_detectados
 
-    def markElems(self):
+    def markElems(self, rotar_camara):
         ret, frame = self.cap.read()
         if not ret:
             return None, None, []
         
-        frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+        if rotar_camara:
+            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
         
         with self.lock:
             self.frame_actual = frame.copy()
@@ -186,6 +187,16 @@ class VisionEngine:
                 matriz.append(fila_strings)
                 
         return matriz
+    
+    def liberar_camara(self):
+        # Usamos self para acceder a la cámara que ya estaba abierta
+        if hasattr(self, 'cap') and self.cap.isOpened():
+            self.cap.release()
+
+    def iniciar_camara(self):
+        self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
     
     def takePhoto(self, frame, ruta_destino):
         cv2.imwrite(ruta_destino, frame)

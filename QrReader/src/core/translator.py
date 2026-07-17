@@ -6,7 +6,6 @@ import sys
 class MicrobitCompiler:
     def __init__(self, config_dir):
         self.config_dir = config_dir
-        # Hash Map maestro O(1)
         self.tabla_simbolos = self._construir_tabla_simbolos()
 
     def _construir_tabla_simbolos(self):
@@ -19,11 +18,6 @@ class MicrobitCompiler:
             return {}
 
     def _es_valor_numerico(self, token):
-        """
-        Determina si un token debe tratarse como un número.
-        Es agnóstico a la fuente: funciona igual si viene de un QR,
-        de texto o de voz.
-        """
         try:
             float(token)
             return True
@@ -48,11 +42,11 @@ class MicrobitCompiler:
             "\n# --- Programa Principal ---"
         ]
 
-        # LA PILA (Stack): Controla el alcance vertical (Scopes)
-        pila_contexto = []
+        # NUEVO: Pila para mapear huecos físicos a niveles lógicos de Python
+        niveles_activos = [0] 
 
         for fila in matriz_comandos:
-            # 1. Análisis Léxico: Separar indentación de los tokens útiles
+            # 1. Análisis Léxico (Contar huecos físicos de la cámara)
             num_tabs_fisicos = 0
             for elem in fila:
                 if elem == "":
@@ -64,80 +58,174 @@ class MicrobitCompiler:
             if not tokens:
                 continue
 
-            # 2. Gestión de Pila (Pushdown Automaton logic)
-            # Si la indentación física baja, sacamos contextos de la pila
-            while len(pila_contexto) > num_tabs_fisicos:
-                pila_contexto.pop()
-
-            linea_str = "\t" * num_tabs_fisicos
+            # 2. Normalización de Indentación (A prueba de cámaras y muescas 3D)
+            # Si volvemos hacia la izquierda, sacamos niveles de la pila
+            while len(niveles_activos) > 1 and num_tabs_fisicos < niveles_activos[-1]:
+                niveles_activos.pop()
+                
+            # Si vamos hacia la derecha, añadimos un nuevo nivel
+            if num_tabs_fisicos > niveles_activos[-1]:
+                niveles_activos.append(num_tabs_fisicos)
+                
+            # Calculamos el nivel real y ponemos exactamente 4 espacios por nivel
+            nivel_logico = len(niveles_activos) - 1
+            linea_str = "    " * nivel_logico  
             
-            # 3. MÁQUINA DE ESTADOS FINITA (Autómata Horizontal)
-            estado = "INICIO"
-            args_pendientes = 0
+            # 3. Procesar la sintaxis
+            linea_str += self.procesar_fila_tokens(tokens)
             
-            for token in tokens:
-                # Recuperar el nodo de la tabla de símbolos (O(1))
-                if self._es_valor_numerico(token):
-                    nodo = {"codigo": token, "tipo": "valor"}
-                else:
-                    nodo = self.tabla_simbolos.get(token)
-                    if not nodo:
-                        linea_str += f"# ERROR_SINTAXIS: Bloque '{token}' desconocido #"
-                        break
-
-                # --- TRANSICIONES DE ESTADO ---
-                if estado == "INICIO":
-                    if nodo["tipo"] == "control":
-                        linea_str += nodo["codigo"]
-                        pila_contexto.append("BLOQUE_CONTROL") # Push a la pila
-                        
-                    elif nodo["tipo"] == "funcion":
-                        linea_str += nodo["codigo"] + "("
-                        args_pendientes = nodo.get("args", 0)
-                        if args_pendientes > 0:
-                            estado = "ESPERANDO_ARG"
-                        else:
-                            linea_str += ")"
-                            
-                    elif nodo["tipo"] == "sujeto":
-                        linea_str += nodo["codigo"]
-                        estado = "ESPERANDO_METODO"
-
-                elif estado == "ESPERANDO_ARG":
-                    if nodo["tipo"] == "valor":
-                        linea_str += nodo["codigo"]
-                        args_pendientes -= 1
-                        if args_pendientes == 0:
-                            linea_str += ")"
-                            estado = "INICIO"
-                        else:
-                            linea_str += ", "
-                    else:
-                        linea_str += f" # ERROR: Se esperaba un Valor, se recibió {nodo['tipo']}"
-                        break
-
-                elif estado == "ESPERANDO_METODO":
-                    if nodo["tipo"] == "metodo":
-                        # Verificación de compatibilidad (Tipado fuerte)
-                        if nodo.get("requiere") and nodo["requiere"] != self.tabla_simbolos.get(tokens[0], {}).get("clase"):
-                            linea_str += f" # ERROR: El método no es compatible con el sujeto"
-                        else:
-                            linea_str += nodo["codigo"]
-                            pila_contexto.append("BLOQUE_METODO") # Push a la pila
-                        estado = "INICIO"
-                        
-                    elif nodo["tipo"] == "operador_logico":
-                        linea_str += nodo["codigo"]
-                        estado = "INICIO"
-
-            # 4. Cierre de línea y volcado
             codigo_final.append(linea_str)
 
-        # Escritura a disco
         with open(ruta_salida, "w", encoding="utf-8") as file:
             file.write("\n".join(codigo_final) + "\n")
 
-        print("Código compilado con éxito mediante Autómata de Pila.")
+        print("Código compilado con éxito mediante Analizador Predictivo.")
+
+    def procesar_fila_tokens(self, tokens):
+        if not tokens: 
+            return ""
+        
+        primer_bloque = tokens.pop(0)
+        
+        if self._es_valor_numerico(primer_bloque):
+            info = {"codigo": str(primer_bloque), "tipo": "valor"}
+        else:
+            info = self.tabla_simbolos.get(primer_bloque, {})
+        
+        if not info:
+            return f"# ERROR_SINTAXIS: Bloque '{primer_bloque}' desconocido #"
+            
+        tipo = info.get("tipo", "")
+        codigo_base = info.get("codigo", str(primer_bloque))
+        
+        # ========================================================
+        # 1. EVENTOS ESPECIALES INVERTIDOS (Ej: al presionar)
+        # ========================================================
+        if tipo == "control_metodo":
+            if not tokens:
+                return f"# ERROR: '{primer_bloque}' necesita un sujeto a su derecha"
+            
+            sujeto = self._consumir_argumento_vc(tokens)
+            if codigo_base.endswith(")"):
+                return f"if {sujeto}{codigo_base}:"
+            else:
+                return f"if {sujeto}{codigo_base}():"
+
+        # ========================================================
+        # 2. EVENTOS ESPECIALES DE FUNCIÓN (Ej: al gesto)
+        # ========================================================
+        elif tipo == "control_funcion":
+            if not tokens:
+                return f"# ERROR: '{primer_bloque}' necesita un argumento a su derecha"
+            
+            arg = self._consumir_argumento_vc(tokens)
+            return f"if {codigo_base}({arg}):"
+
+        # ========================================================
+        # 3. ES UN MÉTODO NORMAL (INVERSIÓN OBLIGATORIA POR HARDWARE)
+        # ========================================================
+        elif tipo == "metodo":
+            if not tokens:
+                return f"# ERROR: '{primer_bloque}' necesita un sujeto a su derecha"
+            
+            sujeto = self._consumir_argumento_vc(tokens)
+            num_args = info.get("args", 0)
+            args_extra = []
+            for _ in range(num_args):
+                if tokens:
+                    args_extra.append(self._consumir_argumento_vc(tokens))
+                    
+            if args_extra:
+                return f"{sujeto}{codigo_base}({', '.join(args_extra)})"
+            else:
+                if codigo_base.endswith(")"):
+                    return f"{sujeto}{codigo_base}"
+                return f"{sujeto}{codigo_base}()"
+                
+        # ========================================================
+        # 4. ES UNA FUNCIÓN NORMAL
+        # ========================================================
+        elif tipo == "funcion":
+            num_args = info.get("args", 1)
+            
+            if num_args == 0:
+                if codigo_base.endswith(")"):
+                    return codigo_base
+                return f"{codigo_base}()"
+                
+            args = []
+            for _ in range(num_args):
+                if tokens:
+                    args.append(self._consumir_argumento_vc(tokens))
+            return f"{codigo_base}({', '.join(args)})"
+            
+        # ========================================================
+        # 5. ES UN BLOQUE DE CONTROL CLÁSICO (si, mientras)
+        # ========================================================
+        elif tipo == "control":
+            condicion = ""
+            if tokens:
+                condicion = self._consumir_argumento_vc(tokens)
+                
+            codigo_limpio = codigo_base.replace(":", "").strip()
+            if condicion:
+                return f"{codigo_limpio} {condicion}:"
+            else:
+                return f"{codigo_limpio}:"
+                
+        # ========================================================
+        # 6. CASO BASE O CADENA DE VARIABLES PURA
+        # ========================================================
+        else:
+            tokens.insert(0, primer_bloque)
+            return self._consumir_argumento_vc(tokens)
+
+    def _consumir_argumento_vc(self, tokens):
+        if not tokens: return ""
+        
+        val = tokens.pop(0)
+        
+        if self._es_valor_numerico(val):
+            resultado = str(val)
+        else:
+            info = self.tabla_simbolos.get(val, {})
+            resultado = info.get("codigo", val)
+            
+        while tokens:
+            if self._es_valor_numerico(tokens[0]):
+                break
+                
+            sig_info = self.tabla_simbolos.get(tokens[0], {})
+            tipo_sig = sig_info.get("tipo")
+            
+            if tipo_sig == "operador_logico":
+                op = tokens.pop(0)
+                resultado += sig_info.get("codigo", op)
+                if tokens:
+                    resultado += self._consumir_argumento_vc(tokens)
+                break
+                
+            elif tipo_sig == "metodo":
+                metodo = tokens.pop(0)
+                codigo_metodo = sig_info.get("codigo", metodo)
+                
+                num_args = sig_info.get("args", 0)
+                args_extra = []
+                for _ in range(num_args):
+                    if tokens:
+                        args_extra.append(self._consumir_argumento_vc(tokens))
+                        
+                if args_extra:
+                    resultado += f"{codigo_metodo}({', '.join(args_extra)})"
+                else:
+                    if codigo_metodo.endswith(")"):
+                        resultado += codigo_metodo
+                    else:
+                        resultado += f"{codigo_metodo}()"
+            else:
+                break
+                
+        return resultado
 
     def subir(self, ruta_codigo):
         print(f"Iniciando el flasheo en la micro:bit con el archivo: {ruta_codigo}")

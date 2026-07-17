@@ -81,6 +81,8 @@ class TabCamara(QWidget):
 
         # Estados de control accesibles
         self.modo_edicion = False
+        self.rotar_camara = False
+        self.apagar_camara = False
         self.clics = 0
         self.timer_clic = None
         self.ultima_tecla = None
@@ -142,6 +144,16 @@ class TabCamara(QWidget):
         self.btn_editar.clicked.connect(self.accion_editar_codigo)
         layout_botones.addWidget(self.btn_editar)
 
+        self.btn_rotar = QPushButton("Rotar Cámara")
+        self.btn_rotar.setStyleSheet("background-color: #D4AA0D; color: white; font-weight: bold; padding: 10px;")
+        self.btn_rotar.clicked.connect(self.accion_rotar_camara)
+        layout_botones.addWidget(self.btn_rotar)
+
+        self.btn_apagar = QPushButton("Apagar/Encender Cámara")
+        self.btn_apagar.setStyleSheet("background-color: #A4AA0D; color: white; font-weight: bold; padding: 10px;")
+        self.btn_apagar.clicked.connect(self.accion_apagar_camara)
+        layout_botones.addWidget(self.btn_apagar)
+
         layout_izq.addLayout(layout_botones)
 
         # Monitor/Editor de texto central (Dark Theme)
@@ -181,7 +193,7 @@ class TabCamara(QWidget):
     # ACTUALIZACIÓN DE FRAME (OPENCV -> PYQT)
     # =========================================================
     def actualizar_frame(self):
-        frame_bgr, frame_rgb, textos = self.vision.markElems()
+        frame_bgr, frame_rgb, textos = self.vision.markElems(self.rotar_camara)
         
         if frame_rgb is not None:
             self.frame_actual_bgr = frame_bgr
@@ -247,6 +259,16 @@ class TabCamara(QWidget):
 
     def accion_enviar(self):
         self.traductor.subir(self.ruta_codigo)
+    
+    def accion_rotar_camara(self):
+        self.rotar_camara = not self.rotar_camara
+
+    def accion_apagar_camara(self):
+        self.apagar_camara = not self.apagar_camara
+        if self.apagar_camara:
+            self.vision.liberar_camara()
+        else:
+            self.vision.iniciar_camara()
 
     def accion_leer_qrs_pantalla(self):
         GestorVoz.leer_qrs_pantalla(self.textos_qr_actuales)
@@ -352,3 +374,25 @@ class TabCamara(QWidget):
         """Libera la cámara al cerrar el widget de forma segura."""
         self.timer_camara.stop()
         self.vision.free()
+
+    def pausar_camara(self):
+        """Detiene el flujo de vídeo para ahorrar recursos."""
+        # 1. Parar el bucle de actualización de PyQt
+        if hasattr(self, 'timer') and self.timer.isActive():
+            self.timer.stop()
+            
+        # 2. Liberar el hardware de la cámara (adaptar al método que uses en VisionEngine)
+        # Por ejemplo: self.vision.cap.release() o self.vision.detener()
+        if hasattr(self.vision, 'liberar_camara'):
+            self.vision.liberar_camara()
+
+    def reanudar_camara(self):
+        """Vuelve a arrancar la cámara al entrar en la pestaña."""
+        # 1. Volver a encender el hardware (adaptar a tu VisionEngine)
+        # Por ejemplo: self.vision.cap = cv2.VideoCapture(0) o self.vision.iniciar()
+        if hasattr(self.vision, 'iniciar_camara'):
+            self.vision.iniciar_camara()
+            
+        # 2. Reiniciar el bucle de la interfaz
+        if hasattr(self, 'timer') and not self.timer.isActive():
+            self.timer.start(30) # Sustituye 30 por los ms que estuvieras usando
