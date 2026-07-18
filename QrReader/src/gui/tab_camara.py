@@ -2,9 +2,9 @@ import os
 import re
 import threading
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QPushButton, QTextEdit, QFrame, QSplitter)
-from PyQt6.QtGui import QImage, QPixmap, QKeyEvent, QTextCharFormat, QColor, QSyntaxHighlighter
-from PyQt6.QtCore import Qt, QTimer, QRegularExpression
+                             QPushButton, QTextEdit, QFrame, QSplitter, QComboBox, QSizePolicy)
+from PyQt6.QtGui import QImage, QPixmap, QKeyEvent, QTextCharFormat, QColor, QSyntaxHighlighter, QIcon
+from PyQt6.QtCore import Qt, QTimer, QRegularExpression, QSize
 from core.audio import GestorVoz
 
 # =========================================================
@@ -68,9 +68,10 @@ class PythonHighlighter(QSyntaxHighlighter):
 # COMPONENTE DE LA PESTAÑA DE LA CÁMARA
 # =========================================================
 class TabCamara(QWidget):
-    def __init__(self, workspace_dir, vision_engine, traductor, ai_manager):
+    def __init__(self, workspace_dir, assets_dir, vision_engine, traductor, ai_manager):
         super().__init__()
         self.workspace_dir = workspace_dir
+        self.assets_dir = assets_dir
         self.ruta_img = os.path.join(self.workspace_dir, "inputs", "program.jpg")
         self.ruta_codigo = os.path.join(self.workspace_dir, "outputs", "MicroBit_Code.py")
         
@@ -116,7 +117,7 @@ class TabCamara(QWidget):
         lbl_ctrl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout_izq.addWidget(lbl_ctrl)
 
-        # Barra horizontal de botones táctiles/atendidos
+        # Barra horizontal de botones táctiles/atendidos (Solo los de acción principal)
         layout_botones = QHBoxLayout()
         
         self.btn_capturar = QPushButton("Tomar Foto")
@@ -144,16 +145,6 @@ class TabCamara(QWidget):
         self.btn_editar.clicked.connect(self.accion_editar_codigo)
         layout_botones.addWidget(self.btn_editar)
 
-        self.btn_rotar = QPushButton("Rotar Cámara")
-        self.btn_rotar.setStyleSheet("background-color: #D4AA0D; color: white; font-weight: bold; padding: 10px;")
-        self.btn_rotar.clicked.connect(self.accion_rotar_camara)
-        layout_botones.addWidget(self.btn_rotar)
-
-        self.btn_apagar = QPushButton("Apagar/Encender Cámara")
-        self.btn_apagar.setStyleSheet("background-color: #A4AA0D; color: white; font-weight: bold; padding: 10px;")
-        self.btn_apagar.clicked.connect(self.accion_apagar_camara)
-        layout_botones.addWidget(self.btn_apagar)
-
         layout_izq.addLayout(layout_botones)
 
         # Monitor/Editor de texto central (Dark Theme)
@@ -172,17 +163,86 @@ class TabCamara(QWidget):
         self.splitter.addWidget(panel_izquierdo)
 
         # -------------------------------------------------
-        # PANEL DERECHO: VISOR DE VIDEO DE ALTA VELOCIDAD
+        # PANEL DERECHO: VISOR DE VIDEO Y CONTROLES OVERLAY
         # -------------------------------------------------
         self.video_label = QLabel()
         self.video_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.video_label.setStyleSheet("background-color: #000000; border-radius: 4px;")
         
-        # --- AÑADE ESTAS TRES LÍNEAS AQUÍ ---
         # Ignoramos la política de tamaño para que el QPixmap no redimensione la ventana
-        from PyQt6.QtWidgets import QSizePolicy
         self.video_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
-        self.video_label.setMinimumSize(400, 300) # Un tamaño base por seguridad
+        self.video_label.setMinimumSize(400, 300) 
+
+        # --- CAPA SUPERPUESTA (OVERLAY) PARA LOS CONTROLES DE CÁMARA ---
+        layout_overlay = QVBoxLayout(self.video_label)
+        layout_overlay.setContentsMargins(15, 15, 15, 15)
+        
+
+        layout_botones_camara = QHBoxLayout()
+        layout_botones_camara.setSpacing(10)
+        layout_botones_camara.addStretch()
+
+        # Instanciamos los botones del overlay
+        self.btn_rotar = QPushButton()
+        self.btn_apagar = QPushButton()
+        
+
+        ruta_icono_rotar = os.path.join(self.assets_dir, "sync.png")
+        ruta_icono_apagar = os.path.join(self.assets_dir, "on-off-button.png")
+
+        self.btn_rotar.setIcon(QIcon(ruta_icono_rotar))
+        self.btn_apagar.setIcon(QIcon(ruta_icono_apagar))
+
+        tamano_icono = QSize(24, 24)
+        self.btn_rotar.setIconSize(tamano_icono)
+        self.btn_apagar.setIconSize(tamano_icono)
+
+        self.btn_apagar.clicked.connect(self.accion_apagar_camara)
+        self.btn_rotar.clicked.connect(self.accion_rotar_camara)
+
+        self.combo_camaras = QComboBox()
+        self.combo_camaras.addItems(["Cámara Principal (0)", "Cámara Secundaria (1)", "Cámara 2", "Cámara 3"])
+        self.combo_camaras.currentIndexChanged.connect(self.accion_cambiar_camara)
+
+        # Aplicamos el estilo de cristal semitransparente a los botones y al combo
+        estilo_overlay = """
+            QPushButton, QComboBox {
+                background-color: rgba(30, 30, 30, 180); 
+                color: white;
+                border: 1px solid rgba(255, 255, 255, 50);
+                border-radius: 8px;
+                padding: 6px 12px;
+                text-align: center;
+                font-weight: bold;
+                font-size: 13px;
+            }
+            QPushButton:hover, QComboBox:hover {
+                background-color: rgba(60, 60, 60, 220); 
+                border: 1px solid rgba(255, 255, 255, 100);
+            }
+            QPushButton:pressed {
+                background-color: rgba(100, 100, 100, 255);
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox QAbstractItemView {
+                background-color: rgba(30, 30, 30, 240);
+                color: white;
+                selection-background-color: #4A235A;
+            }
+        """
+        self.btn_rotar.setStyleSheet(estilo_overlay)
+        self.btn_apagar.setStyleSheet(estilo_overlay)
+        self.combo_camaras.setStyleSheet(estilo_overlay)
+
+        layout_botones_camara.addWidget(self.btn_rotar)
+        layout_botones_camara.addWidget(self.btn_apagar)
+        layout_botones_camara.addWidget(self.combo_camaras)
+        layout_botones_camara.addStretch()
+
+        layout_overlay.addLayout(layout_botones_camara)
+        layout_overlay.addStretch()
         
         self.splitter.addWidget(self.video_label)
 
@@ -267,8 +327,19 @@ class TabCamara(QWidget):
         self.apagar_camara = not self.apagar_camara
         if self.apagar_camara:
             self.vision.liberar_camara()
+            self.video_label.clear()  # <-- Borra el último frame (pantalla negra)
+            self.status_label.setText("Estado: Cámara Apagada")
         else:
-            self.vision.iniciar_camara()
+            # Enciende la cámara seleccionada en el combo box
+            self.vision.iniciar_camara(self.combo_camaras.currentIndex())
+            self.status_label.setText("Estado: Cámara Activa")
+
+    def accion_cambiar_camara(self, index):
+        """Cambia de cámara en caliente si no está apagada intencionalmente."""
+        if not self.apagar_camara:
+            self.vision.liberar_camara()
+            self.video_label.clear() # Transición en negro
+            self.vision.iniciar_camara(index)
 
     def accion_leer_qrs_pantalla(self):
         GestorVoz.leer_qrs_pantalla(self.textos_qr_actuales)
@@ -327,14 +398,19 @@ class TabCamara(QWidget):
 
     def _guardar_codigo_archivo(self):
         nuevo_codigo = self.caja_texto.toPlainText()
+        
         if hasattr(self, 'bloque_pitches') and self.bloque_pitches:
             lineas_editadas = nuevo_codigo.split('\n')
-            idx_insert = next((i + 1 for i, linea in enumerate(lineas_editadas) if not (linea.startswith("import ") or linea.startswith("from ") or linea.strip() == "")), 0)
             
-            if idx_insert < len(lineas_editadas) and lineas_editadas[idx_insert].strip() != "":
-                lineas_finales = lineas_editadas[:idx_insert] + self.bloque_pitches + [""] + lineas_editadas[idx_insert:]
-            else:
-                lineas_finales = lineas_editadas[:idx_insert] + self.bloque_pitches + lineas_editadas[idx_insert:]
+            # Buscamos en qué línea terminan exactamente las importaciones
+            idx_insert = 0
+            for i, linea in enumerate(lineas_editadas):
+                if linea.startswith("import ") or linea.startswith("from "):
+                    idx_insert = i + 1
+            
+            # Insertamos los pitches de forma invisible justo debajo de los imports,
+            # manteniendo intacto el resto del programa (while, if, def...)
+            lineas_finales = lineas_editadas[:idx_insert] + self.bloque_pitches + lineas_editadas[idx_insert:]
             codigo_a_guardar = "\n".join(lineas_finales)
         else:
             codigo_a_guardar = nuevo_codigo
@@ -365,8 +441,20 @@ class TabCamara(QWidget):
 
     def accion_atajo_guardar(self):
         if self.modo_edicion and self._guardar_codigo_archivo():
+            # 1. Apagamos el modo edición internamente
+            self.modo_edicion = False
+            
+            # 2. Restauramos el botón a su estado original (Amarillo)
+            self.btn_editar.setText("Editar Código")
+            self.btn_editar.setStyleSheet("background-color: #D4AC0D; color: white; font-weight: bold; padding: 10px;")
+            
+            # 3. Volvemos a bloquear la caja de texto para evitar pulsaciones accidentales
+            self.caja_texto.setReadOnly(True)
+            
+            # 4. Refrescamos la vista limpia (sin los pitches)
             self.leer_codigo_generado()
-            self.caja_texto.setReadOnly(False)
+            
+            # 5. Feedback visual para confirmar que el atajo funcionó
             self.status_label.setText("Estado: Guardado rápido completado")
             self.status_label.setStyleSheet("color: #569CD6;")
 
@@ -376,23 +464,24 @@ class TabCamara(QWidget):
         self.vision.free()
 
     def pausar_camara(self):
-        """Detiene el flujo de vídeo para ahorrar recursos."""
-        # 1. Parar el bucle de actualización de PyQt
-        if hasattr(self, 'timer') and self.timer.isActive():
-            self.timer.stop()
+        """Detiene el flujo de vídeo para ahorrar recursos al cambiar de pestaña."""
+        if hasattr(self, 'timer_camara') and self.timer_camara.isActive():
+            self.timer_camara.stop()
             
-        # 2. Liberar el hardware de la cámara (adaptar al método que uses en VisionEngine)
-        # Por ejemplo: self.vision.cap.release() o self.vision.detener()
         if hasattr(self.vision, 'liberar_camara'):
             self.vision.liberar_camara()
+            
+        # Forzamos el fondo negro nativo al salir de la pestaña
+        self.video_label.clear()
 
     def reanudar_camara(self):
         """Vuelve a arrancar la cámara al entrar en la pestaña."""
-        # 1. Volver a encender el hardware (adaptar a tu VisionEngine)
-        # Por ejemplo: self.vision.cap = cv2.VideoCapture(0) o self.vision.iniciar()
-        if hasattr(self.vision, 'iniciar_camara'):
-            self.vision.iniciar_camara()
-            
-        # 2. Reiniciar el bucle de la interfaz
-        if hasattr(self, 'timer') and not self.timer.isActive():
-            self.timer.start(30) # Sustituye 30 por los ms que estuvieras usando
+        # Solo la arrancamos si no se le dio al botón físico de "Apagar Cámara"
+        if not self.apagar_camara:
+            if hasattr(self.vision, 'iniciar_camara'):
+                # Rescatamos el índice actual del desplegable
+                idx = self.combo_camaras.currentIndex()
+                self.vision.iniciar_camara(idx)
+                
+            if hasattr(self, 'timer_camara') and not self.timer_camara.isActive():
+                self.timer_camara.start(15)

@@ -5,6 +5,12 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PyQt6.QtCore import Qt
 from utils.qr_manager import QRManager
 
+class BuscadorAutoLimpiable(QLineEdit):
+    """Caja de texto que se vacía automáticamente al hacerle clic con el ratón."""
+    def mousePressEvent(self, event):
+        self.clear()                    
+        super().mousePressEvent(event)  
+
 class TabQRs(QWidget):
     def __init__(self, workspace_dir, traductor):
         super().__init__()
@@ -14,6 +20,11 @@ class TabQRs(QWidget):
 
         self._setup_ui()
         self.cargar_lista_qrs()
+
+    # --- RECARGA AUTOMÁTICA AL ENTRAR A LA PESTAÑA ---
+    def showEvent(self, event):
+        self.cargar_lista_qrs()
+        super().showEvent(event)
 
     def _setup_ui(self):
         layout_principal = QVBoxLayout(self)
@@ -26,11 +37,13 @@ class TabQRs(QWidget):
         lbl_titulo.setStyleSheet("font-size: 20px; font-weight: bold;")
         layout_top.addWidget(lbl_titulo)
         layout_top.addStretch()
-
-        btn_refrescar = QPushButton("↻ Refrescar Lista")
-        btn_refrescar.setStyleSheet("background-color: #0052cc; color: white; padding: 8px;")
-        btn_refrescar.clicked.connect(self.cargar_lista_qrs)
-        layout_top.addWidget(btn_refrescar)
+        
+        # BOTÓN DE FILTRADO POR CANTIDAD
+        self.btn_solo_activos = QPushButton("Mostrar > 0")
+        self.btn_solo_activos.setStyleSheet("background-color: #F39C12; color: white; padding: 8px; font-weight: bold;")
+        self.btn_solo_activos.setCheckable(True) # Se comporta como un interruptor On/Off
+        self.btn_solo_activos.toggled.connect(self.accion_filtrar_activos)
+        layout_top.addWidget(self.btn_solo_activos)
 
         btn_todos_uno = QPushButton("Todos a 1")
         btn_todos_uno.setStyleSheet("background-color: #8E44AD; color: white; padding: 8px;")
@@ -44,16 +57,15 @@ class TabQRs(QWidget):
 
         layout_principal.addLayout(layout_top)
 
-        # --- NUEVO: BARRA DE BÚSQUEDA ---
+        # BARRA DE BÚSQUEDA
         layout_buscador = QHBoxLayout()
         layout_buscador.addWidget(QLabel("🔍 Buscar bloque:"))
-        self.buscador = QLineEdit()
+        self.buscador = BuscadorAutoLimpiable()
         self.buscador.setPlaceholderText("Escribe para filtrar...")
         self.buscador.textChanged.connect(self._filtrar_tabla)
         layout_buscador.addWidget(self.buscador)
         layout_principal.addLayout(layout_buscador)
-        # --------------------------------
-
+        
         # ==========================================
         # TABLA DE BLOQUES
         # ==========================================
@@ -61,9 +73,8 @@ class TabQRs(QWidget):
         self.tabla.setColumnCount(4)
         self.tabla.setHorizontalHeaderLabels(["Nombre del Bloque", "-", "Cantidad", "+"])
         
-        # Ajuste de columnas
         header = self.tabla.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch) # El nombre ocupa todo el espacio
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch) 
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
@@ -76,7 +87,8 @@ class TabQRs(QWidget):
         layout_bottom = QHBoxLayout()
         layout_bottom.addWidget(QLabel("Tamaño (cm):"))
         
-        self.entry_tamano = QLineEdit("5.0")
+        # VALOR POR DEFECTO A 2.5
+        self.entry_tamano = QLineEdit("2.5")
         self.entry_tamano.setFixedWidth(60)
         self.entry_tamano.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout_bottom.addWidget(self.entry_tamano)
@@ -93,7 +105,6 @@ class TabQRs(QWidget):
 
         layout_principal.addLayout(layout_bottom)
 
-    # --- NUEVA FUNCIÓN: FILTRADO EN TIEMPO REAL ---
     def _filtrar_tabla(self, texto):
         texto = texto.lower()
         for fila in range(self.tabla.rowCount()):
@@ -101,12 +112,34 @@ class TabQRs(QWidget):
             if item:
                 mostrar = texto in item.text().lower()
                 self.tabla.setRowHidden(fila, not mostrar)
-    # ----------------------------------------------
 
-    # =========================================================
-    # LÓGICA DE INTERFAZ Y CANTIDADES
-    # =========================================================
+    def accion_filtrar_activos(self, activado):
+        if activado:
+            self.btn_solo_activos.setText("Mostrar Todos")
+            for fila in range(self.tabla.rowCount()):
+                # SOLUCIÓN: Recuperamos el widget (QLineEdit) directamente desde la columna 2 de la tabla
+                entry = self.tabla.cellWidget(fila, 2)
+                try:
+                    cant = int(entry.text().strip()) if entry else 0
+                except ValueError:
+                    cant = 0
+                # Ocultamos la fila si la cantidad es 0
+                self.tabla.setRowHidden(fila, cant == 0)
+        else:
+            self.btn_solo_activos.setText("Mostrar > 0")
+            for fila in range(self.tabla.rowCount()):
+                self.tabla.setRowHidden(fila, False)
+            
+            # Restauramos la búsqueda de texto si había algo escrito
+            if self.buscador.text():
+                self._filtrar_tabla(self.buscador.text())
+
     def cargar_lista_qrs(self):
+        # Guardamos en memoria las cantidades actuales para no perderlas al refrescar
+        cantidades_previas = {}
+        for k, v in self.entradas_qr.items():
+            cantidades_previas[k] = v.text()
+
         self.tabla.setRowCount(0)
         self.entradas_qr.clear()
 
@@ -114,37 +147,35 @@ class TabQRs(QWidget):
         self.tabla.setRowCount(len(bloques))
 
         for fila, bloque in enumerate(bloques):
-            # 1. Nombre
             item_nombre = QTableWidgetItem(bloque.capitalize())
-            item_nombre.setFlags(Qt.ItemFlag.ItemIsEnabled) # Solo lectura
+            item_nombre.setFlags(Qt.ItemFlag.ItemIsEnabled) 
             self.tabla.setItem(fila, 0, item_nombre)
             
-            # 2. Botón -
             btn_menos = QPushButton("-")
             btn_menos.setFixedWidth(30)
             
-            # 3. Entry cantidad
-            entry_cant = QLineEdit("0")
+            # Recuperamos la cantidad guardada si existía, si no ponemos "0"
+            valor_recuperado = cantidades_previas.get(bloque, "0")
+            entry_cant = QLineEdit(valor_recuperado)
             entry_cant.setFixedWidth(50)
             entry_cant.setAlignment(Qt.AlignmentFlag.AlignCenter)
             
-            # 4. Botón +
             btn_mas = QPushButton("+")
             btn_mas.setFixedWidth(30)
 
-            # Conectar botones
             btn_menos.clicked.connect(lambda checked, e=entry_cant: self._modificar_cantidad(e, -1))
             btn_mas.clicked.connect(lambda checked, e=entry_cant: self._modificar_cantidad(e, 1))
 
-            # Añadir widgets a la tabla
             self.tabla.setCellWidget(fila, 1, btn_menos)
             self.tabla.setCellWidget(fila, 2, entry_cant)
             self.tabla.setCellWidget(fila, 3, btn_mas)
             
             self.entradas_qr[bloque] = entry_cant
             
-        # Reaplicar filtro si ya había texto al refrescar
-        if self.buscador.text():
+        # Reaplicar filtros
+        if self.btn_solo_activos.isChecked():
+            self.accion_filtrar_activos(True)
+        elif self.buscador.text():
             self._filtrar_tabla(self.buscador.text())
             
         self.lbl_estado_qr.setText("Lista actualizada desde memoria.")
@@ -157,14 +188,22 @@ class TabQRs(QWidget):
             val = 0
         nuevo_val = max(0, val + delta)
         entry.setText(str(nuevo_val))
+        
+        # Si estamos en modo "Mostrar > 0" y baja a 0, se aplica el filtro automáticamente
+        if nuevo_val == 0 and self.btn_solo_activos.isChecked():
+            self.accion_filtrar_activos(True)
 
     def accion_todos_a_uno(self):
         for entry in self.entradas_qr.values():
             entry.setText("1")
+        if self.btn_solo_activos.isChecked():
+            self.accion_filtrar_activos(True)
 
     def accion_todos_a_cero(self):
         for entry in self.entradas_qr.values():
             entry.setText("0")
+        if self.btn_solo_activos.isChecked():
+            self.accion_filtrar_activos(True)
 
     # =========================================================
     # GENERACIÓN DE PDF

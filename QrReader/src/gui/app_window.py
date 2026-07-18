@@ -18,7 +18,7 @@ class AppCamara(QMainWindow):
 
     senal_voz = pyqtSignal(str)
 
-    def __init__(self, workspace_dir, config_dir):
+    def __init__(self, workspace_dir, config_dir, assets_dir):
         super().__init__()
         
         # 1. Configuración de Entorno
@@ -61,7 +61,7 @@ class AppCamara(QMainWindow):
         """)
 
         # 4. Inyección de las Vistas (Front-end)
-        self.vista_camara = TabCamara(workspace_dir, self.vision, self.traductor, self.ai_manager)
+        self.vista_camara = TabCamara(workspace_dir, assets_dir, self.vision, self.traductor, self.ai_manager)
         self.vista_qrs = TabQRs(workspace_dir, self.traductor)
         self.vista_json = TabJSON(config_dir, self.traductor)
 
@@ -81,11 +81,23 @@ class AppCamara(QMainWindow):
         self.atajo_a = QShortcut(QKeySequence("A"), self)
         self.atajo_a.activated.connect(lambda: self.vista_camara._tecla_pulsada("a", "Tomar foto", self.vista_camara.accion_capturar))
 
+        self.atajo_ñ = QShortcut(QKeySequence("Ñ"), self)
+        self.atajo_ñ.activated.connect(lambda: self.vista_camara._tecla_pulsada("ñ", "Tomar foto", self.vista_camara.accion_capturar))
+
         self.atajo_s = QShortcut(QKeySequence("S"), self)
         self.atajo_s.activated.connect(lambda: self.vista_camara._tecla_pulsada("s", "Enviar a MicroBit", self.vista_camara.accion_enviar))
 
-        self.atajo_f = QShortcut(QKeySequence("F"), self)
+        self.atajo_s = QShortcut(QKeySequence("L"), self)
+        self.atajo_s.activated.connect(lambda: self.vista_camara._tecla_pulsada("l", "Enviar a MicroBit", self.vista_camara.accion_enviar))
+
+        self.atajo_f = QShortcut(QKeySequence("D"), self)
         self.atajo_f.activated.connect(lambda: self.vista_camara._tecla_pulsada("f", "Explicar con IA", self.vista_camara.accion_explicar_ia))
+
+        self.atajo_f = QShortcut(QKeySequence("K"), self)
+        self.atajo_f.activated.connect(lambda: self.vista_camara._tecla_pulsada("k", "Explicar con IA", self.vista_camara.accion_explicar_ia))
+
+        self.atajo_j = QShortcut(QKeySequence("F"), self)
+        self.atajo_j.activated.connect(lambda: self.vista_camara._tecla_pulsada("f", "Leer QRs Mesa", self.vista_camara.accion_leer_qrs_pantalla))
 
         self.atajo_j = QShortcut(QKeySequence("J"), self)
         self.atajo_j.activated.connect(lambda: self.vista_camara._tecla_pulsada("j", "Leer QRs Mesa", self.vista_camara.accion_leer_qrs_pantalla))
@@ -134,3 +146,14 @@ class AppCamara(QMainWindow):
             self.vista_camara.reanudar_camara()
         else:
             self.vista_camara.pausar_camara()
+    
+    def closeEvent(self, event):
+        """Intercepta el evento de pulsar la 'X' para limpiar procesos en segundo plano."""
+        print("Cerrando la aplicación... Apagando el servidor de IA.")
+        
+        # Asegúrate de que 'self.ai_manager' es el nombre real de tu variable
+        if hasattr(self, 'ai_manager'):
+            self.ai_manager.apagar_ollama()
+            
+        # Le decimos a PyQt que acepte el cierre y destruya la ventana
+        event.accept()

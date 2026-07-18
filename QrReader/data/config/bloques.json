@@ -493,46 +493,6 @@
         "codigo": "num",
         "tipo": "valor"
     },
-    "0": {
-        "codigo": "0",
-        "tipo": "valor"
-    },
-    "1": {
-        "codigo": "1",
-        "tipo": "valor"
-    },
-    "2": {
-        "codigo": "2",
-        "tipo": "valor"
-    },
-    "3": {
-        "codigo": "3",
-        "tipo": "valor"
-    },
-    "4": {
-        "codigo": "4",
-        "tipo": "valor"
-    },
-    "5": {
-        "codigo": "5",
-        "tipo": "valor"
-    },
-    "6": {
-        "codigo": "6",
-        "tipo": "valor"
-    },
-    "7": {
-        "codigo": "7",
-        "tipo": "valor"
-    },
-    "8": {
-        "codigo": "8",
-        "tipo": "valor"
-    },
-    "9": {
-        "codigo": "9",
-        "tipo": "valor"
-    },
     "verdadero": {
         "codigo": "True",
         "tipo": "valor"
@@ -897,10 +857,6 @@
         "codigo": "'free fall'",
         "tipo": "valor"
     },
-    "3g": {
-        "codigo": "'3g'",
-        "tipo": "valor"
-    },
     "ba ding": {
         "codigo": "music.BA_DING",
         "tipo": "valor"
@@ -1055,10 +1011,6 @@
     },
     "do5": {
         "codigo": "'C5'",
-        "tipo": "valor"
-    },
-    "6g": {
-        "codigo": "'6g'",
         "tipo": "valor"
     },
     "pantalla abajo": {

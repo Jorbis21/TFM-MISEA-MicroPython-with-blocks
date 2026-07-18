@@ -7,6 +7,7 @@ from faster_whisper import WhisperModel
 from core.audio import GestorVoz
 
 class VoiceCommandManager:
+    '''Inicializacion'''
     def __init__(self, callback_comando, workspace_dir):
         self.callback_comando = callback_comando
         self.is_recording = False
@@ -15,16 +16,21 @@ class VoiceCommandManager:
         self.stream = None
         self.temp_file = os.path.join(workspace_dir, "inputs", "temp_voice.wav")
         
-        # Cargar el modelo en un hilo secundario para no congelar la interfaz de PyQt6
         self.model = None
         threading.Thread(target=self._load_model, daemon=True).start()
 
+    '''Metodo para cargar el motor de voz'''
     def _load_model(self):
-        print("Cargando motor de voz (Whisper Tiny)...")
-        # El modelo 'tiny' es ultra rápido e ideal para ordenes cortas en CPU
-        self.model = WhisperModel("tiny", device="cpu", compute_type="int8")
+        print("Cargando motor de voz (Whisper Medium)...")
+        self.model = WhisperModel(
+            "medium", 
+            device="cpu", 
+            compute_type="int8", 
+            cpu_threads=4
+        )
         print("Motor de voz listo.")
 
+    '''Metodo para la gestion de la recepcion de la voz'''
     def toggle_recording(self):
         if self.model is None:
             GestorVoz.leer_texto("El sistema de voz se está iniciando. Espera unos segundos.")
@@ -35,6 +41,7 @@ class VoiceCommandManager:
         else:
             self._stop_recording()
 
+    '''Metodo para grabar la voz'''
     def _start_recording(self):
         self.is_recording = True
         self.audio_data = []
@@ -46,15 +53,16 @@ class VoiceCommandManager:
         self.stream = sd.InputStream(samplerate=self.samplerate, channels=1, callback=audio_callback)
         self.stream.start()
 
+    '''Metodo para dejar de grabar la voz'''
     def _stop_recording(self):
         self.is_recording = False
         self.stream.stop()
         self.stream.close()
         GestorVoz.leer_texto("Procesando")
         
-        # Procesamos el audio en otro hilo para que la app siga siendo fluida
         threading.Thread(target=self._process_audio, daemon=True).start()
 
+    '''Metodo para procesar el audio y analizar la intencion'''
     def _process_audio(self):
         try:
             sf.write(self.temp_file, np.array(self.audio_data), self.samplerate)
@@ -68,6 +76,8 @@ class VoiceCommandManager:
         except Exception as e:
             print(f"Error procesando voz: {e}")
 
+    '''MEJORAR ESTE METODO PARA QUE PUEDA ACEPTAR MAS PALABRAS'''
+    '''Metodo para saber que accion realizar'''
     def _analizar_intencion(self, texto):
         if not texto:
             GestorVoz.leer_texto("No he escuchado nada.")

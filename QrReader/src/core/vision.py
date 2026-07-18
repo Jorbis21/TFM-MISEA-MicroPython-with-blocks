@@ -6,7 +6,8 @@ from pyzbar.pyzbar import decode, ZBarSymbol
 
 class VisionEngine:
     def __init__(self):
-        self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        self.camera_index = 0  # Guardamos el índice actual de la cámara
+        self.cap = cv2.VideoCapture(self.camera_index, cv2.CAP_DSHOW)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
         
@@ -193,8 +194,12 @@ class VisionEngine:
         if hasattr(self, 'cap') and self.cap.isOpened():
             self.cap.release()
 
-    def iniciar_camara(self):
-        self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    def iniciar_camara(self, camera_index=None):
+        # Si nos pasan un número nuevo, lo actualizamos
+        if camera_index is not None:
+            self.camera_index = camera_index
+            
+        self.cap = cv2.VideoCapture(self.camera_index, cv2.CAP_DSHOW)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
     
