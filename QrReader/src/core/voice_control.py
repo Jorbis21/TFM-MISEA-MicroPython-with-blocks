@@ -29,6 +29,8 @@ class VoiceCommandManager:
             cpu_threads=4
         )
         print("Motor de voz listo.")
+        GestorVoz.leer_texto("El control por voz esta listo.")
+
 
     '''Metodo para la gestion de la recepcion de la voz'''
     def toggle_recording(self):
@@ -37,6 +39,7 @@ class VoiceCommandManager:
             return
 
         if not self.is_recording:
+            GestorVoz.leer_texto("Te escucho.")
             self._start_recording()
         else:
             self._stop_recording()
@@ -45,7 +48,6 @@ class VoiceCommandManager:
     def _start_recording(self):
         self.is_recording = True
         self.audio_data = []
-        GestorVoz.leer_texto("Te escucho")
         
         def audio_callback(indata, frames, time, status):
             self.audio_data.extend(indata.copy())
@@ -76,7 +78,6 @@ class VoiceCommandManager:
         except Exception as e:
             print(f"Error procesando voz: {e}")
 
-    '''MEJORAR ESTE METODO PARA QUE PUEDA ACEPTAR MAS PALABRAS'''
     '''Metodo para saber que accion realizar'''
     def _analizar_intencion(self, texto):
         if not texto:

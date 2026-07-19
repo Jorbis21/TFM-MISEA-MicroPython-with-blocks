@@ -1,7 +1,7 @@
 import os
-from PyQt6.QtWidgets import QMainWindow, QTabWidget
 from PyQt6.QtGui import QShortcut, QKeySequence
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QEvent
+from PyQt6.QtWidgets import QApplication, QMainWindow, QTabWidget
 
 # --- IMPORTACIONES DE MOTORES CORE ---
 from core.vision import VisionEngine
@@ -108,6 +108,9 @@ class AppCamara(QMainWindow):
         
         # Le pasamos al motor de voz la capacidad de "tocar el timbre" (emit)
         self.voice_manager = VoiceCommandManager(self.senal_voz.emit, workspace_dir)
+        
+        # INSTALAMOS EL FILTRO GLOBAL DE EVENTOS
+        QApplication.instance().installEventFilter(self)
 
     def closeEvent(self, event):
         """
@@ -128,16 +131,27 @@ class AppCamara(QMainWindow):
         elif comando == "leer":
             self.vista_camara.accion_leer_qrs_pantalla()
 
-    def keyPressEvent(self, event):
-        """Filtro global para capturar la barra espaciadora como botón de escucha."""
-        foco = self.focusWidget()
-        es_caja_texto = foco and foco.__class__.__name__ in ['QLineEdit', 'QTextEdit', 'QPlainTextEdit']
-        
-        if event.key() == Qt.Key.Key_Space and not es_caja_texto:
-            self.voice_manager.toggle_recording()
-        else:
-            # Si era otra tecla, o estamos dentro del editor de código, dejamos que actúe normal
-            super().keyPressEvent(event)
+    def eventFilter(self, obj, event):
+        """Filtro global que intercepta la barra espaciadora ANTES de que los botones la consuman."""
+        # Detectamos si el evento es presionar una tecla y si es la barra espaciadora
+        if event.type() == QEvent.Type.KeyPress and event.key() == Qt.Key.Key_Space:
+            
+            # Protegemos el programa por si el usuario mantiene pulsado el espacio sin soltar
+            if event.isAutoRepeat():
+                return True 
+                
+            foco = self.focusWidget()
+            es_caja_texto = foco and hasattr(foco, 'isReadOnly')
+            esta_escribiendo = es_caja_texto and not foco.isReadOnly()
+            
+            if not esta_escribiendo:
+                self.voice_manager.toggle_recording()
+                # RETORNAR TRUE ES LA CLAVE: Matamos el evento aquí. 
+                # El botón o interfaz que tenga el foco jamás se enterará de que se pulsó el espacio.
+                return True 
+                
+        # Si es cualquier otra tecla o el usuario está escribiendo código, dejamos que el sistema actúe normal
+        return super().eventFilter(obj, event)
     
     def _gestionar_estado_camara(self, index):
         """Apaga la cámara si no estamos en la pestaña principal, y la enciende al volver."""
