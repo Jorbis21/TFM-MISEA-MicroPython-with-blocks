@@ -178,7 +178,10 @@ class TabCamara(QWidget):
         layout_h_texto = QHBoxLayout()
         layout_h_texto.addStretch() # Muelle para empujar hacia la derecha
         
-        self.btn_editar = QPushButton("✎ Editar")
+        self.btn_editar = QPushButton()
+        ruta_icono_editar = os.path.join(self.assets_dir, "edit.png")
+        icono_editar = QIcon(ruta_icono_editar)
+        self.btn_editar.setIcon(icono_editar)
         self.btn_editar.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_editar.setStyleSheet("""
             QPushButton {
@@ -231,8 +234,11 @@ class TabCamara(QWidget):
         ruta_icono_rotar = os.path.join(self.assets_dir, "sync.png")
         ruta_icono_apagar = os.path.join(self.assets_dir, "on-off-button.png")
 
-        self.btn_rotar.setIcon(QIcon(ruta_icono_rotar))
-        self.btn_apagar.setIcon(QIcon(ruta_icono_apagar))
+        icono_rotar = QIcon(ruta_icono_rotar)
+        icono_apagar = QIcon(ruta_icono_apagar)
+
+        self.btn_rotar.setIcon(icono_rotar)
+        self.btn_apagar.setIcon(icono_apagar)
 
         tamano_icono = QSize(24, 24)
         self.btn_rotar.setIconSize(tamano_icono)
@@ -481,7 +487,9 @@ class TabCamara(QWidget):
         """
         if not self.modo_edicion:
             self.modo_edicion = True
-            self.btn_editar.setText("💾 Guardar")
+            ruta_icono_guardar = os.path.join(self.assets_dir, "diskette.png")
+            icono_guardar = QIcon(ruta_icono_guardar)
+            self.btn_editar.setIcon(icono_guardar)
             # Rojo translúcido (#E74C3C)
             self.btn_editar.setStyleSheet(estilo_base % ("rgba(231, 76, 60, 220)", "rgba(231, 76, 60, 255)"))
             self.caja_texto.setReadOnly(False)
@@ -490,7 +498,9 @@ class TabCamara(QWidget):
         else:
             if self._guardar_codigo_archivo():
                 self.modo_edicion = False
-                self.btn_editar.setText("✎ Editar")
+                ruta_icono_editar = os.path.join(self.assets_dir, "edit.png")
+                icono_editar = QIcon(ruta_icono_editar)
+                self.btn_editar.setIcon(icono_editar)
                 # Dorado translúcido (#D4AC0D)
                 self.btn_editar.setStyleSheet(estilo_base % ("rgba(212, 172, 13, 220)", "rgba(212, 172, 13, 255)"))
                 self.leer_codigo_generado()
@@ -510,7 +520,9 @@ class TabCamara(QWidget):
                 }
                 QPushButton:hover { background-color: rgba(212, 172, 13, 255); }
             """
-            self.btn_editar.setText("✎ Editar")
+            ruta_icono_editar = os.path.join(self.assets_dir, "edit.png")
+            icono_editar = QIcon(ruta_icono_editar)
+            self.btn_editar.setIcon(icono_editar)
             self.btn_editar.setStyleSheet(estilo_base)
             
             self.caja_texto.setReadOnly(True)

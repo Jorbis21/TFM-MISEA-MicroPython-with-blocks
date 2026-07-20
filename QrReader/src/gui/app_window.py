@@ -108,7 +108,7 @@ class AppCamara(QMainWindow):
         
         # Le pasamos al motor de voz la capacidad de "tocar el timbre" (emit)
         self.voice_manager = VoiceCommandManager(self.senal_voz.emit, workspace_dir)
-        
+        self.traductor.set_voice_manager(self.voice_manager)
         # INSTALAMOS EL FILTRO GLOBAL DE EVENTOS
         QApplication.instance().installEventFilter(self)
 

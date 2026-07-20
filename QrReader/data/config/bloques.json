@@ -1016,5 +1016,17 @@
     "pantalla abajo": {
         "codigo": "'face down'",
         "tipo": "valor"
+    },
+    "declarar variable": {
+        "codigo": "var_",
+        "tipo": "declaracion_var"
+    },
+    "valor variable": {
+        "codigo": "val_",
+        "tipo": "asignacion_val"
+    },
+    "variable": {
+        "codigo": "var_",
+        "tipo": "referencia_var"
     }
 }

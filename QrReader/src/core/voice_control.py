@@ -95,3 +95,61 @@ class VoiceCommandManager:
             self.callback_comando("leer")
         else:
             GestorVoz.leer_texto("Comando no reconocido. Prueba a decir 'tomar foto' o 'explicar código'.")
+    
+    def escuchar_dictado_sincrono(self, timeout=5):
+        """Graba un clip de audio de longitud fija (síncrono) para capturar respuestas rápidas."""
+        import time
+        GestorVoz.leer_texto("Piii") # Feedback sonoro opcional
+        time.sleep(0.5) # Espera a que termine el pitido
+        
+        audio_capturado = sd.rec(int(timeout * self.samplerate), samplerate=self.samplerate, channels=1)
+        sd.wait() # Bloquea la ejecución hasta grabar los 'timeout' segundos
+        
+        try:
+            sf.write(self.temp_file, audio_capturado, self.samplerate)
+            segments, _ = self.model.transcribe(self.temp_file, language="es")
+            texto_transcrito = " ".join([segment.text for segment in segments]).strip().lower()
+            # Limpiamos puntuación básica generada por Whisper
+            texto_limpio = texto_transcrito.replace(".", "").replace(",", "").replace("?", "").replace("¿", "")
+            print(f"[Dictado Capturado]: {texto_limpio}")
+            return texto_limpio
+        except Exception as e:
+            print(f"Error en dictado síncrono: {e}")
+            return ""
+
+    def bucle_confirmacion_voz(self, pregunta):
+        """
+        Implementa el Flujo Principal (Pregunta -> Escucha -> Confirmación).
+        Retorna el texto final validado.
+        """
+        import time
+        ultimo_texto = ""
+        
+        while True:
+            # 1. Petición
+            GestorVoz.leer_texto(pregunta)
+            time.sleep(2) # Espera activa aprox para que termine de hablar
+            
+            # 2. Escucha
+            texto_detectado = self.escuchar_dictado_sincrono(timeout=4)
+            if not texto_detectado:
+                continue
+                
+            ultimo_texto = texto_detectado
+            
+            # 3. Confirmación
+            GestorVoz.leer_texto(f"He entendido {texto_detectado}. ¿Es correcto?")
+            time.sleep(2.5)
+            
+            confirmacion = self.escuchar_dictado_sincrono(timeout=3)
+            
+            # 4. Árbol de Decisión
+            if "sí" in confirmacion or "si" in confirmacion or "correcto" in confirmacion:
+                return ultimo_texto
+            elif "pasar" in confirmacion or "omitir" in confirmacion:
+                GestorVoz.leer_texto("Omitiendo validación. Utilizando último texto detectado.")
+                return ultimo_texto
+            else:
+                GestorVoz.leer_texto("De acuerdo, vamos a repetirlo.")
+                time.sleep(1.5)
+                # El bucle while vuelve a empezar (Respuesta NO)
