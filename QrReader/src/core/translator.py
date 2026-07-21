@@ -248,9 +248,38 @@ class MicrobitCompiler:
         elif tipo == "referencia_var":
             return self._manejar_referencia(tokens, contexto="una orden general")
 
+        # Rutas estándar del autómata...
         if tipo == "control_metodo":
             if not tokens: return f"# ERROR: '{primer_bloque}' necesita un sujeto a su derecha"
             sujeto = self._consumir_argumento_vc(tokens, contexto=f"el método de control de {primer_bloque}")
+            
+            # --- INYECCIÓN DINÁMICA: "Al presionar" ---
+            # Sustituye "al_presionar" por el nombre exacto que tenga en tu JSON
+            if primer_bloque == "al_presionar":
+                # Si hay operadores lógicos, desglosamos para aplicar el método a cada elemento
+                if " and " in sujeto or " or " in sujeto:
+                    partes = sujeto.replace(" and ", " _AND_ ").replace(" or ", " _OR_ ").split(" ")
+                    sujeto_final = ""
+                    for parte in partes:
+                        if parte == "_AND_":
+                            sujeto_final += " and "
+                        elif parte == "_OR_":
+                            sujeto_final += " or "
+                        else:
+                            # Comprobamos si el elemento individual es un pin o un botón
+                            if "pin" in parte or "logo" in parte:
+                                sujeto_final += f"{parte}.is_touched()"
+                            else:
+                                sujeto_final += f"{parte}.is_pressed()"
+                    return f"if {sujeto_final}:"
+                else:
+                    # Lógica normal para un solo sujeto
+                    if "pin" in sujeto or "logo" in sujeto:
+                        return f"if {sujeto}.is_touched():"
+                    else:
+                        return f"if {sujeto}.is_pressed():"
+            # ------------------------------------------
+
             if codigo_base.endswith(")"): return f"if {sujeto}{codigo_base}:"
             else: return f"if {sujeto}{codigo_base}():"
 
@@ -333,6 +362,15 @@ class MicrobitCompiler:
                 metodo = tokens.pop(0)
                 codigo_metodo = sig_info.get("codigo", metodo)
                 
+                # --- INYECCIÓN DINÁMICA: "Es presionado" ---
+                # Sustituye "es_presionado" por el nombre exacto que tenga en tu JSON
+                if metodo == "es_presionado":
+                    if "pin" in resultado or "logo" in resultado:
+                        codigo_metodo = ".is_touched()"
+                    else:
+                        codigo_metodo = ".is_pressed()"
+                # -------------------------------------------
+
                 num_args = sig_info.get("args", 0)
                 args_extra = []
                 for _ in range(num_args):
