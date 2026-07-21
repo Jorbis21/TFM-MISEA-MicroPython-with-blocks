@@ -8,13 +8,12 @@ class MicrobitCompiler:
         self.config_dir = config_dir
         self.tabla_simbolos = self._construir_tabla_simbolos()
         
-        # --- NUEVO: ESTADO Y MEMORIA DEL SISTEMA ---
         self.voice_manager = None
-        self.memoria_variables = []  # Estructura: [{"nombre_variable": valor}]
-        self.contador_var = 0        # Para el comportamiento físico por defecto
+        self.memoria_variables = []  
+        self.contador_var = 0        
+        self.activar_voz_variables = True
 
     def set_voice_manager(self, voice_manager):
-        """Inyecta el motor de voz en el compilador para poder interactuar durante la traducción."""
         self.voice_manager = voice_manager
 
     def _construir_tabla_simbolos(self):
@@ -32,122 +31,152 @@ class MicrobitCompiler:
             return True
         except ValueError:
             return False
+        
+    def _normalizar_texto(self, texto, es_variable=False):
+        if not texto: return ""
+        
+        texto = texto.strip().lower()
+        
+        reemplazos = {
+            'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ü': 'u'
+        }
+        for original, nuevo in reemplazos.items():
+            texto = texto.replace(original, nuevo)
+            
+        if es_variable:
+            texto = texto.replace(" ", "_")
+            
+        return texto
 
-    # ========================================================
-    # NUEVA LÓGICA DE VARIABLES Y MEMORIA POR VOZ
-    # ========================================================
     def _aplicar_tipado(self, texto):
-        """Evalúa el texto capturado para convertirlo a int, float o mantenerlo como string (con comillas)."""
-        texto = texto.strip()
+        texto = texto.strip().lower()
+        
+        # 1. Diccionario rápido para los números que Whisper suele escribir con letra
+        numeros_letras = {
+            "cero": "0", "uno": "1", "dos": "2", "tres": "3", "cuatro": "4",
+            "cinco": "5", "seis": "6", "siete": "7", "ocho": "8", "nueve": "9",
+            "diez": "10", "once": "11", "doce": "12", "trece": "13", "catorce": "14",
+            "quince": "15", "dieciséis": "16", "diecisiete": "17", "dieciocho": "18",
+            "diecinueve": "19", "veinte": "20", "treinta": "30", "cuarenta": "40",
+            "cincuenta": "50", "sesenta": "60", "setenta": "70", "ochenta": "80",
+            "noventa": "90", "cien": "100"
+        }
+        
+        # Limpieza del prefijo "número " por si el usuario quiere forzarlo
+        if texto.startswith("número "):
+            texto = texto.replace("número ", "", 1).strip()
+        elif texto.startswith("numero "):
+            texto = texto.replace("numero ", "", 1).strip()
+            
+        # 2. Traducción automática de palabra a dígito si está en el diccionario
+        if texto in numeros_letras:
+            texto = numeros_letras[texto]
+            
+        # 3. Parseo de decimales hablados
+        texto_parseado = texto.replace(" coma ", ".")
+        texto_parseado = texto_parseado.replace(" con ", ".")
+        texto_parseado = texto_parseado.replace(",", ".")
+        texto_parseado = texto_parseado.replace(" .", ".").replace(". ", ".")
+        
+        # 4. Intentamos casteo matemático a Entero
         try:
-            val = int(texto)
+            val = int(texto_parseado)
             return str(val), val
         except ValueError:
             pass
         
+        # 5. Intentamos casteo matemático a Decimal (Float)
         try:
-            val = float(texto.replace(",", "."))
+            val = float(texto_parseado)
             return str(val), val
         except ValueError:
             pass
             
-        # Si no es número, se trata como texto para Python
-        return f'"{texto}"', texto
+        # 6. Si falla todo, es texto puro: lo pasamos por el filtro para quitar tildes
+        texto_limpio = self._normalizar_texto(texto, es_variable=False)
+        return f'"{texto_limpio}"', texto_limpio
 
-    def _gestionar_variable_voz(self, tipo_bloque):
-        """Flujo Maestro de Reutilización (Contexto Rápido y Sub-bucle Profundo)."""
+    def _gestionar_variable_voz(self, tipo_bloque, contexto=""):
         from core.audio import GestorVoz
-        import time
+
+        intro = f"Para {contexto}. " if contexto else ""
 
         if not self.memoria_variables:
-            return self.voice_manager.bucle_confirmacion_voz("Dime el nombre de la variable")
+            nombre = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable")
+            return self._normalizar_texto(nombre, es_variable=True)
 
         ultima_var = list(self.memoria_variables[-1].keys())[0]
 
-        # 1. Petición de Contexto Rápido
-        GestorVoz.leer_texto(f"¿Quieres usar la última variable declarada, llamada {ultima_var}?")
-        time.sleep(3)
-        resp1 = self.voice_manager.escuchar_dictado_sincrono(timeout=3)
+        GestorVoz.leer_texto(f"{intro}¿Quieres usar la última variable declarada, llamada {ultima_var}?")
+        resp1 = self.voice_manager.escuchar_dictado_sincrono()
+        
         if resp1 and ("sí" in resp1 or "si" in resp1 or "claro" in resp1):
             return ultima_var
 
-        # 2. Petición de Contexto Profundo
-        GestorVoz.leer_texto("¿Quieres usar otra de las variables anteriores guardadas?")
-        time.sleep(3)
-        resp2 = self.voice_manager.escuchar_dictado_sincrono(timeout=3)
+        resp2 = ""
+        if len(self.memoria_variables) > 1:
+            GestorVoz.leer_texto("¿Quieres usar otra de las variables anteriores guardadas?")
+            resp2 = self.voice_manager.escuchar_dictado_sincrono()
+        
         if resp2 and ("sí" in resp2 or "si" in resp2 or "claro" in resp2):
-            ultimo_texto = ""
+            ultimo_intento = ""
             while True:
                 GestorVoz.leer_texto("Dime el nombre de la variable para poder buscarla.")
-                time.sleep(3)
-                texto_busqueda = self.voice_manager.escuchar_dictado_sincrono(timeout=4)
+                texto_busqueda = self.voice_manager.escuchar_dictado_sincrono()
                 
                 if not texto_busqueda:
                     continue
                 
-                ultimo_texto = texto_busqueda
-                
-                # Salida de rescate
                 if "pasar" in texto_busqueda or "omitir" in texto_busqueda:
-                    return ultimo_texto
+                    texto_final = ultimo_intento if ultimo_intento else texto_busqueda
+                    return self._normalizar_texto(texto_final, es_variable=True)
 
-                # Búsqueda en memoria (Ignorando mayúsculas/minúsculas)
+                ultimo_intento = texto_busqueda
+                texto_busqueda_norm = self._normalizar_texto(texto_busqueda, es_variable=True)
+
                 for var_dict in self.memoria_variables:
                     nombre_var = list(var_dict.keys())[0]
-                    if texto_busqueda == nombre_var.lower():
+                    if texto_busqueda_norm == nombre_var:
                         return nombre_var
                 
-                GestorVoz.leer_texto("No he encontrado esa variable en la memoria.")
-                time.sleep(2)
+                GestorVoz.leer_texto("No he encontrado esa variable en la memoria. Volvamos a intentarlo.")
 
-        # Si responde NO a todo y es una declaración nueva, entramos al flujo principal
         if tipo_bloque == "declaracion_var":
-            return self.voice_manager.bucle_confirmacion_voz("Dime el nombre de la variable")
+            nombre = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable")
+            return self._normalizar_texto(nombre, es_variable=True)
         
-        # Fallback de seguridad
         return ultima_var
 
     def _manejar_declaracion(self, tokens):
-        """Procesa el bloque [Declarar variable]."""
-        if self.voice_manager and self.voice_manager.is_recording:
-            # Fase A: Nombre
-            nombre = self._gestionar_variable_voz("declaracion_var")
-            
-            # Fase B: Valor
-            valor_texto = self.voice_manager.bucle_confirmacion_voz("Dime el valor de la variable")
+        if self.voice_manager and self.activar_voz_variables:
+            nombre = self._gestionar_variable_voz("declaracion_var", contexto="declarar una variable nueva")
+            valor_texto = self.voice_manager.bucle_confirmacion_voz(f"Dime el valor para {nombre}")
             codigo_valor, valor_real = self._aplicar_tipado(valor_texto)
             
-            # Guardado persistente
             self.memoria_variables.append({nombre: valor_real})
-            
-            # Limpiamos los tokens físicos de la derecha para ignorar los bloques de valor de la mesa
             tokens.clear() 
             return f"{nombre} = {codigo_valor}"
         else:
             self.contador_var += 1
-            return f"var_{self.contador_var} = "
+            resto_de_la_fila = self._consumir_argumento_vc(tokens)
+            return f"var_{self.contador_var} = {resto_de_la_fila}"
 
-    def _manejar_asignacion(self, tokens):
-        """Procesa el bloque [Valor variable]."""
-        if self.voice_manager and self.voice_manager.is_recording:
-            tokens.clear()
-            return "" # Ignorado por el control de voz
+    def _manejar_asignacion(self, tokens, contexto=""):
+        if self.voice_manager and self.activar_voz_variables:
+            pregunta = f"Para {contexto}, dime el valor" if contexto else "Dime el valor"
+            valor_texto = self.voice_manager.bucle_confirmacion_voz(pregunta)
+            codigo_valor, _ = self._aplicar_tipado(valor_texto)
+            return codigo_valor
         else:
             return f"val_{self.contador_var}"
 
-    def _manejar_referencia(self, tokens):
-        """Procesa el bloque [Variable] como sujeto o argumento."""
-        if self.voice_manager and self.voice_manager.is_recording:
-            nombre = self._gestionar_variable_voz("referencia_var")
-            return nombre
+    def _manejar_referencia(self, tokens, contexto=""):
+        if self.voice_manager and self.activar_voz_variables:
+            return self._gestionar_variable_voz("referencia_var", contexto)
         else:
             return f"var_{self.contador_var}"
             
-    # ========================================================
-    # COMPILACIÓN PRINCIPAL
-    # ========================================================
     def generar_codigo(self, matriz_comandos, ruta_salida):
-
         self.memoria_variables = []
         self.contador_var = 0
         
@@ -173,14 +202,11 @@ class MicrobitCompiler:
         for fila in matriz_comandos:
             num_tabs_fisicos = 0
             for elem in fila:
-                if elem == "":
-                    num_tabs_fisicos += 1
-                else:
-                    break
+                if elem == "": num_tabs_fisicos += 1
+                else: break
             
             tokens = [e for e in fila if e != ""]
-            if not tokens:
-                continue
+            if not tokens: continue
 
             while len(niveles_activos) > 1 and num_tabs_fisicos < niveles_activos[-1]:
                 niveles_activos.pop()
@@ -192,7 +218,6 @@ class MicrobitCompiler:
             linea_str = "    " * nivel_logico  
             
             linea_str += self.procesar_fila_tokens(tokens)
-            
             codigo_final.append(linea_str)
 
         with open(ruta_salida, "w", encoding="utf-8") as file:
@@ -201,8 +226,7 @@ class MicrobitCompiler:
         print("Código compilado con éxito mediante Analizador Predictivo.")
 
     def procesar_fila_tokens(self, tokens):
-        if not tokens: 
-            return ""
+        if not tokens: return ""
         
         primer_bloque = tokens.pop(0)
         
@@ -217,34 +241,32 @@ class MicrobitCompiler:
         tipo = info.get("tipo", "")
         codigo_base = info.get("codigo", str(primer_bloque))
         
-        # Rutas dinámicas para la gestión de variables
         if tipo == "declaracion_var":
             return self._manejar_declaracion(tokens)
         elif tipo == "asignacion_val":
-            return self._manejar_asignacion(tokens)
+            return self._manejar_asignacion(tokens, contexto="una orden general")
         elif tipo == "referencia_var":
-            return self._manejar_referencia(tokens)
+            return self._manejar_referencia(tokens, contexto="una orden general")
 
-        # Rutas estándar del autómata...
         if tipo == "control_metodo":
             if not tokens: return f"# ERROR: '{primer_bloque}' necesita un sujeto a su derecha"
-            sujeto = self._consumir_argumento_vc(tokens)
+            sujeto = self._consumir_argumento_vc(tokens, contexto=f"el método de control de {primer_bloque}")
             if codigo_base.endswith(")"): return f"if {sujeto}{codigo_base}:"
             else: return f"if {sujeto}{codigo_base}():"
 
         elif tipo == "control_funcion":
             if not tokens: return f"# ERROR: '{primer_bloque}' necesita un argumento a su derecha"
-            arg = self._consumir_argumento_vc(tokens)
+            arg = self._consumir_argumento_vc(tokens, contexto=f"la función {primer_bloque}")
             return f"if {codigo_base}({arg}):"
 
         elif tipo == "metodo":
             if not tokens: return f"# ERROR: '{primer_bloque}' necesita un sujeto a su derecha"
-            sujeto = self._consumir_argumento_vc(tokens)
+            sujeto = self._consumir_argumento_vc(tokens, contexto=f"el sujeto de {primer_bloque}")
             num_args = info.get("args", 0)
             args_extra = []
             for _ in range(num_args):
                 if tokens:
-                    args_extra.append(self._consumir_argumento_vc(tokens))
+                    args_extra.append(self._consumir_argumento_vc(tokens, contexto=f"el argumento de {primer_bloque}"))
                     
             if args_extra: return f"{sujeto}{codigo_base}({', '.join(args_extra)})"
             else:
@@ -260,22 +282,22 @@ class MicrobitCompiler:
             args = []
             for _ in range(num_args):
                 if tokens:
-                    args.append(self._consumir_argumento_vc(tokens))
+                    args.append(self._consumir_argumento_vc(tokens, contexto=f"el argumento de {primer_bloque}"))
             return f"{codigo_base}({', '.join(args)})"
             
         elif tipo == "control":
             condicion = ""
             if tokens:
-                condicion = self._consumir_argumento_vc(tokens)
+                condicion = self._consumir_argumento_vc(tokens, contexto=f"la condición de {primer_bloque}")
             codigo_limpio = codigo_base.replace(":", "").strip()
             if condicion: return f"{codigo_limpio} {condicion}:"
             else: return f"{codigo_limpio}:"
                 
         else:
             tokens.insert(0, primer_bloque)
-            return self._consumir_argumento_vc(tokens)
+            return self._consumir_argumento_vc(tokens, contexto=f"el bloque junto a {primer_bloque}")
 
-    def _consumir_argumento_vc(self, tokens):
+    def _consumir_argumento_vc(self, tokens, contexto=""):
         if not tokens: return ""
         
         val = tokens.pop(0)
@@ -286,11 +308,10 @@ class MicrobitCompiler:
             info = self.tabla_simbolos.get(val, {})
             tipo_val = info.get("tipo", "")
             
-            # Inyección de lectura de variables incrustadas como argumentos
             if tipo_val == "referencia_var":
-                resultado = self._manejar_referencia(tokens)
+                resultado = self._manejar_referencia(tokens, contexto)
             elif tipo_val == "asignacion_val":
-                resultado = self._manejar_asignacion(tokens)
+                resultado = self._manejar_asignacion(tokens, contexto)
             else:
                 resultado = info.get("codigo", val)
             
@@ -305,7 +326,7 @@ class MicrobitCompiler:
                 op = tokens.pop(0)
                 resultado += sig_info.get("codigo", op)
                 if tokens:
-                    resultado += self._consumir_argumento_vc(tokens)
+                    resultado += self._consumir_argumento_vc(tokens, contexto)
                 break
                 
             elif tipo_sig == "metodo":
@@ -316,7 +337,7 @@ class MicrobitCompiler:
                 args_extra = []
                 for _ in range(num_args):
                     if tokens:
-                        args_extra.append(self._consumir_argumento_vc(tokens))
+                        args_extra.append(self._consumir_argumento_vc(tokens, contexto=f"el argumento de {metodo}"))
                         
                 if args_extra:
                     resultado += f"{codigo_metodo}({', '.join(args_extra)})"
