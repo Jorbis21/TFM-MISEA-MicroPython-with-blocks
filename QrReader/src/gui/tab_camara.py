@@ -133,7 +133,7 @@ class TabCamara(QWidget):
         lbl_ctrl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout_izq.addWidget(lbl_ctrl)
 
-        # Barra horizontal de botones táctiles/atendidos (Solo los 4 principales)
+        # Barra horizontal de botones táctiles/atendidos
         layout_botones = QHBoxLayout()
         
         self.btn_capturar = QPushButton("Tomar Foto")
@@ -151,10 +151,19 @@ class TabCamara(QWidget):
         self.btn_ia.clicked.connect(self.accion_explicar_ia)
         layout_botones.addWidget(self.btn_ia)
 
-        self.btn_leer_qrs = QPushButton("Leer QRs Mesa")
-        self.btn_leer_qrs.setStyleSheet("background-color: #4A235A; color: white; font-weight: bold; padding: 10px;")
-        self.btn_leer_qrs.clicked.connect(self.accion_leer_qrs_pantalla)
-        layout_botones.addWidget(self.btn_leer_qrs)
+        # --- NUEVO: Botón Cíclico para TTS ---
+        self.modos_tts = [
+            {"texto": "🔊 Voz: PC", "color": "#0078D7", "valor": "pc"},
+            {"texto": "🤖 Voz: Placa", "color": "#D35400", "valor": "placa"},
+            {"texto": "🔇 Voz: Apagada", "color": "#7F8C8D", "valor": "apagado"}
+        ]
+        self.idx_tts = 0  # Empezamos por defecto en Modo PC
+
+        self.btn_tts = QPushButton(self.modos_tts[self.idx_tts]["texto"])
+        self.btn_tts.setStyleSheet(f"background-color: {self.modos_tts[self.idx_tts]['color']}; color: white; font-weight: bold; padding: 10px;")
+        self.btn_tts.clicked.connect(self.accion_cambiar_tts)
+        layout_botones.addWidget(self.btn_tts)
+        # --------------------------------------
 
         # Insertamos la barra de botones principales
         layout_izq.addLayout(layout_botones)
@@ -170,13 +179,12 @@ class TabCamara(QWidget):
 
         # --- OVERLAY DEL BOTÓN DE EDITAR SOBRE EL TEXTO ---
         layout_overlay_texto = QVBoxLayout(self.caja_texto)
-        # Margen derecho de 25px para evitar tapar la barra de scroll vertical
         layout_overlay_texto.setContentsMargins(10, 10, 25, 15) 
         
-        layout_overlay_texto.addStretch() # Muelle para empujar hacia abajo
+        layout_overlay_texto.addStretch() 
         
         layout_h_texto = QHBoxLayout()
-        layout_h_texto.addStretch() # Muelle para empujar hacia la derecha
+        layout_h_texto.addStretch() 
         
         self.btn_editar = QPushButton()
         ruta_icono_editar = os.path.join(self.assets_dir, "edit.png")
@@ -215,7 +223,6 @@ class TabCamara(QWidget):
         self.video_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.video_label.setStyleSheet("background-color: #000000; border-radius: 4px;")
         
-        # Ignoramos la política de tamaño para que el QPixmap no redimensione la ventana
         self.video_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
         self.video_label.setMinimumSize(400, 300) 
 
@@ -227,7 +234,6 @@ class TabCamara(QWidget):
         layout_botones_camara.setSpacing(10)
         layout_botones_camara.addStretch()
 
-        # Instanciamos los botones del overlay
         self.btn_rotar = QPushButton()
         self.btn_apagar = QPushButton()
 
@@ -247,7 +253,6 @@ class TabCamara(QWidget):
         self.btn_apagar.clicked.connect(self.accion_apagar_camara)
         self.btn_rotar.clicked.connect(self.accion_rotar_camara)
 
-        # --- APLICACIÓN DEL ESCANEO DE CÁMARAS Y FILTRADO ---
         self.combo_camaras = QComboBox()
         camaras_reales = self._detectar_camaras()
         
@@ -260,7 +265,6 @@ class TabCamara(QWidget):
             
         self.combo_camaras.currentIndexChanged.connect(self.accion_cambiar_camara)
 
-        # Aplicamos el estilo de cristal semitransparente a los botones y al combo
         estilo_overlay = """
             QPushButton, QComboBox {
                 background-color: rgba(30, 30, 30, 180); 
@@ -402,6 +406,20 @@ class TabCamara(QWidget):
             self.status_label.setStyleSheet(f"color: {color_hex};")
             
         threading.Thread(target=lambda: self.ai_manager.explicar_codigo(self.ruta_codigo, actualizar_estado), daemon=True).start()
+
+    # --- NUEVO: Acción para alternar los modos TTS ---
+    def accion_cambiar_tts(self):
+        # Rotamos entre 0, 1 y 2
+        self.idx_tts = (self.idx_tts + 1) % len(self.modos_tts)
+        modo_actual = self.modos_tts[self.idx_tts]
+        
+        # Actualizamos la apariencia del botón
+        self.btn_tts.setText(modo_actual["texto"])
+        self.btn_tts.setStyleSheet(f"background-color: {modo_actual['color']}; color: white; font-weight: bold; padding: 10px;")
+        
+        # Inyectamos el nuevo modo en el compilador
+        if hasattr(self.traductor, 'set_modo_tts'):
+            self.traductor.set_modo_tts(modo_actual["valor"])
 
     # =========================================================
     # RENDERIZADO Y TRATAMIENTO TEXTUAL

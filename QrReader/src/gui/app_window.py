@@ -9,6 +9,7 @@ from core.vision import VisionEngine
 from core.translator import MicrobitCompiler
 from core.ai_manager import AIManager
 from core.voice_control import VoiceCommandManager
+from core.serial_manager import SerialMonitor
 
 # --- IMPORTACIONES DE VISTAS (MVC) ---
 from gui.tab_camara import TabCamara
@@ -30,6 +31,8 @@ class AppCamara(QMainWindow):
         self.vision = VisionEngine()
         self.traductor = MicrobitCompiler(config_dir=config_dir)
         self.ai_manager = AIManager(api_key="AQ.Ab8RN6JQTC-SYK-S--HwCZ1vUbUvZ6-z-Frek--H-vkNUdFJ-w")
+        self.serial_monitor = SerialMonitor()
+        self.serial_monitor.arrancar()
 
         # 3. Creación del Contenedor de Pestañas
         self.tabs = QTabWidget()
@@ -112,6 +115,12 @@ class AppCamara(QMainWindow):
         self.vista_camara.cleanup()
         if hasattr(self, 'ai_manager'):
             self.ai_manager.apagar_ollama()
+            
+        # --- NUEVO: Liberar el puerto COM ---
+        if hasattr(self, 'serial_monitor'):
+            self.serial_monitor.detener()
+        # ------------------------------------
+        
         event.accept()
 
     def _ejecutar_comando_voz(self, comando):

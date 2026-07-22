@@ -12,9 +12,15 @@ class MicrobitCompiler:
         self.memoria_variables = []  
         self.contador_var = 0        
         self.activar_voz_variables = True
+        
+        # --- Estado del sistema TTS ---
+        self.modo_tts = "pc"  
 
     def set_voice_manager(self, voice_manager):
         self.voice_manager = voice_manager
+
+    def set_modo_tts(self, modo):
+        self.modo_tts = modo
 
     def _construir_tabla_simbolos(self):
         ruta_json = os.path.join(self.config_dir, 'bloques.json')
@@ -51,7 +57,6 @@ class MicrobitCompiler:
     def _aplicar_tipado(self, texto):
         texto = texto.strip().lower()
         
-        # 1. Diccionario rápido para los números que Whisper suele escribir con letra
         numeros_letras = {
             "cero": "0", "uno": "1", "dos": "2", "tres": "3", "cuatro": "4",
             "cinco": "5", "seis": "6", "siete": "7", "ocho": "8", "nueve": "9",
@@ -62,37 +67,81 @@ class MicrobitCompiler:
             "noventa": "90", "cien": "100"
         }
         
-        # Limpieza del prefijo "número " por si el usuario quiere forzarlo
         if texto.startswith("número "):
             texto = texto.replace("número ", "", 1).strip()
         elif texto.startswith("numero "):
             texto = texto.replace("numero ", "", 1).strip()
+
+        # --- 1. Detección de Notas Musicales (Básica) ---
+        mapa_notas = {"do": "c", "re": "d", "mi": "e", "fa": "f", "sol": "g", "la": "a", "si": "b", "do5": "c5"}
+        texto_notas = texto.replace(",", " ").replace(".", " ").replace(" y ", " ")
+        palabras_notas = [p for p in texto_notas.split() if p]
+        
+        if palabras_notas and all(p in mapa_notas for p in palabras_notas):
+            notas_traducidas = [mapa_notas[p] for p in palabras_notas]
+            return str(notas_traducidas), notas_traducidas
+        # ----------------------------------------------------
+
+        # --- PREPARACIÓN PARA COORDENADAS E IMÁGENES ---
+        texto_multi = texto.replace(" coma ", " ").replace(",", " ").replace(" y ", " ")
+        palabras_multi = [p for p in texto_multi.split() if p]
+        palabras_multi = [str(numeros_letras.get(p, p)) for p in palabras_multi]
+        
+        # --- 2. Detección de Imágenes (Image) ---
+        es_imagen = False
+        palabras_img = palabras_multi.copy()
+        
+        if palabras_img and palabras_img[0] == "imagen":
+            es_imagen = True
+            palabras_img.pop(0) # Quitamos la palabra 'imagen' de la lista
             
-        # 2. Traducción automática de palabra a dígito si está en el diccionario
+        # Comprobamos si lo que queda son exclusivamente dígitos sueltos (del 0 al 9)
+        if palabras_img and all(p.isdigit() and len(p) == 1 for p in palabras_img):
+            # Forzamos si dijo "imagen" o si dictó más de 3 números (para no pisar coordenadas)
+            if es_imagen or len(palabras_img) > 3:
+                digitos = "".join(palabras_img)
+                # Rellenamos con '0' a la derecha hasta llegar a 25 y cortamos los sobrantes
+                digitos = digitos.ljust(25, '0')[:25] 
+                
+                # Insertamos los separadores cada 5 caracteres
+                img_form = f"{digitos[0:5]}:{digitos[5:10]}:{digitos[10:15]}:{digitos[15:20]}:{digitos[20:25]}"
+                return f"Image('{img_form}')", img_form
+        # ------------------------------------------------
+
+        # --- 3. Detección de coordenadas triples (display.set_pixel) ---
+        if len(palabras_multi) == 3:
+            try:
+                valores = [int(p) for p in palabras_multi]
+                return f"{valores[0]}, {valores[1]}, {valores[2]}", valores
+            except ValueError:
+                pass
+        # ---------------------------------------------------------------
+            
+        # 4. Traducción clásica de palabra a dígito si está en el diccionario
         if texto in numeros_letras:
             texto = numeros_letras[texto]
             
-        # 3. Parseo de decimales hablados
+        # 5. Parseo de decimales hablados
         texto_parseado = texto.replace(" coma ", ".")
         texto_parseado = texto_parseado.replace(" con ", ".")
         texto_parseado = texto_parseado.replace(",", ".")
         texto_parseado = texto_parseado.replace(" .", ".").replace(". ", ".")
         
-        # 4. Intentamos casteo matemático a Entero
+        # 6. Intentamos casteo matemático a Entero
         try:
             val = int(texto_parseado)
             return str(val), val
         except ValueError:
             pass
         
-        # 5. Intentamos casteo matemático a Decimal (Float)
+        # 7. Intentamos casteo matemático a Decimal (Float)
         try:
             val = float(texto_parseado)
             return str(val), val
         except ValueError:
             pass
             
-        # 6. Si falla todo, es texto puro: lo pasamos por el filtro para quitar tildes
+        # 8. Si falla todo, es texto puro: quitamos tildes y envolvemos en comillas
         texto_limpio = self._normalizar_texto(texto, es_variable=False)
         return f'"{texto_limpio}"', texto_limpio
 
@@ -215,17 +264,17 @@ class MicrobitCompiler:
                 niveles_activos.append(num_tabs_fisicos)
                 
             nivel_logico = len(niveles_activos) - 1
-            linea_str = "    " * nivel_logico  
+            indentacion = "    " * nivel_logico  
             
-            linea_str += self.procesar_fila_tokens(tokens)
-            codigo_final.append(linea_str)
+            linea_traducida = self.procesar_fila_tokens(tokens, indentacion)
+            codigo_final.append(indentacion + linea_traducida)
 
         with open(ruta_salida, "w", encoding="utf-8") as file:
             file.write("\n".join(codigo_final) + "\n")
 
         print("Código compilado con éxito mediante Analizador Predictivo.")
 
-    def procesar_fila_tokens(self, tokens):
+    def procesar_fila_tokens(self, tokens, indent=""):
         if not tokens: return ""
         
         primer_bloque = tokens.pop(0)
@@ -253,10 +302,8 @@ class MicrobitCompiler:
             if not tokens: return f"# ERROR: '{primer_bloque}' necesita un sujeto a su derecha"
             sujeto = self._consumir_argumento_vc(tokens, contexto=f"el método de control de {primer_bloque}")
             
-            # --- INYECCIÓN DINÁMICA: "Al presionar" ---
-            # Sustituye "al_presionar" por el nombre exacto que tenga en tu JSON
-            if primer_bloque == "al_presionar":
-                # Si hay operadores lógicos, desglosamos para aplicar el método a cada elemento
+            # --- INYECCIÓN DINÁMICA: "Al presionar" (Agnóstico del JSON) ---
+            if ".is_pressed" in codigo_base or ".is_touched" in codigo_base:
                 if " and " in sujeto or " or " in sujeto:
                     partes = sujeto.replace(" and ", " _AND_ ").replace(" or ", " _OR_ ").split(" ")
                     sujeto_final = ""
@@ -266,19 +313,17 @@ class MicrobitCompiler:
                         elif parte == "_OR_":
                             sujeto_final += " or "
                         else:
-                            # Comprobamos si el elemento individual es un pin o un botón
                             if "pin" in parte or "logo" in parte:
                                 sujeto_final += f"{parte}.is_touched()"
                             else:
                                 sujeto_final += f"{parte}.is_pressed()"
                     return f"if {sujeto_final}:"
                 else:
-                    # Lógica normal para un solo sujeto
                     if "pin" in sujeto or "logo" in sujeto:
                         return f"if {sujeto}.is_touched():"
                     else:
                         return f"if {sujeto}.is_pressed():"
-            # ------------------------------------------
+            # ---------------------------------------------------------------
 
             if codigo_base.endswith(")"): return f"if {sujeto}{codigo_base}:"
             else: return f"if {sujeto}{codigo_base}():"
@@ -296,23 +341,47 @@ class MicrobitCompiler:
             for _ in range(num_args):
                 if tokens:
                     args_extra.append(self._consumir_argumento_vc(tokens, contexto=f"el argumento de {primer_bloque}"))
-                    
-            if args_extra: return f"{sujeto}{codigo_base}({', '.join(args_extra)})"
+            
+            if args_extra: res = f"{sujeto}{codigo_base}({', '.join(args_extra)})"
             else:
-                if codigo_base.endswith(")"): return f"{sujeto}{codigo_base}"
-                return f"{sujeto}{codigo_base}()"
+                if codigo_base.endswith(")"): res = f"{sujeto}{codigo_base}"
+                else: res = f"{sujeto}{codigo_base}()"
+                
+            if sujeto == "display" and ("scroll" in codigo_base or "show" in codigo_base):
+                arg_var = args_extra[0] if args_extra else '""'
+                if self.modo_tts == "pc":
+                    return f"print('TTS:' + str({arg_var}))\n{indent}{res}\n{indent}input()"
+                elif self.modo_tts == "placa":
+                    # --- CAMBIO DE ORDEN AQUÍ ---
+                    return f"speech.say(str({arg_var}))\n{indent}{res}"
+                else:
+                    return res
+            
+            return res
                 
         elif tipo == "funcion":
             num_args = info.get("args", 1)
-            if num_args == 0:
-                if codigo_base.endswith(")"): return codigo_base
-                return f"{codigo_base}()"
-                
             args = []
-            for _ in range(num_args):
-                if tokens:
-                    args.append(self._consumir_argumento_vc(tokens, contexto=f"el argumento de {primer_bloque}"))
-            return f"{codigo_base}({', '.join(args)})"
+            if num_args == 0:
+                if codigo_base.endswith(")"): res = codigo_base
+                else: res = f"{codigo_base}()"
+            else:
+                for _ in range(num_args):
+                    if tokens:
+                        args.append(self._consumir_argumento_vc(tokens, contexto=f"el argumento de {primer_bloque}"))
+                res = f"{codigo_base}({', '.join(args)})"
+
+            if "display.scroll" in codigo_base or "display.show" in codigo_base:
+                arg_var = args[0] if args else '""'
+                if self.modo_tts == "pc":
+                    return f"print('TTS:' + str({arg_var}))\n{indent}{res}\n{indent}input()"
+                elif self.modo_tts == "placa":
+                    # --- CAMBIO DE ORDEN AQUÍ ---
+                    return f"speech.say(str({arg_var}))\n{indent}{res}"
+                else:
+                    return res
+            
+            return res
             
         elif tipo == "control":
             condicion = ""
@@ -362,14 +431,13 @@ class MicrobitCompiler:
                 metodo = tokens.pop(0)
                 codigo_metodo = sig_info.get("codigo", metodo)
                 
-                # --- INYECCIÓN DINÁMICA: "Es presionado" ---
-                # Sustituye "es_presionado" por el nombre exacto que tenga en tu JSON
-                if metodo == "es_presionado":
+                # --- INYECCIÓN DINÁMICA: "Es presionado" (Agnóstico del JSON) ---
+                if ".is_pressed" in codigo_metodo or ".is_touched" in codigo_metodo:
                     if "pin" in resultado or "logo" in resultado:
                         codigo_metodo = ".is_touched()"
                     else:
                         codigo_metodo = ".is_pressed()"
-                # -------------------------------------------
+                # ----------------------------------------------------------------
 
                 num_args = sig_info.get("args", 0)
                 args_extra = []
