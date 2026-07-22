@@ -1,0 +1,77 @@
+/* --- FONDO PRINCIPAL Y PESTAÑAS --- */
+QMainWindow, QFrame {
+    background-color: #121212;
+}
+
+QTabWidget::pane {
+    border: 1px solid #3C3C3C;
+    background-color: #1E1E1E;
+}
+
+QTabBar::tab {
+    padding: 10px 20px;
+    font-weight: bold;
+    font-size: 14px;
+    background-color: #2B2B2B;
+    color: #D4D4D4;
+    border: 1px solid #3C3C3C;
+    border-bottom: none;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    margin-right: 2px;
+}
+
+QTabBar::tab:selected {
+    background-color: #1E1E1E;
+    color: #FFFFFF;
+    border-top: 3px solid #0052cc;
+}
+
+/* --- TEXTOS Y CAJAS --- */
+QLabel {
+    color: #D4D4D4;
+    font-size: 14px;
+}
+
+QTextEdit, QLineEdit, QTableWidget {
+    background-color: #1E1E1E;
+    color: #D4D4D4;
+    font-family: 'Consolas', monospace;
+    font-size: 14px;
+    padding: 10px;
+    border: 1px solid #3C3C3C;
+}
+
+/* --- BOTONES GENERALES --- */
+QPushButton {
+    font-weight: bold;
+    padding: 10px;
+    border-radius: 4px;
+    background-color: #3C3C3C;
+    color: white;
+}
+QPushButton:hover {
+    background-color: #505050;
+}
+
+/* --- BOTONES ESPECÍFICOS Y DE CÁMARA --- */
+QPushButton#btn_capturar { background-color: #0052cc; color: white; }
+QPushButton#btn_enviar { background-color: #2FA572; color: white; }
+QPushButton#btn_ia { background-color: #8E44AD; color: white; }
+QPushButton#btn_leer { background-color: #E67E22; color: white; }
+QPushButton#btn_tts { background-color: #0078D7; color: white; }
+QPushButton#btn_contraste { background-color: #B9770E; color: white; }
+
+/* Efecto cristal para los botones flotantes de la cámara */
+QPushButton#btn_overlay, QComboBox#combo_camaras {
+    background-color: rgba(30, 30, 30, 180);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 50);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-weight: bold;
+}
+QPushButton#btn_overlay:hover, QComboBox#combo_camaras:hover {
+    background-color: rgba(60, 60, 60, 220);
+    border: 1px solid rgba(255, 255, 255, 100);
+}

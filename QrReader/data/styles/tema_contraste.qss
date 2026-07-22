@@ -1,0 +1,57 @@
+/* --- FONDO PRINCIPAL Y PESTAÑAS (ALTO CONTRASTE) --- */
+QMainWindow, QFrame {
+    background-color: #000000;
+}
+
+QTabWidget::pane {
+    border: 3px solid #FFFF00;
+    background-color: #000000;
+}
+
+QTabBar::tab {
+    padding: 14px 24px;
+    font-weight: bold;
+    font-size: 18px;
+    background-color: #000000;
+    color: #FFFFFF;
+    border: 2px solid #FFFFFF;
+    border-bottom: none;
+}
+
+QTabBar::tab:selected {
+    background-color: #FFFF00;
+    color: #000000;
+}
+
+/* --- TEXTOS Y CAJAS --- */
+QLabel {
+    color: #FFFF00;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+QTextEdit, QLineEdit, QTableWidget {
+    background-color: #000000;
+    color: #FFFF00;
+    font-family: 'Consolas', monospace;
+    font-size: 18px;
+    padding: 12px;
+    border: 3px solid #FFFF00;
+}
+
+/* --- BOTONES GENERALES Y ESPECÍFICOS --- */
+/* En alto contraste unificamos todo con bordes gruesos */
+QPushButton {
+    font-weight: bold;
+    padding: 14px;
+    border: 3px solid #FFFF00;
+    border-radius: 0px;
+    font-size: 18px;
+    background-color: #000000;
+    color: #FFFF00;
+}
+
+QPushButton:hover {
+    background-color: #FFFF00;
+    color: #000000;
+}

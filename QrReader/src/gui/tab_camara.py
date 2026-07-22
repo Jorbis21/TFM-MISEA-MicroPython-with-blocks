@@ -4,7 +4,8 @@ import threading
 import cv2  
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QPushButton, QTextEdit, QFrame, QSplitter, QComboBox, QSizePolicy)
-from PyQt6.QtGui import QImage, QPixmap, QKeyEvent, QTextCharFormat, QColor, QSyntaxHighlighter, QIcon
+from PyQt6.QtGui import (QImage, QPixmap, QKeyEvent, QTextCharFormat, QColor, 
+                         QSyntaxHighlighter, QIcon)
 from PyQt6.QtCore import Qt, QTimer, QRegularExpression, QSize
 from core.audio import GestorVoz
 
@@ -15,6 +16,14 @@ class PythonHighlighter(QSyntaxHighlighter):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.reglas_estilo = []
+
+        # Errores del Compilador (Estilo VS Code)
+        formato_error = QTextCharFormat()
+        formato_error.setForeground(QColor("#F44747")) 
+        formato_error.setUnderlineStyle(QTextCharFormat.UnderlineStyle.SpellCheckUnderline)
+        formato_error.setUnderlineColor(QColor("#F44747"))
+        
+        self.reglas_estilo.append((QRegularExpression(r'# ERROR.*'), formato_error))
 
         # Palabras clave de control de flujo
         formato_flow = QTextCharFormat()
@@ -65,6 +74,7 @@ class PythonHighlighter(QSyntaxHighlighter):
                 match = match_iterator.next()
                 self.setFormat(match.capturedStart(), match.capturedLength(), formato)
 
+
 # =========================================================
 # COMPONENTE DE LA PESTAÑA DE LA CÁMARA
 # =========================================================
@@ -102,23 +112,19 @@ class TabCamara(QWidget):
         self.reanudar_camara()
 
     def _detectar_camaras(self):
-        """Hace un 'ping' a los primeros puertos USB para listar solo cámaras físicas conectadas."""
         camaras_activas = []
         for i in range(3):
             cap = cv2.VideoCapture(i, cv2.CAP_DSHOW if os.name == 'nt' else cv2.CAP_ANY)
             if cap is not None and cap.isOpened():
                 camaras_activas.append(i)
                 cap.release()
-                
         if not camaras_activas:
             camaras_activas = [0]
-            
         return camaras_activas
 
     def _setup_ui(self):
         layout_principal = QHBoxLayout(self)
         
-        # Splitter para poder redimensionar de forma elástica el editor y la cámara
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
         layout_principal.addWidget(self.splitter)
 
@@ -129,89 +135,82 @@ class TabCamara(QWidget):
         layout_izq = QVBoxLayout(panel_izquierdo)
         
         lbl_ctrl = QLabel("CONTROLES")
-        lbl_ctrl.setStyleSheet("font-weight: bold; font-size: 14px; margin-bottom: 5px;")
         lbl_ctrl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout_izq.addWidget(lbl_ctrl)
 
-        # Barra horizontal de botones táctiles/atendidos
         layout_botones = QHBoxLayout()
         
+        # Botones principales con ObjectName para el QSS (Sin estilos en bruto)
         self.btn_capturar = QPushButton("Tomar Foto")
-        self.btn_capturar.setStyleSheet("background-color: #0052cc; color: white; font-weight: bold; padding: 10px;")
+        self.btn_capturar.setObjectName("btn_capturar")
         self.btn_capturar.clicked.connect(self.accion_capturar)
         layout_botones.addWidget(self.btn_capturar)
 
         self.btn_enviar = QPushButton("Enviar a MicroBit")
-        self.btn_enviar.setStyleSheet("background-color: #2FA572; color: white; font-weight: bold; padding: 10px;")
+        self.btn_enviar.setObjectName("btn_enviar")
         self.btn_enviar.clicked.connect(self.accion_enviar)
         layout_botones.addWidget(self.btn_enviar)
 
         self.btn_ia = QPushButton("Explicar con IA")
-        self.btn_ia.setStyleSheet("background-color: #8E44AD; color: white; font-weight: bold; padding: 10px;")
+        self.btn_ia.setObjectName("btn_ia")
         self.btn_ia.clicked.connect(self.accion_explicar_ia)
         layout_botones.addWidget(self.btn_ia)
 
-        # --- NUEVO: Botón Cíclico para TTS ---
+        self.btn_leer = QPushButton("Leer QRs")
+        self.btn_leer.setObjectName("btn_leer")
+        self.btn_leer.clicked.connect(self.accion_leer_qrs_pantalla)
+        layout_botones.addWidget(self.btn_leer)
+
         self.modos_tts = [
-            {"texto": "🔊 Voz: PC", "color": "#0078D7", "valor": "pc"},
-            {"texto": "🤖 Voz: Placa", "color": "#D35400", "valor": "placa"},
-            {"texto": "🔇 Voz: Apagada", "color": "#7F8C8D", "valor": "apagado"}
+            {"texto": "🔊 Voz: PC", "valor": "pc"},
+            {"texto": "🤖 Voz: Placa", "valor": "placa"},
+            {"texto": "🔇 Voz: Apagada", "valor": "apagado"}
         ]
-        self.idx_tts = 0  # Empezamos por defecto en Modo PC
+        self.idx_tts = 0
 
         self.btn_tts = QPushButton(self.modos_tts[self.idx_tts]["texto"])
-        self.btn_tts.setStyleSheet(f"background-color: {self.modos_tts[self.idx_tts]['color']}; color: white; font-weight: bold; padding: 10px;")
+        self.btn_tts.setObjectName("btn_tts")
         self.btn_tts.clicked.connect(self.accion_cambiar_tts)
         layout_botones.addWidget(self.btn_tts)
-        # --------------------------------------
 
-        # Insertamos la barra de botones principales
+        # --- NUEVO: Botón visual para alternar el Alto Contraste ---
+        self.btn_contraste = QPushButton("👁 Modo Contraste")
+        self.btn_contraste.setObjectName("btn_contraste")
+        # Conectamos el clic directamente al método global de la ventana principal (que pasaremos por referencia)
+        self.btn_contraste.clicked.connect(lambda: self.parent_window.alternar_contraste() if hasattr(self, 'parent_window') else None)
+        layout_botones.addWidget(self.btn_contraste)
+        # -------------------------------------------------------------
+
         layout_izq.addLayout(layout_botones)
 
-        # Monitor/Editor de texto central (Dark Theme)
+        # Monitor/Editor de texto central
         self.caja_texto = QTextEdit()
-        self.caja_texto.setStyleSheet("background-color: #1E1E1E; color: #D4D4D4; font-family: 'Consolas', monospace; font-size: 14px; padding: 10px;")
+        self.caja_texto.setObjectName("caja_texto")
         self.caja_texto.setReadOnly(True)
         
-        # Enlazamos el formateador de sintaxis al documento de texto
         self.highlighter = PythonHighlighter(self.caja_texto.document())
         layout_izq.addWidget(self.caja_texto)
 
-        # --- OVERLAY DEL BOTÓN DE EDITAR SOBRE EL TEXTO ---
+        # Botón flotante de edición
         layout_overlay_texto = QVBoxLayout(self.caja_texto)
         layout_overlay_texto.setContentsMargins(10, 10, 25, 15) 
-        
         layout_overlay_texto.addStretch() 
         
         layout_h_texto = QHBoxLayout()
         layout_h_texto.addStretch() 
         
         self.btn_editar = QPushButton()
+        self.btn_editar.setObjectName("btn_editar")
         ruta_icono_editar = os.path.join(self.assets_dir, "edit.png")
-        icono_editar = QIcon(ruta_icono_editar)
-        self.btn_editar.setIcon(icono_editar)
+        self.btn_editar.setIcon(QIcon(ruta_icono_editar))
         self.btn_editar.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_editar.setStyleSheet("""
-            QPushButton {
-                background-color: rgba(212, 172, 13, 220);
-                color: white;
-                font-weight: bold;
-                border-radius: 6px;
-                padding: 6px 12px;
-                font-size: 12px;
-            }
-            QPushButton:hover {
-                background-color: rgba(212, 172, 13, 255);
-            }
-        """)
         self.btn_editar.clicked.connect(self.accion_editar_codigo)
         
         layout_h_texto.addWidget(self.btn_editar)
         layout_overlay_texto.addLayout(layout_h_texto)
 
-        # Etiqueta de estado al final del todo
         self.status_label = QLabel("Estado: Cámara Activa")
-        self.status_label.setStyleSheet("color: gray; font-size: 12px;")
+        self.status_label.setObjectName("status_label")
         layout_izq.addWidget(self.status_label)
 
         self.splitter.addWidget(panel_izquierdo)
@@ -220,13 +219,11 @@ class TabCamara(QWidget):
         # PANEL DERECHO: VISOR DE VIDEO Y CONTROLES OVERLAY
         # -------------------------------------------------
         self.video_label = QLabel()
+        self.video_label.setObjectName("video_label")
         self.video_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.video_label.setStyleSheet("background-color: #000000; border-radius: 4px;")
-        
         self.video_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
         self.video_label.setMinimumSize(400, 300) 
 
-        # --- CAPA SUPERPUESTA (OVERLAY) PARA LOS CONTROLES DE CÁMARA ---
         layout_overlay = QVBoxLayout(self.video_label)
         layout_overlay.setContentsMargins(15, 15, 15, 15)
         
@@ -235,16 +232,12 @@ class TabCamara(QWidget):
         layout_botones_camara.addStretch()
 
         self.btn_rotar = QPushButton()
+        self.btn_rotar.setObjectName("btn_overlay")
         self.btn_apagar = QPushButton()
+        self.btn_apagar.setObjectName("btn_overlay")
 
-        ruta_icono_rotar = os.path.join(self.assets_dir, "sync.png")
-        ruta_icono_apagar = os.path.join(self.assets_dir, "on-off-button.png")
-
-        icono_rotar = QIcon(ruta_icono_rotar)
-        icono_apagar = QIcon(ruta_icono_apagar)
-
-        self.btn_rotar.setIcon(icono_rotar)
-        self.btn_apagar.setIcon(icono_apagar)
+        self.btn_rotar.setIcon(QIcon(os.path.join(self.assets_dir, "sync.png")))
+        self.btn_apagar.setIcon(QIcon(os.path.join(self.assets_dir, "on-off-button.png")))
 
         tamano_icono = QSize(24, 24)
         self.btn_rotar.setIconSize(tamano_icono)
@@ -254,6 +247,7 @@ class TabCamara(QWidget):
         self.btn_rotar.clicked.connect(self.accion_rotar_camara)
 
         self.combo_camaras = QComboBox()
+        self.combo_camaras.setObjectName("combo_camaras")
         camaras_reales = self._detectar_camaras()
         
         for cam_id in camaras_reales:
@@ -264,37 +258,6 @@ class TabCamara(QWidget):
             self.combo_camaras.hide()
             
         self.combo_camaras.currentIndexChanged.connect(self.accion_cambiar_camara)
-
-        estilo_overlay = """
-            QPushButton, QComboBox {
-                background-color: rgba(30, 30, 30, 180); 
-                color: white;
-                border: 1px solid rgba(255, 255, 255, 50);
-                border-radius: 8px;
-                padding: 6px 12px;
-                text-align: center;
-                font-weight: bold;
-                font-size: 13px;
-            }
-            QPushButton:hover, QComboBox:hover {
-                background-color: rgba(60, 60, 60, 220); 
-                border: 1px solid rgba(255, 255, 255, 100);
-            }
-            QPushButton:pressed {
-                background-color: rgba(100, 100, 100, 255);
-            }
-            QComboBox::drop-down {
-                border: none;
-            }
-            QComboBox QAbstractItemView {
-                background-color: rgba(30, 30, 30, 240);
-                color: white;
-                selection-background-color: #4A235A;
-            }
-        """
-        self.btn_rotar.setStyleSheet(estilo_overlay)
-        self.btn_apagar.setStyleSheet(estilo_overlay)
-        self.combo_camaras.setStyleSheet(estilo_overlay)
 
         layout_botones_camara.addWidget(self.btn_rotar)
         layout_botones_camara.addWidget(self.btn_apagar)
@@ -307,12 +270,8 @@ class TabCamara(QWidget):
         self.splitter.addWidget(self.video_label)
         self.splitter.setSizes([640, 640])
 
-    # =========================================================
-    # ACTUALIZACIÓN DE FRAME (OPENCV -> PYQT)
-    # =========================================================
     def actualizar_frame(self):
         frame_bgr, frame_rgb, textos = self.vision.markElems(self.rotar_camara)
-        
         if frame_rgb is not None:
             self.frame_actual_bgr = frame_bgr
             self.textos_qr_actuales = textos
@@ -327,9 +286,6 @@ class TabCamara(QWidget):
                 Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
             ))
 
-    # =========================================================
-    # FILTRO ACCESIBLE DE TECLADO MÁSTER (SINGLE / DOUBLE CLICK)
-    # =========================================================
     def _procesar_clic_simple(self, text):
         self.clics = 0
         self.ultima_tecla = None
@@ -341,7 +297,6 @@ class TabCamara(QWidget):
     def _tecla_pulsada(self, tecla_id, text, func):
         if self.modo_edicion:
             return 
-            
         if self.ultima_tecla != tecla_id:
             if self.timer_clic and self.timer_clic.isActive():
                 self.timer_clic.stop()
@@ -349,13 +304,11 @@ class TabCamara(QWidget):
             self.ultima_tecla = tecla_id
             
         self.clics += 1
-        
         if self.clics == 1:
             self.timer_clic = QTimer()
             self.timer_clic.setSingleShot(True)
             self.timer_clic.timeout.connect(lambda: self._procesar_clic_simple(text))
             self.timer_clic.start(400)
-            
         elif self.clics == 2:
             if self.timer_clic and self.timer_clic.isActive():
                 self.timer_clic.stop()
@@ -363,10 +316,8 @@ class TabCamara(QWidget):
             self.clics = 0
             self.ultima_tecla = None
 
-    # =========================================================
-    # PROCESAMIENTOS DE NEGOCIO (DELEGADOS)
-    # =========================================================
     def accion_capturar(self):
+        GestorVoz.leer_texto("Capturando imagen y procesando el código.")
         if hasattr(self, 'frame_actual_bgr'):
             self.vision.takePhoto(self.frame_actual_bgr, self.ruta_img)
             matriz_espacial = self.vision.get_command_matrix()
@@ -374,6 +325,7 @@ class TabCamara(QWidget):
             self.leer_codigo_generado()
 
     def accion_enviar(self):
+        GestorVoz.leer_texto("Subiendo el programa a la placa Micro:bit.")
         self.traductor.subir(self.ruta_codigo)
     
     def accion_rotar_camara(self):
@@ -393,7 +345,6 @@ class TabCamara(QWidget):
         if not self.apagar_camara:
             self.vision.liberar_camara()
             self.video_label.clear() 
-            
             id_real = self.combo_camaras.itemData(index)
             self.vision.iniciar_camara(id_real)
 
@@ -403,27 +354,25 @@ class TabCamara(QWidget):
     def accion_explicar_ia(self):
         def actualizar_estado(texto, color_hex):
             self.status_label.setText(texto)
-            self.status_label.setStyleSheet(f"color: {color_hex};")
             
         threading.Thread(target=lambda: self.ai_manager.explicar_codigo(self.ruta_codigo, actualizar_estado), daemon=True).start()
 
-    # --- NUEVO: Acción para alternar los modos TTS ---
     def accion_cambiar_tts(self):
-        # Rotamos entre 0, 1 y 2
         self.idx_tts = (self.idx_tts + 1) % len(self.modos_tts)
         modo_actual = self.modos_tts[self.idx_tts]
         
-        # Actualizamos la apariencia del botón
         self.btn_tts.setText(modo_actual["texto"])
-        self.btn_tts.setStyleSheet(f"background-color: {modo_actual['color']}; color: white; font-weight: bold; padding: 10px;")
         
-        # Inyectamos el nuevo modo en el compilador
         if hasattr(self.traductor, 'set_modo_tts'):
             self.traductor.set_modo_tts(modo_actual["valor"])
+            
+        if modo_actual["valor"] == "pc":
+            GestorVoz.leer_texto("Modo de voz por ordenador activado.")
+        elif modo_actual["valor"] == "placa":
+            GestorVoz.leer_texto("Modo de voz en la placa activado.")
+        elif modo_actual["valor"] == "apagado":
+            GestorVoz.leer_texto("Voz de ejecución desactivada.")
 
-    # =========================================================
-    # RENDERIZADO Y TRATAMIENTO TEXTUAL
-    # =========================================================
     def leer_codigo_generado(self):
         self.caja_texto.clear()
         try:
@@ -456,10 +405,8 @@ class TabCamara(QWidget):
             try:
                 compile(codigo_mostrar, '<string>', 'exec')
                 self.status_label.setText("Estado: Código sin errores")
-                self.status_label.setStyleSheet("color: #2FA572;")
             except SyntaxError as e:
                 self.status_label.setText(f"Error de Sintaxis en línea {e.lineno}")
-                self.status_label.setStyleSheet("color: #FF4C4C;")
                 GestorVoz.leer_texto("Atención. Hay un error de sintaxis en el archivo.")
 
         except FileNotFoundError:
@@ -488,87 +435,44 @@ class TabCamara(QWidget):
             return True
         except Exception as e:
             self.status_label.setText(f"Error al guardar: {e}")
-            self.status_label.setStyleSheet("color: #FF4C4C;")
             return False
 
     def accion_editar_codigo(self):
-        estilo_base = """
-            QPushButton {
-                background-color: %s; 
-                color: white;
-                font-weight: bold;
-                border-radius: 6px;
-                padding: 6px 12px;
-                font-size: 12px;
-            }
-            QPushButton:hover { background-color: %s; }
-        """
         if not self.modo_edicion:
             self.modo_edicion = True
-            ruta_icono_guardar = os.path.join(self.assets_dir, "diskette.png")
-            icono_guardar = QIcon(ruta_icono_guardar)
-            self.btn_editar.setIcon(icono_guardar)
-            # Rojo translúcido (#E74C3C)
-            self.btn_editar.setStyleSheet(estilo_base % ("rgba(231, 76, 60, 220)", "rgba(231, 76, 60, 255)"))
+            self.btn_editar.setIcon(QIcon(os.path.join(self.assets_dir, "diskette.png")))
             self.caja_texto.setReadOnly(False)
             self.status_label.setText("Estado: MODO EDICIÓN ACTIVO")
-            self.status_label.setStyleSheet("color: #D4AC0D;")
         else:
             if self._guardar_codigo_archivo():
                 self.modo_edicion = False
-                ruta_icono_editar = os.path.join(self.assets_dir, "edit.png")
-                icono_editar = QIcon(ruta_icono_editar)
-                self.btn_editar.setIcon(icono_editar)
-                # Dorado translúcido (#D4AC0D)
-                self.btn_editar.setStyleSheet(estilo_base % ("rgba(212, 172, 13, 220)", "rgba(212, 172, 13, 255)"))
+                self.btn_editar.setIcon(QIcon(os.path.join(self.assets_dir, "edit.png")))
+                self.caja_texto.setReadOnly(True)
                 self.leer_codigo_generado()
 
     def accion_atajo_guardar(self):
         if self.modo_edicion and self._guardar_codigo_archivo():
             self.modo_edicion = False
-            
-            estilo_base = """
-                QPushButton {
-                    background-color: rgba(212, 172, 13, 220); 
-                    color: white;
-                    font-weight: bold;
-                    border-radius: 6px;
-                    padding: 6px 12px;
-                    font-size: 12px;
-                }
-                QPushButton:hover { background-color: rgba(212, 172, 13, 255); }
-            """
-            ruta_icono_editar = os.path.join(self.assets_dir, "edit.png")
-            icono_editar = QIcon(ruta_icono_editar)
-            self.btn_editar.setIcon(icono_editar)
-            self.btn_editar.setStyleSheet(estilo_base)
-            
+            self.btn_editar.setIcon(QIcon(os.path.join(self.assets_dir, "edit.png")))
             self.caja_texto.setReadOnly(True)
             self.leer_codigo_generado()
             self.status_label.setText("Estado: Guardado rápido completado")
-            self.status_label.setStyleSheet("color: #569CD6;")
 
     def cleanup(self):
-        """Libera la cámara al cerrar el widget de forma segura."""
         self.timer_camara.stop()
         self.vision.free()
 
     def pausar_camara(self):
-        """Detiene el flujo de vídeo para ahorrar recursos al cambiar de pestaña."""
         if hasattr(self, 'timer_camara') and self.timer_camara.isActive():
             self.timer_camara.stop()
-            
         if hasattr(self.vision, 'liberar_camara'):
             self.vision.liberar_camara()
-            
         self.video_label.clear()
 
     def reanudar_camara(self):
-        """Vuelve a arrancar la cámara al entrar en la pestaña."""
         if not self.apagar_camara:
             if hasattr(self.vision, 'iniciar_camara'):
                 idx = self.combo_camaras.currentData()
                 self.vision.iniciar_camara(idx)
-                
             if hasattr(self, 'timer_camara') and not self.timer_camara.isActive():
                 self.timer_camara.start(15)

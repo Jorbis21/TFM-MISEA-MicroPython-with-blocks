@@ -22,7 +22,6 @@ class TabJSON(QWidget):
         self._setup_ui()
         self._cargar_lista()
 
-    # --- NUEVO: RECARGA AUTOMÁTICA AL MOSTRAR LA PESTAÑA ---
     def showEvent(self, event):
         self._cargar_lista()
         super().showEvent(event)
@@ -38,7 +37,7 @@ class TabJSON(QWidget):
         layout_form.setAlignment(Qt.AlignmentFlag.AlignTop)
         
         self.lbl_titulo = QLabel("Añadir Nuevo Bloque")
-        self.lbl_titulo.setStyleSheet("font-size: 20px; font-weight: bold; margin-bottom: 20px;")
+        self.lbl_titulo.setObjectName("titulo_seccion")
         layout_form.addWidget(self.lbl_titulo)
 
         # Nombre QR
@@ -67,12 +66,12 @@ class TabJSON(QWidget):
         # Botones
         layout_botones = QHBoxLayout()
         self.btn_guardar = QPushButton("Guardar Bloque")
-        self.btn_guardar.setStyleSheet("background-color: #2FA572; color: white; padding: 8px;")
+        self.btn_guardar.setObjectName("btn_guardar")
         self.btn_guardar.clicked.connect(self.accion_guardar)
         layout_botones.addWidget(self.btn_guardar)
         
         self.btn_cancelar = QPushButton("Cancelar Edición")
-        self.btn_cancelar.setStyleSheet("background-color: #E74C3C; color: white; padding: 8px;")
+        self.btn_cancelar.setObjectName("btn_cancelar_edicion")
         self.btn_cancelar.clicked.connect(self._reset_formulario)
         self.btn_cancelar.hide() 
         layout_botones.addWidget(self.btn_cancelar)
@@ -91,10 +90,9 @@ class TabJSON(QWidget):
         layout_lista = QVBoxLayout(panel_lista)
         
         lbl_lista = QLabel("Bloques Actuales en Memoria")
-        lbl_lista.setStyleSheet("font-size: 16px; font-weight: bold;")
+        lbl_lista.setObjectName("titulo_seccion")
         layout_lista.addWidget(lbl_lista)
 
-        # --- NUEVO: BARRA DE BÚSQUEDA Y BOTÓN DE BORRADO MASIVO ---
         layout_buscador = QHBoxLayout()
         layout_buscador.addWidget(QLabel("🔍 Buscar:"))
         self.buscador = BuscadorAutoLimpiable()
@@ -103,26 +101,24 @@ class TabJSON(QWidget):
         layout_buscador.addWidget(self.buscador)
         
         self.btn_borrar_sel = QPushButton("🗑 Borrar Seleccionados")
-        self.btn_borrar_sel.setStyleSheet("background-color: #E74C3C; color: white; padding: 5px; font-weight: bold;")
-        self.btn_borrar_sel.setEnabled(False) # Bloqueado por defecto
+        self.btn_borrar_sel.setObjectName("btn_eliminar_masivo")
+        self.btn_borrar_sel.setEnabled(False) 
         self.btn_borrar_sel.clicked.connect(self.accion_eliminar_seleccionados)
         layout_buscador.addWidget(self.btn_borrar_sel)
         
         layout_lista.addLayout(layout_buscador)
-        # --------------------------------
 
         self.tabla = QTableWidget()
-        self.tabla.setColumnCount(4) # Añadida 1 columna para las casillas
+        self.tabla.setColumnCount(4) 
         self.tabla.setHorizontalHeaderLabels(["Sel", "Bloque -> Traducción", "Editar", "Borrar"])
         
-        # Monitorizamos los clics en las casillas
         self.tabla.itemChanged.connect(self._verificar_seleccion)
         
         header = self.tabla.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents) # Casilla
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)          # Texto
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents) # Editar
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents) # Borrar
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents) 
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)          
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents) 
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents) 
         
         layout_lista.addWidget(self.tabla)
         layout_principal.addWidget(panel_lista, stretch=2)
@@ -130,13 +126,12 @@ class TabJSON(QWidget):
     def _filtrar_tabla(self, texto):
         texto = texto.lower()
         for fila in range(self.tabla.rowCount()):
-            item = self.tabla.item(fila, 1) # Ahora el texto está en la columna 1
+            item = self.tabla.item(fila, 1) 
             if item:
                 mostrar = texto in item.text().lower()
                 self.tabla.setRowHidden(fila, not mostrar)
 
     def _verificar_seleccion(self):
-        """Bloquea o desbloquea el botón de borrado masivo según las casillas marcadas."""
         hay_seleccion = False
         for fila in range(self.tabla.rowCount()):
             item_chk = self.tabla.item(fila, 0)
@@ -150,7 +145,6 @@ class TabJSON(QWidget):
         for fila in range(self.tabla.rowCount()):
             item_chk = self.tabla.item(fila, 0)
             if item_chk and item_chk.checkState() == Qt.CheckState.Checked:
-                # Recuperamos la clave original que escondimos en la celda
                 claves_a_borrar.append(item_chk.data(Qt.ItemDataRole.UserRole))
                 
         if not claves_a_borrar: return
@@ -169,10 +163,9 @@ class TabJSON(QWidget):
             self.traductor.tabla_simbolos = self.traductor._construir_tabla_simbolos()
             self._cargar_lista()
             self.lbl_estado.setText(f"Se han eliminado {exitos} bloques seleccionados.")
-            self.lbl_estado.setStyleSheet("color: #E74C3C;")
 
     def _cargar_lista(self):
-        self.tabla.blockSignals(True) # Congelamos señales para evitar falsos positivos al cargar
+        self.tabla.blockSignals(True) 
         self.tabla.setRowCount(0)
         bloques = self.json_manager.obtener_todos_los_bloques()
         self.tabla.setRowCount(len(bloques))
@@ -181,33 +174,29 @@ class TabJSON(QWidget):
             clave = bloque["clave"]
             info = bloque["info"]
             
-            # Col 0: Casilla de Selección
             item_chk = QTableWidgetItem()
             item_chk.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
             item_chk.setCheckState(Qt.CheckState.Unchecked)
-            item_chk.setData(Qt.ItemDataRole.UserRole, clave) # Guardamos la clave pura en la memoria del item
+            item_chk.setData(Qt.ItemDataRole.UserRole, clave) 
             self.tabla.setItem(fila, 0, item_chk)
 
-            # Col 1: Texto
             texto = f"{clave} -> {info.get('codigo', '')}"
             item = QTableWidgetItem(texto)
             item.setFlags(Qt.ItemFlag.ItemIsEnabled)
             self.tabla.setItem(fila, 1, item)
 
-            # Col 2: Editar
             btn_edit = QPushButton("✎")
-            btn_edit.setStyleSheet("background-color: #D4AC0D; color: white;")
+            btn_edit.setObjectName("btn_tabla_editar")
             btn_edit.clicked.connect(lambda checked, c=clave, i=info: self._cargar_edicion(c, i))
             self.tabla.setCellWidget(fila, 2, btn_edit)
 
-            # Col 3: Borrar
             btn_del = QPushButton("🗑")
-            btn_del.setStyleSheet("background-color: #E74C3C; color: white;")
+            btn_del.setObjectName("btn_tabla_borrar")
             btn_del.clicked.connect(lambda checked, c=clave: self.accion_eliminar(c))
             self.tabla.setCellWidget(fila, 3, btn_del)
             
         self.tabla.blockSignals(False)
-        self._verificar_seleccion() # Actualizamos el botón tras cargar
+        self._verificar_seleccion() 
 
         if self.buscador.text():
             self._filtrar_tabla(self.buscador.text())
@@ -218,7 +207,6 @@ class TabJSON(QWidget):
         
         self.lbl_titulo.setText(f"Editando: {clave}")
         self.btn_guardar.setText("Actualizar Bloque")
-        self.btn_guardar.setStyleSheet("background-color: #8E44AD; color: white; padding: 8px;")
         self.btn_cancelar.show()
 
         self.entry_nombre.setText(clave)
@@ -232,7 +220,6 @@ class TabJSON(QWidget):
         
         self.lbl_titulo.setText("Añadir Nuevo Bloque")
         self.btn_guardar.setText("Guardar Bloque")
-        self.btn_guardar.setStyleSheet("background-color: #2FA572; color: white; padding: 8px;")
         self.btn_cancelar.hide()
 
         self.entry_nombre.clear()
@@ -252,7 +239,6 @@ class TabJSON(QWidget):
             
         if not nombre or not codigo:
             self.lbl_estado.setText("Error: El nombre y el código son obligatorios.")
-            self.lbl_estado.setStyleSheet("color: #FF4C4C;")
             return
 
         nuevo_nodo = {"codigo": codigo, "tipo": tipo}
@@ -264,15 +250,11 @@ class TabJSON(QWidget):
         try:
             self.json_manager.guardar_bloque(nombre_antiguo, nombre, nuevo_nodo)
             self.traductor.tabla_simbolos = self.traductor._construir_tabla_simbolos()
-            
             self.lbl_estado.setText(f"¡Bloque '{nombre}' guardado con éxito!")
-            self.lbl_estado.setStyleSheet("color: #2FA572;")
-            
             self._reset_formulario()
             self._cargar_lista()
         except Exception as e:
             self.lbl_estado.setText(f"Error al guardar: {e}")
-            self.lbl_estado.setStyleSheet("color: #FF4C4C;")
 
     def accion_eliminar(self, clave):
         try:
@@ -284,7 +266,5 @@ class TabJSON(QWidget):
                 self._reset_formulario()
                 
             self.lbl_estado.setText(f"Bloque '{clave}' eliminado.")
-            self.lbl_estado.setStyleSheet("color: #E74C3C;")
         except Exception as e:
             self.lbl_estado.setText(f"Error al eliminar: {e}")
-            self.lbl_estado.setStyleSheet("color: #FF4C4C;")

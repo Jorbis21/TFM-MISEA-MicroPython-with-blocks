@@ -93,17 +93,12 @@ class MicrobitCompiler:
         
         if palabras_img and palabras_img[0] == "imagen":
             es_imagen = True
-            palabras_img.pop(0) # Quitamos la palabra 'imagen' de la lista
+            palabras_img.pop(0) 
             
-        # Comprobamos si lo que queda son exclusivamente dígitos sueltos (del 0 al 9)
         if palabras_img and all(p.isdigit() and len(p) == 1 for p in palabras_img):
-            # Forzamos si dijo "imagen" o si dictó más de 3 números (para no pisar coordenadas)
             if es_imagen or len(palabras_img) > 3:
                 digitos = "".join(palabras_img)
-                # Rellenamos con '0' a la derecha hasta llegar a 25 y cortamos los sobrantes
                 digitos = digitos.ljust(25, '0')[:25] 
-                
-                # Insertamos los separadores cada 5 caracteres
                 img_form = f"{digitos[0:5]}:{digitos[5:10]}:{digitos[10:15]}:{digitos[15:20]}:{digitos[20:25]}"
                 return f"Image('{img_form}')", img_form
         # ------------------------------------------------
@@ -117,31 +112,26 @@ class MicrobitCompiler:
                 pass
         # ---------------------------------------------------------------
             
-        # 4. Traducción clásica de palabra a dígito si está en el diccionario
         if texto in numeros_letras:
             texto = numeros_letras[texto]
             
-        # 5. Parseo de decimales hablados
         texto_parseado = texto.replace(" coma ", ".")
         texto_parseado = texto_parseado.replace(" con ", ".")
         texto_parseado = texto_parseado.replace(",", ".")
         texto_parseado = texto_parseado.replace(" .", ".").replace(". ", ".")
         
-        # 6. Intentamos casteo matemático a Entero
         try:
             val = int(texto_parseado)
             return str(val), val
         except ValueError:
             pass
         
-        # 7. Intentamos casteo matemático a Decimal (Float)
         try:
             val = float(texto_parseado)
             return str(val), val
         except ValueError:
             pass
             
-        # 8. Si falla todo, es texto puro: quitamos tildes y envolvemos en comillas
         texto_limpio = self._normalizar_texto(texto, es_variable=False)
         return f'"{texto_limpio}"', texto_limpio
 
@@ -272,11 +262,24 @@ class MicrobitCompiler:
         with open(ruta_salida, "w", encoding="utf-8") as file:
             file.write("\n".join(codigo_final) + "\n")
 
-        print("Código compilado con éxito mediante Analizador Predictivo.")
+        print("Código compilado con éxito mediante Analizador Predictivo (LIFO).")
 
     def procesar_fila_tokens(self, tokens, indent=""):
         if not tokens: return ""
         
+        # --- AUTÓMATA DE PILA (LIFO) PARA GESTIÓN DE ERRORES ---
+        pila_errores = []
+        
+        def comprobar_pila(bloque, expectativa, tokens_restantes):
+            """Empuja la expectativa a la pila y verifica si el usuario colocó el bloque."""
+            pila_errores.append({"bloque": bloque, "espera": expectativa})
+            if not tokens_restantes:
+                fallo = pila_errores.pop()
+                return f"# ERROR: El bloque '{fallo['bloque']}' esperaba {fallo['espera']} a su derecha."
+            pila_errores.pop()
+            return None
+        # -------------------------------------------------------
+
         primer_bloque = tokens.pop(0)
         
         if self._es_valor_numerico(primer_bloque):
@@ -285,7 +288,7 @@ class MicrobitCompiler:
             info = self.tabla_simbolos.get(primer_bloque, {})
         
         if not info:
-            return f"# ERROR_SINTAXIS: Bloque '{primer_bloque}' desconocido #"
+            return f"# ERROR: El bloque '{primer_bloque}' es desconocido o no está en el diccionario."
             
         tipo = info.get("tipo", "")
         codigo_base = info.get("codigo", str(primer_bloque))
@@ -297,50 +300,54 @@ class MicrobitCompiler:
         elif tipo == "referencia_var":
             return self._manejar_referencia(tokens, contexto="una orden general")
 
-        # Rutas estándar del autómata...
         if tipo == "control_metodo":
-            if not tokens: return f"# ERROR: '{primer_bloque}' necesita un sujeto a su derecha"
-            sujeto = self._consumir_argumento_vc(tokens, contexto=f"el método de control de {primer_bloque}")
+            error_pila = comprobar_pila(primer_bloque, "un sujeto o sensor (ej: botón A)", tokens)
+            if error_pila: return error_pila
             
-            # --- INYECCIÓN DINÁMICA: "Al presionar" (Agnóstico del JSON) ---
+            sujeto = self._consumir_argumento_vc(tokens, contexto=f"el método de control de {primer_bloque}")
+            if "# ERROR" in sujeto: return sujeto
+            
             if ".is_pressed" in codigo_base or ".is_touched" in codigo_base:
                 if " and " in sujeto or " or " in sujeto:
                     partes = sujeto.replace(" and ", " _AND_ ").replace(" or ", " _OR_ ").split(" ")
                     sujeto_final = ""
                     for parte in partes:
-                        if parte == "_AND_":
-                            sujeto_final += " and "
-                        elif parte == "_OR_":
-                            sujeto_final += " or "
+                        if parte == "_AND_": sujeto_final += " and "
+                        elif parte == "_OR_": sujeto_final += " or "
                         else:
-                            if "pin" in parte or "logo" in parte:
-                                sujeto_final += f"{parte}.is_touched()"
-                            else:
-                                sujeto_final += f"{parte}.is_pressed()"
+                            if "pin" in parte or "logo" in parte: sujeto_final += f"{parte}.is_touched()"
+                            else: sujeto_final += f"{parte}.is_pressed()"
                     return f"if {sujeto_final}:"
                 else:
-                    if "pin" in sujeto or "logo" in sujeto:
-                        return f"if {sujeto}.is_touched():"
-                    else:
-                        return f"if {sujeto}.is_pressed():"
-            # ---------------------------------------------------------------
+                    if "pin" in sujeto or "logo" in sujeto: return f"if {sujeto}.is_touched():"
+                    else: return f"if {sujeto}.is_pressed():"
 
             if codigo_base.endswith(")"): return f"if {sujeto}{codigo_base}:"
             else: return f"if {sujeto}{codigo_base}():"
 
         elif tipo == "control_funcion":
-            if not tokens: return f"# ERROR: '{primer_bloque}' necesita un argumento a su derecha"
+            error_pila = comprobar_pila(primer_bloque, "un argumento o condición", tokens)
+            if error_pila: return error_pila
+            
             arg = self._consumir_argumento_vc(tokens, contexto=f"la función {primer_bloque}")
+            if "# ERROR" in arg: return arg
             return f"if {codigo_base}({arg}):"
 
         elif tipo == "metodo":
-            if not tokens: return f"# ERROR: '{primer_bloque}' necesita un sujeto a su derecha"
+            error_pila = comprobar_pila(primer_bloque, "un sujeto para aplicarse (ej: display)", tokens)
+            if error_pila: return error_pila
+            
             sujeto = self._consumir_argumento_vc(tokens, contexto=f"el sujeto de {primer_bloque}")
+            if "# ERROR" in sujeto: return sujeto
+            
             num_args = info.get("args", 0)
             args_extra = []
-            for _ in range(num_args):
-                if tokens:
-                    args_extra.append(self._consumir_argumento_vc(tokens, contexto=f"el argumento de {primer_bloque}"))
+            for i in range(num_args):
+                error_arg = comprobar_pila(primer_bloque, f"el argumento número {i+1}", tokens)
+                if error_arg: return error_arg
+                arg_ext = self._consumir_argumento_vc(tokens, contexto=f"el argumento de {primer_bloque}")
+                if "# ERROR" in arg_ext: return arg_ext
+                args_extra.append(arg_ext)
             
             if args_extra: res = f"{sujeto}{codigo_base}({', '.join(args_extra)})"
             else:
@@ -352,7 +359,6 @@ class MicrobitCompiler:
                 if self.modo_tts == "pc":
                     return f"print('TTS:' + str({arg_var}))\n{indent}{res}\n{indent}input()"
                 elif self.modo_tts == "placa":
-                    # --- CAMBIO DE ORDEN AQUÍ ---
                     return f"speech.say(str({arg_var}))\n{indent}{res}"
                 else:
                     return res
@@ -366,9 +372,12 @@ class MicrobitCompiler:
                 if codigo_base.endswith(")"): res = codigo_base
                 else: res = f"{codigo_base}()"
             else:
-                for _ in range(num_args):
-                    if tokens:
-                        args.append(self._consumir_argumento_vc(tokens, contexto=f"el argumento de {primer_bloque}"))
+                for i in range(num_args):
+                    error_arg = comprobar_pila(primer_bloque, f"el argumento número {i+1}", tokens)
+                    if error_arg: return error_arg
+                    arg_func = self._consumir_argumento_vc(tokens, contexto=f"el argumento de {primer_bloque}")
+                    if "# ERROR" in arg_func: return arg_func
+                    args.append(arg_func)
                 res = f"{codigo_base}({', '.join(args)})"
 
             if "display.scroll" in codigo_base or "display.show" in codigo_base:
@@ -376,7 +385,6 @@ class MicrobitCompiler:
                 if self.modo_tts == "pc":
                     return f"print('TTS:' + str({arg_var}))\n{indent}{res}\n{indent}input()"
                 elif self.modo_tts == "placa":
-                    # --- CAMBIO DE ORDEN AQUÍ ---
                     return f"speech.say(str({arg_var}))\n{indent}{res}"
                 else:
                     return res
@@ -387,17 +395,31 @@ class MicrobitCompiler:
             condicion = ""
             if tokens:
                 condicion = self._consumir_argumento_vc(tokens, contexto=f"la condición de {primer_bloque}")
+                if "# ERROR" in condicion: return condicion
+            
             codigo_limpio = codigo_base.replace(":", "").strip()
             if condicion: return f"{codigo_limpio} {condicion}:"
             else: return f"{codigo_limpio}:"
                 
         else:
             tokens.insert(0, primer_bloque)
-            return self._consumir_argumento_vc(tokens, contexto=f"el bloque junto a {primer_bloque}")
+            res = self._consumir_argumento_vc(tokens, contexto=f"el bloque junto a {primer_bloque}")
+            if not res: return f"# ERROR: El bloque '{primer_bloque}' está suelto o mal colocado."
+            return res
 
     def _consumir_argumento_vc(self, tokens, contexto=""):
         if not tokens: return ""
         
+        # Pila secundaria para la anidación (Lógica y Métodos en cadena)
+        pila_errores = []
+        def comprobar_pila(bloque, expectativa):
+            pila_errores.append({"bloque": bloque, "espera": expectativa})
+            if not tokens:
+                fallo = pila_errores.pop()
+                return f"\n# ERROR: Después de '{fallo['bloque']}', faltaba {fallo['espera']}."
+            pila_errores.pop()
+            return None
+
         val = tokens.pop(0)
         
         if self._es_valor_numerico(val):
@@ -423,6 +445,10 @@ class MicrobitCompiler:
             if tipo_sig == "operador_logico":
                 op = tokens.pop(0)
                 resultado += sig_info.get("codigo", op)
+                
+                error = comprobar_pila(op, "otra condición para comparar")
+                if error: return resultado + error
+                
                 if tokens:
                     resultado += self._consumir_argumento_vc(tokens, contexto)
                 break
@@ -431,19 +457,18 @@ class MicrobitCompiler:
                 metodo = tokens.pop(0)
                 codigo_metodo = sig_info.get("codigo", metodo)
                 
-                # --- INYECCIÓN DINÁMICA: "Es presionado" (Agnóstico del JSON) ---
                 if ".is_pressed" in codigo_metodo or ".is_touched" in codigo_metodo:
                     if "pin" in resultado or "logo" in resultado:
                         codigo_metodo = ".is_touched()"
                     else:
                         codigo_metodo = ".is_pressed()"
-                # ----------------------------------------------------------------
 
                 num_args = sig_info.get("args", 0)
                 args_extra = []
-                for _ in range(num_args):
-                    if tokens:
-                        args_extra.append(self._consumir_argumento_vc(tokens, contexto=f"el argumento de {metodo}"))
+                for i in range(num_args):
+                    error = comprobar_pila(metodo, f"el argumento número {i+1}")
+                    if error: return resultado + error
+                    args_extra.append(self._consumir_argumento_vc(tokens, contexto=f"el argumento de {metodo}"))
                         
                 if args_extra:
                     resultado += f"{codigo_metodo}({', '.join(args_extra)})"

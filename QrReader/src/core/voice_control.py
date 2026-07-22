@@ -136,6 +136,10 @@ class VoiceCommandManager:
             self.callback_comando("explicar")
         elif "leer" in texto or "mesa" in texto or "qr" in texto:
             self.callback_comando("leer")
+        # --- NUEVO: Palabras clave para alternar el TTS ---
+        elif "voz" in texto or "audio" in texto or "hablar" in texto or "sonido" in texto:
+            self.callback_comando("cambiar_tts")
+        # --------------------------------------------------
         else:
             GestorVoz.leer_texto("Comando no reconocido.")
 
