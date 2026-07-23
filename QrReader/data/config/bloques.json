@@ -1,1032 +1,1232 @@
 {
     "para siempre": {
         "codigo": "while True:",
-        "tipo": "control"
+        "tipo": "control",
+        "pronunciacion": "para siempre"
     },
     "al presionar": {
         "codigo": ".is_pressed()",
-        "tipo": "control_metodo"
+        "tipo": "control_metodo",
+        "pronunciacion": "al presionar"
     },
     "al gesto": {
         "codigo": "accelerometer.is_gesture",
-        "tipo": "control_funcion"
+        "tipo": "control_funcion",
+        "pronunciacion": "al gesto"
     },
     "si": {
         "codigo": "if",
-        "tipo": "control"
+        "tipo": "control",
+        "pronunciacion": "si"
     },
     "y si": {
         "codigo": "elif ",
-        "tipo": "control"
+        "tipo": "control",
+        "pronunciacion": "y si"
     },
     "si no": {
         "codigo": "else:",
-        "tipo": "control"
+        "tipo": "control",
+        "pronunciacion": "si no"
     },
     "mientras": {
         "codigo": "while ",
-        "tipo": "control"
+        "tipo": "control",
+        "pronunciacion": "mientras"
     },
     "para cada": {
         "codigo": "for ",
-        "tipo": "control"
+        "tipo": "control",
+        "pronunciacion": "para cada"
     },
     "mostrar": {
         "codigo": "display.show",
         "tipo": "funcion",
+        "pronunciacion": "mostrar",
         "args": 1
     },
     "desplazar": {
         "codigo": "display.scroll",
         "tipo": "funcion",
+        "pronunciacion": "desplazar",
         "args": 1
     },
     "dormir": {
         "codigo": "sleep",
         "tipo": "funcion",
+        "pronunciacion": "dormir",
         "args": 1
     },
     "limpiar": {
         "codigo": "display.clear()",
         "tipo": "funcion",
+        "pronunciacion": "limpiar pantalla",
         "args": 0
     },
     "encender pixel": {
         "codigo": "display.set_pixel",
         "tipo": "funcion",
+        "pronunciacion": "encender pixel",
         "args": 3
     },
     "reproducir melodia": {
         "codigo": "music.play",
         "tipo": "funcion",
+        "pronunciacion": "reproducir cancion",
         "args": 1
     },
     "parar melodia": {
         "codigo": "music.stop()",
         "tipo": "funcion",
+        "pronunciacion": "parar melodia",
         "args": 0
     },
     "poner tempo a": {
         "codigo": "music.set_tempo",
         "tipo": "funcion",
+        "pronunciacion": "poner tempo a",
         "args": 1
     },
     "reproducir frecuencia": {
         "codigo": "music.pitch",
         "tipo": "funcion",
+        "pronunciacion": "reproducir frecuencia",
         "args": 1
     },
     "decir": {
         "codigo": "speech.say",
         "tipo": "funcion",
+        "pronunciacion": "decir",
         "args": 1
     },
     "reproducir sonido": {
         "codigo": "audio.play",
         "tipo": "funcion",
+        "pronunciacion": "reproducir sonido",
         "args": 1
     },
     "poner volumen a": {
         "codigo": "set_volume",
         "tipo": "funcion",
+        "pronunciacion": "poner volumen a",
         "args": 1
     },
     "apagar altavoz": {
         "codigo": "speaker.off()",
         "tipo": "funcion",
+        "pronunciacion": "apagar altavoz",
         "args": 0
     },
     "encender altavoz": {
         "codigo": "speaker.on()",
         "tipo": "funcion",
+        "pronunciacion": "encender altavoz",
         "args": 0
     },
     "calibrar brujula": {
         "codigo": "compass.calibrate()",
         "tipo": "funcion",
+        "pronunciacion": "calibrar brujula",
         "args": 0
     },
     "leer por ordenador": {
         "codigo": "print",
         "tipo": "funcion",
+        "pronunciacion": "recibir por ordenador",
         "args": 1
     },
     "configurar radio": {
         "codigo": "radio.config",
         "tipo": "funcion",
+        "pronunciacion": "configurar radio",
         "args": 2
     },
     "encender radio": {
         "codigo": "radio.on()",
         "tipo": "funcion",
+        "pronunciacion": "encender radio",
         "args": 0
     },
     "enviar por radio": {
         "codigo": "radio.send",
         "tipo": "funcion",
+        "pronunciacion": "enviar por radio",
         "args": 1
     },
     "es presionado": {
         "codigo": ".is_pressed()",
         "tipo": "metodo",
+        "pronunciacion": "es presionado",
         "requiere": "boton"
     },
     "es tocado": {
         "codigo": ".is_touched()",
         "tipo": "metodo",
+        "pronunciacion": "es tocado",
         "requiere": "pin"
     },
     "veces presionado": {
         "codigo": ".get_presses()",
         "tipo": "metodo",
+        "pronunciacion": "veces presionado",
         "requiere": "boton"
     },
     "gesto": {
         "codigo": "accelerometer.is_gesture",
         "tipo": "funcion",
+        "pronunciacion": "gesto",
         "args": 1
     },
     "ruido": {
         "codigo": "microphone.current_event() == SoundEvent.LOUD",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "ruido"
     },
     "silencio": {
         "codigo": "microphone.current_event() == SoundEvent.QUIET",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "silencio"
     },
     "mas": {
         "codigo": " + ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "mas"
     },
     "menos": {
         "codigo": " - ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "menos"
     },
     "por": {
         "codigo": " * ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "por"
     },
     "entre": {
         "codigo": " / ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "entre"
     },
     "elevado": {
         "codigo": " ** ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "elevado"
     },
     "modulo": {
         "codigo": " % ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "modulo"
     },
     "division y redondeo": {
         "codigo": " // ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "division y redondeo"
     },
     "igual": {
         "codigo": " == ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "igual"
     },
     "menor o igual": {
         "codigo": " <= ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "menor o igual"
     },
     "mayor o igual": {
         "codigo": " >= ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "mayor o igual"
     },
     "menor": {
         "codigo": " < ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "menor"
     },
     "mayor": {
         "codigo": " > ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "mayor"
     },
     "distinto": {
         "codigo": " != ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "distinto"
     },
     "y": {
         "codigo": " and ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "y"
     },
     "o": {
         "codigo": " or ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "o"
     },
     "no": {
         "codigo": "Image.NO",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen no"
     },
     "imagen si": {
         "codigo": "Image.YES",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen si"
     },
     "contiene": {
         "codigo": " in ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "contiene"
     },
     "absoluto": {
         "codigo": "abs",
         "tipo": "funcion",
+        "pronunciacion": "absoluto",
         "args": 1
     },
     "numero aleatorio": {
         "codigo": "random.randint",
         "tipo": "funcion",
+        "pronunciacion": "numero aleatorio",
         "args": 2
     },
     "redondeo hacia abajo": {
         "codigo": "floor",
         "tipo": "funcion",
+        "pronunciacion": "redondeo hacia abajo",
         "args": 1
     },
     "redondeo hacia arriba": {
         "codigo": "ceil",
         "tipo": "funcion",
+        "pronunciacion": "redondeo hacia arriba",
         "args": 1
     },
     "redondeo segun posicion decimal": {
         "codigo": "round",
         "tipo": "funcion",
+        "pronunciacion": "redondeo segun posicion decimal",
         "args": 2
     },
     "cambio a int": {
         "codigo": "int",
         "tipo": "funcion",
+        "pronunciacion": "cambio a int",
         "args": 1
     },
     "raiz": {
         "codigo": "sqrt",
         "tipo": "funcion",
+        "pronunciacion": "raiz",
         "args": 1
     },
     "coseno": {
         "codigo": "cos",
         "tipo": "funcion",
+        "pronunciacion": "coseno",
         "args": 1
     },
     "seno": {
         "codigo": "sin",
         "tipo": "funcion",
+        "pronunciacion": "seno",
         "args": 1
     },
     "tangente": {
         "codigo": "tan",
         "tipo": "funcion",
+        "pronunciacion": "tangente",
         "args": 1
     },
     "arcocoseno": {
         "codigo": "acos",
         "tipo": "funcion",
+        "pronunciacion": "arcocoseno",
         "args": 1
     },
     "arcoseno": {
         "codigo": "asin",
         "tipo": "funcion",
+        "pronunciacion": "arcoseno",
         "args": 1
     },
     "arcotangente": {
         "codigo": "atan",
         "tipo": "funcion",
+        "pronunciacion": "arcotangente",
         "args": 1
     },
     "arcotangente2": {
         "codigo": "atan2",
         "tipo": "funcion",
+        "pronunciacion": "arcotangente2",
         "args": 2
     },
     "radianes": {
         "codigo": "radians",
         "tipo": "funcion",
+        "pronunciacion": "radianes",
         "args": 1
     },
     "grados": {
         "codigo": "degrees",
         "tipo": "funcion",
+        "pronunciacion": "grados",
         "args": 1
     },
     "logaritmo": {
         "codigo": "log",
         "tipo": "funcion",
+        "pronunciacion": "logaritmo",
         "args": 1
     },
     "a binario": {
         "codigo": "bin",
         "tipo": "funcion",
+        "pronunciacion": "a binario",
         "args": 1
     },
     "and bin": {
         "codigo": " & ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "and bin"
     },
     "or bin": {
         "codigo": " | ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "or bin"
     },
     "xor bin": {
         "codigo": " ^ ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "xor bin"
     },
     "desplazamiento izquierda": {
         "codigo": " << ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "desplazamiento izquierda"
     },
     "desplazamiento derecha": {
         "codigo": " >> ",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "desplazamiento derecha"
     },
     "complementario": {
         "codigo": " ~",
-        "tipo": "operador_logico"
+        "tipo": "operador_logico",
+        "pronunciacion": "complementario"
     },
     "dos puntos": {
         "codigo": ":\n",
-        "tipo": "sintaxis"
+        "tipo": "sintaxis",
+        "pronunciacion": "dos puntos"
     },
     "array": {
         "codigo": "[",
-        "tipo": "sintaxis"
+        "tipo": "sintaxis",
+        "pronunciacion": "array"
     },
     "sustituir": {
         "codigo": ".replace",
         "tipo": "metodo",
+        "pronunciacion": "sustituir",
         "args": 2
     },
     "quitar": {
         "codigo": ".strip()",
         "tipo": "metodo",
+        "pronunciacion": "quitar",
         "args": 0
     },
     "longitud": {
         "codigo": "len",
         "tipo": "funcion",
+        "pronunciacion": "longitud",
         "args": 1
     },
     "a mayusculas": {
         "codigo": ".upper()",
         "tipo": "metodo",
+        "pronunciacion": "a mayusculas",
         "args": 0
     },
     "a minusculas": {
         "codigo": ".lower()",
         "tipo": "metodo",
+        "pronunciacion": "a minusculas",
         "args": 0
     },
     "encontrar desde el inicio": {
         "codigo": ".find",
         "tipo": "metodo",
+        "pronunciacion": "encontrar desde el inicio",
         "args": 1
     },
     "encontrar desde el final": {
         "codigo": ".rfind",
         "tipo": "metodo",
+        "pronunciacion": "encontrar desde el final",
         "args": 1
     },
     "numero de": {
         "codigo": ".count",
         "tipo": "metodo",
+        "pronunciacion": "numero de",
         "args": 1
     },
     "esta en minuscula": {
         "codigo": ".islower()",
         "tipo": "metodo",
+        "pronunciacion": "esta en minuscula",
         "args": 0
     },
     "esta en mayuscula": {
         "codigo": ".isupper()",
         "tipo": "metodo",
+        "pronunciacion": "esta en mayuscula",
         "args": 0
     },
     "es letra": {
         "codigo": ".isalpha()",
         "tipo": "metodo",
+        "pronunciacion": "es letra",
         "args": 0
     },
     "es numero": {
         "codigo": ".isdigit()",
         "tipo": "metodo",
+        "pronunciacion": "es numero",
         "args": 0
     },
     "es espacio": {
         "codigo": ".isspace()",
         "tipo": "metodo",
+        "pronunciacion": "es espacio",
         "args": 0
     },
     "empieza con": {
         "codigo": ".startswith",
         "tipo": "metodo",
+        "pronunciacion": "empieza con",
         "args": 1
     },
     "finaliza con": {
         "codigo": ".endswith",
         "tipo": "metodo",
+        "pronunciacion": "finaliza con",
         "args": 1
     },
     "ASCII": {
         "codigo": "ord",
         "tipo": "funcion",
+        "pronunciacion": "ASCII",
         "args": 1
     },
     "caracter": {
         "codigo": "chr",
         "tipo": "funcion",
+        "pronunciacion": "caracter",
         "args": 1
     },
     "leer digital": {
         "codigo": ".read_digital()",
         "tipo": "metodo",
+        "pronunciacion": "leer digital",
         "requiere": "pin"
     },
     "escribir digital": {
         "codigo": ".write_digital",
         "tipo": "metodo",
+        "pronunciacion": "escribir 1 digital",
         "args": 1,
         "requiere": "pin"
     },
     "leer analogico": {
         "codigo": ".read_analog()",
         "tipo": "metodo",
+        "pronunciacion": "leer analogio",
         "requiere": "pin"
     },
     "escribir analogico": {
         "codigo": ".write_analog",
         "tipo": "metodo",
+        "pronunciacion": "escribir analogico",
         "args": 1,
         "requiere": "pin"
     },
     "boton a": {
         "codigo": "button_a",
         "tipo": "sujeto",
+        "pronunciacion": "boton a",
         "clase": "boton"
     },
     "boton b": {
         "codigo": "button_b",
         "tipo": "sujeto",
+        "pronunciacion": "boton b",
         "clase": "boton"
     },
     "logo": {
         "codigo": "pin_logo",
         "tipo": "sujeto",
+        "pronunciacion": "logo",
         "clase": "pin_tactil"
     },
     "pin 0": {
         "codigo": "pin0",
         "tipo": "sujeto",
+        "pronunciacion": "pin0",
         "clase": "pin"
     },
     "pin 1": {
         "codigo": "pin1",
         "tipo": "sujeto",
+        "pronunciacion": "pin1",
         "clase": "pin"
     },
     "pin 2": {
         "codigo": "pin2",
         "tipo": "sujeto",
+        "pronunciacion": "pin2",
         "clase": "pin"
     },
     "valor": {
         "codigo": "Inserte_valor",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "valor"
     },
     "numero": {
         "codigo": "num",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "numero"
     },
     "verdadero": {
         "codigo": "True",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "verdadero"
     },
     "falso": {
         "codigo": "False",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "falso"
     },
     "pi": {
         "codigo": "pi",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "pi"
     },
     "numero e": {
         "codigo": "e",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "numero e"
     },
     "nivel de luz": {
         "codigo": "display.read_light_level()",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "nivel de luz"
     },
     "temperatura": {
         "codigo": "temperature()",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "temperatura"
     },
     "direccion brujula": {
         "codigo": "compass.heading()",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "direccion de la brujula"
     },
     "fuerza magnetica x": {
         "codigo": "compass.get_x()",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "campo magnetico x"
     },
     "fuerza magnetica y": {
         "codigo": "compass.get_y()",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "campo magnetico y"
     },
     "fuerza magnetica z": {
         "codigo": "compass.get_z()",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "campo magnetico z"
     },
     "campo magnetico": {
         "codigo": "compass.get_field_strength()",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "campo magnetico"
     },
     "aceleracion x": {
         "codigo": "accelerometer.get_x()",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "aceleracion x"
     },
     "aceleracion y": {
         "codigo": "accelerometer.get_y()",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "aceleracion y"
     },
     "aceleracion z": {
         "codigo": "accelerometer.get_z()",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "aceleracion z"
     },
     "nivel de ruido": {
         "codigo": "microphone.sound_level()",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "nivel del microfono"
     },
     "tiempo en ms": {
         "codigo": "ticks_ms()",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "tiempo en milisegundos"
     },
     "tiempo en micros": {
         "codigo": "ticks_us()",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "tiempo en microsegundos"
     },
     "recibir por radio": {
         "codigo": "radio.receive()",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "recibir por radio"
     },
     "flecha norte": {
         "codigo": "Image.ARROW_N",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen flecha norte"
     },
     "flecha noreste": {
         "codigo": "Image.ARROW_NE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen flecha noreste"
     },
     "flecha este": {
         "codigo": "Image.ARROW_E",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen flecha este"
     },
     "flecha sureste": {
         "codigo": "Image.ARROW_SE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen flecha sureste"
     },
     "flecha sur": {
         "codigo": "Image.ARROW_S",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen flecha sur"
     },
     "flecha suroeste": {
         "codigo": "Image.ARROW_SW",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen flecha suroeste"
     },
     "flecha oeste": {
         "codigo": "Image.ARROW_W",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen flecha oeste"
     },
     "flecha noroeste": {
         "codigo": "Image.ARROW_NW",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen flecha noroeste"
     },
     "corazon": {
         "codigo": "Image.HEART",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen corazon"
     },
     "corazoncito": {
         "codigo": "Image.HEART_SMALL",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen corazoncito"
     },
     "feliz": {
         "codigo": "Image.HAPPY",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen feliz"
     },
     "triste": {
         "codigo": "Image.SAD",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen triste"
     },
     "confundido": {
         "codigo": "Image.CONFUSED",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen confuso"
     },
     "enfadado": {
         "codigo": "Image.ANGRY",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen enfadado"
     },
     "dormido": {
         "codigo": "Image.ASLEEP",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen dormido"
     },
     "sorprendido": {
         "codigo": "Image.SURPRISED",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen sorprendido"
     },
     "tonto": {
         "codigo": "Image.SILLY",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen tonto"
     },
     "fabuloso": {
         "codigo": "Image.FABULOUS",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen fabuloso"
     },
     "meh": {
         "codigo": "Image.MEH",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen meh"
     },
     "camiseta": {
         "codigo": "Image.TSHIRT",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen camiseta"
     },
     "patin": {
         "codigo": "Image.ROLLERSKATE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen patinete"
     },
     "pato": {
         "codigo": "Image.DUCK",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen pato"
     },
     "casa": {
         "codigo": "Image.HOUSE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen casa"
     },
     "tortuga": {
         "codigo": "Image.TORTOISE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen tortuga"
     },
     "mariposa": {
         "codigo": "Image.BUTTERFLY",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen mariposa"
     },
     "figurita": {
         "codigo": "Image.STICK_FIGURE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen figurita"
     },
     "fantasma": {
         "codigo": "Image.GHOST",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen fantasma"
     },
     "espada": {
         "codigo": "Image.SWORD",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen espada"
     },
     "jirafa": {
         "codigo": "Image.GIRAFFE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen jirafa"
     },
     "calavera": {
         "codigo": "Image.SKULL",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen calavera"
     },
     "paraguas": {
         "codigo": "Image.UMBRELLA",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen paraguas"
     },
     "serpiente": {
         "codigo": "Image.SNAKE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen serpiente"
     },
     "conejito": {
         "codigo": "Image.RABBIT",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen conejo"
     },
     "vaca": {
         "codigo": "Image.COW",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen vaca"
     },
     "nota cuarta": {
         "codigo": "Image.QUARTER_NOTE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen nota cuarta"
     },
     "nota octava": {
         "codigo": "Image.EIGHTH_NOTE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen nota octava"
     },
     "tridente": {
         "codigo": "Image.PITCHFORK",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen tridente"
     },
     "diana": {
         "codigo": "Image.TARGET",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen diana"
     },
     "triangulo": {
         "codigo": "Image.TRIANGLE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen triangulo"
     },
     "triangulo izquierda": {
         "codigo": "Image.LEFT_TRIANGLE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen triangulo izquierda"
     },
     "ajedrez": {
         "codigo": "Image.CHESS_BOARD",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen ajedrez"
     },
     "diamante": {
         "codigo": "Image.DIAMOND",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen diamante"
     },
     "diamantito": {
         "codigo": "Image.SMALL_DIAMOND",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen diamantito"
     },
     "cuadrado": {
         "codigo": "Image.SQUARE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen cuadrado"
     },
     "cuadradito": {
         "codigo": "Image.SMALL_SQUARE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen cuadradito"
     },
     "tijeras": {
         "codigo": "Image.SCISSORS",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen tijeras"
     },
     "todas las flechas": {
         "codigo": "Image.ALL_ARROWS",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen todas las flechas"
     },
     "todos los relojes": {
         "codigo": "Image.ALL_CLOCKS",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen todos los relojes"
     },
     "reloj 1": {
         "codigo": "Image.CLOCK1",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen reloj 1"
     },
     "reloj 2": {
         "codigo": "Image.CLOCK2",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen reloj 2"
     },
     "reloj 3": {
         "codigo": "Image.CLOCK3",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen reloj 3"
     },
     "reloj 4": {
         "codigo": "Image.CLOCK4",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen reloj 4"
     },
     "reloj 5": {
         "codigo": "Image.CLOCK5",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen reloj 5"
     },
     "reloj 6": {
         "codigo": "Image.CLOCK6",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen reloj 6"
     },
     "reloj 7": {
         "codigo": "Image.CLOCK7",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen reloj 7"
     },
     "reloj 8": {
         "codigo": "Image.CLOCK8",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen reloj 8"
     },
     "reloj 9": {
         "codigo": "Image.CLOCK9",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen reloj 9"
     },
     "reloj 10": {
         "codigo": "Image.CLOCK10",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen reloj 10"
     },
     "reloj 11": {
         "codigo": "Image.CLOCK11",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen reloj 11"
     },
     "reloj 12": {
         "codigo": "Image.CLOCK12",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen reloj 12"
     },
     "corchete": {
         "codigo": "Image.MUSIC_CROTCHET",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen corchete"
     },
     "corchea": {
         "codigo": "Image.MUSIC_QUAVER",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen corchea"
     },
     "corcheas": {
         "codigo": "Image.MUSIC_QUAVERS",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen corcheas"
     },
     "navidad": {
         "codigo": "Image.XMAS",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen navidad"
     },
     "sonrisa": {
         "codigo": "Image.SMILE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen sonrisa"
     },
     "pacman": {
         "codigo": "Image.PACMAN",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "imagen pacman"
     },
     "agitar": {
         "codigo": "'shake'",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "agitar"
     },
     "logo arriba": {
         "codigo": "'logo up'",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "logo arriba"
     },
     "logo abajo": {
         "codigo": "'logo down'",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "logo abajo"
     },
     "pantalla arriba": {
         "codigo": "'face up'",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "pantalla arriba"
     },
     "inclinar izquierda": {
         "codigo": "'tilt left'",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "inclinar izquierda"
     },
     "inclinar derecha": {
         "codigo": "'tilt right'",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "inclinar derecha"
     },
     "caida libre": {
         "codigo": "'free fall'",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "caida libre"
     },
     "ba ding": {
         "codigo": "music.BA_DING",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion bading"
     },
     "baddy": {
         "codigo": "music.BADDY",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion baddy"
     },
     "dadadadum": {
         "codigo": "music.DADADADUM",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion dadadum"
     },
     "wawawawaa": {
         "codigo": "music.WAWAWAWAA",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion wawawaa"
     },
     "entretenimiento": {
         "codigo": "music.ENTERTAINER",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion entertainer"
     },
     "funeral": {
         "codigo": "music.FUNERAL",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion funeral"
     },
     "funk": {
         "codigo": "music.FUNK",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion funk"
     },
     "salto arriba": {
         "codigo": "music.JUMP_UP",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion jump up"
     },
     "salto abajo": {
         "codigo": "music.JUMP_DOWN",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion jump down"
     },
     "punchline": {
         "codigo": "music.PUNCHLINE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion punchline"
     },
     "cumpleanos": {
         "codigo": "music.BIRTHDAY",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion birthday"
     },
     "blues": {
         "codigo": "music.BLUES",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion blues"
     },
     "persecucion": {
         "codigo": "music.CHASE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion chase"
     },
     "nyan": {
         "codigo": "music.NYAN",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion nyan"
     },
     "oda": {
         "codigo": "music.ODE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion ode"
     },
     "apagar": {
         "codigo": "music.POWER_DOWN",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion power down"
     },
     "encender": {
         "codigo": "music.POWER_UP",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion power up"
     },
     "preludio": {
         "codigo": "music.PRELUDE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion prelude"
     },
     "python": {
         "codigo": "music.PYTHON",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion python"
     },
     "sonitono": {
         "codigo": "music.RINGTONE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion ringtone"
     },
     "boda": {
         "codigo": "music.WEDDING",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "cancion wedding"
     },
     "brillos": {
         "codigo": "Sound.TWINKLE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "sonido brillitos"
     },
     "muelle": {
         "codigo": "Sound.SPRING",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "sonido muelle"
     },
     "planeo": {
         "codigo": "Sound.SOARING",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "sonido planeo"
     },
     "risita": {
         "codigo": "Sound.GIGGLE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "sonido risita"
     },
     "contento": {
         "codigo": "Sound.HAPPY",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "sonido feliz"
     },
     "saludo": {
         "codigo": "Sound.HELLO",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "sonido hola"
     },
     "misterio": {
         "codigo": "Sound.MYSTERIOUS",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "sonido misterio"
     },
     "tristeza": {
         "codigo": "Sound.SAD",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "sonido triste"
     },
     "desliz": {
         "codigo": "Sound.SLIDE",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "sonido desliz"
     },
     "bostezo": {
         "codigo": "Sound.YAWN",
-        "tipo": "valor"
-    },
-    "do": {
-        "codigo": "'C'",
-        "tipo": "valor"
-    },
-    "re": {
-        "codigo": "'D'",
-        "tipo": "valor"
-    },
-    "mi": {
-        "codigo": "'E'",
-        "tipo": "valor"
-    },
-    "fa": {
-        "codigo": "'F'",
-        "tipo": "valor"
-    },
-    "sol": {
-        "codigo": "'G'",
-        "tipo": "valor"
-    },
-    "la": {
-        "codigo": "'A'",
-        "tipo": "valor"
-    },
-    "si nota": {
-        "codigo": "'B'",
-        "tipo": "valor"
-    },
-    "do5": {
-        "codigo": "'C5'",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "sonido bostezo"
     },
     "pantalla abajo": {
         "codigo": "'face down'",
-        "tipo": "valor"
+        "tipo": "valor",
+        "pronunciacion": "pantalla abajo"
     },
     "declarar variable": {
         "codigo": "var_",
-        "tipo": "declaracion_var"
+        "tipo": "declaracion_var",
+        "pronunciacion": "declarar variable"
     },
     "valor variable": {
         "codigo": "val_",
-        "tipo": "asignacion_val"
+        "tipo": "asignacion_val",
+        "pronunciacion": "valor variable"
     },
     "variable": {
         "codigo": "var_",
-        "tipo": "referencia_var"
+        "tipo": "referencia_var",
+        "pronunciacion": "variable"
     }
 }

@@ -157,44 +157,6 @@ class AppCamara(QMainWindow):
                 
         return super().eventFilter(obj, event)
 
-    def alternar_contraste(self):
-        """Alterna el tema y oculta o muestra las pestañas secundarias de forma segura."""
-        self.modo_alto_contraste = not self.modo_alto_contraste
-        self.cargar_tema_actual()
-        
-        if self.modo_alto_contraste:
-            self.tabs.setCurrentIndex(0)
-            
-            # Guardamos las referencias y títulos antes de removerlas si no están guardadas
-            if self.tabs.count() > 1:
-                self.pestaña_qrs_widget = self.tabs.widget(1)
-                self.pestaña_qrs_texto = self.tabs.tabText(1)
-                self.tabs.removeTab(1)
-                
-            if self.tabs.count() > 1:
-                self.pestaña_json_widget = self.tabs.widget(1)
-                self.pestaña_json_texto = self.tabs.tabText(1)
-                self.tabs.removeTab(1)
-            
-            if hasattr(self.vista_camara, 'btn_contraste'):
-                self.vista_camara.btn_contraste.setText("👁 Modo Estándar")
-        else:
-            # Restauramos las pestañas en sus posiciones originales
-            if hasattr(self, 'pestaña_qrs_widget') and self.pestaña_qrs_widget:
-                self.tabs.insertTab(1, self.pestaña_qrs_widget, self.pestaña_qrs_texto)
-                
-            if hasattr(self, 'pestaña_json_widget') and self.pestaña_json_widget:
-                self.tabs.insertTab(2, self.pestaña_json_widget, self.pestaña_json_texto)
-            
-            if hasattr(self.vista_camara, 'btn_contraste'):
-                self.vista_camara.btn_contraste.setText("👁 Modo Contraste")
-        
-        from core.audio import GestorVoz
-        if self.modo_alto_contraste:
-            GestorVoz.leer_texto("Modo de alto contraste activado. Pestañas secundarias ocultas.")
-        else:
-            GestorVoz.leer_texto("Modo estándar activado.")
-
     def _procesar_clics_espacio(self):
         taps = self.clics_espacio
         self.clics_espacio = 0
@@ -213,7 +175,7 @@ class AppCamara(QMainWindow):
             self.vista_camara.pausar_camara()
 
     # =========================================================
-    # MOTOR DE TEMAS (QSS)
+    # MOTOR DE TEMAS (QSS) Y GESTIÓN DE Vistas
     # =========================================================
     def cargar_tema_actual(self):
         """Carga y aplica el QSS correspondiente desde el disco."""
@@ -222,18 +184,44 @@ class AppCamara(QMainWindow):
         
         try:
             with open(ruta_qss, "r", encoding="utf-8") as f:
-                # Aplicamos el estilo a TODA la aplicación de golpe
                 QApplication.instance().setStyleSheet(f.read())
         except Exception as e:
             print(f"Aviso: No se pudo cargar el archivo CSS {archivo}: {e}")
 
     def alternar_contraste(self):
-        """Alterna el estado booleano y recarga la interfaz."""
+        """Alterna el tema, recarga los estilos y oculta o muestra las pestañas secundarias."""
         self.modo_alto_contraste = not self.modo_alto_contraste
         self.cargar_tema_actual()
         
         from core.audio import GestorVoz
+
         if self.modo_alto_contraste:
-            GestorVoz.leer_texto("Modo de alto contraste activado.")
+            self.tabs.setCurrentIndex(0)
+            
+            # Extraemos y guardamos las pestañas secundarias de forma segura
+            if self.tabs.count() > 2:
+                self.pestaña_json_widget = self.tabs.widget(2)
+                self.pestaña_json_texto = self.tabs.tabText(2)
+                self.tabs.removeTab(2)
+                
+            if self.tabs.count() > 1:
+                self.pestaña_qrs_widget = self.tabs.widget(1)
+                self.pestaña_qrs_texto = self.tabs.tabText(1)
+                self.tabs.removeTab(1)
+            
+            if hasattr(self.vista_camara, 'btn_contraste'):
+                self.vista_camara.btn_contraste.setText("👁 Modo Estándar")
+                
+            GestorVoz.leer_texto("Modo de alto contraste activado. Pestañas secundarias ocultas.")
         else:
+            # Reinsertamos las pestañas en orden exacto
+            if hasattr(self, 'vista_qrs') and self.tabs.indexOf(self.vista_qrs) == -1:
+                self.tabs.addTab(self.vista_qrs, "Generador de QRs")
+                
+            if hasattr(self, 'vista_json') and self.tabs.indexOf(self.vista_json) == -1:
+                self.tabs.addTab(self.vista_json, "Editor de Diccionario")
+            
+            if hasattr(self.vista_camara, 'btn_contraste'):
+                self.vista_camara.btn_contraste.setText("👁 Modo Contraste")
+                
             GestorVoz.leer_texto("Modo estándar activado.")
