@@ -267,18 +267,15 @@ class MicrobitCompiler:
     def procesar_fila_tokens(self, tokens, indent=""):
         if not tokens: return ""
         
-        # --- AUTÓMATA DE PILA (LIFO) PARA GESTIÓN DE ERRORES ---
         pila_errores = []
         
         def comprobar_pila(bloque, expectativa, tokens_restantes):
-            """Empuja la expectativa a la pila y verifica si el usuario colocó el bloque."""
             pila_errores.append({"bloque": bloque, "espera": expectativa})
             if not tokens_restantes:
                 fallo = pila_errores.pop()
                 return f"# ERROR: El bloque '{fallo['bloque']}' esperaba {fallo['espera']} a su derecha."
             pila_errores.pop()
             return None
-        # -------------------------------------------------------
 
         primer_bloque = tokens.pop(0)
         
@@ -342,12 +339,15 @@ class MicrobitCompiler:
             
             num_args = info.get("args", 0)
             args_extra = []
-            for i in range(num_args):
-                error_arg = comprobar_pila(primer_bloque, f"el argumento número {i+1}", tokens)
+            
+            argumentos_satisfechos = 0
+            while argumentos_satisfechos < num_args:
+                error_arg = comprobar_pila(primer_bloque, f"el argumento número {argumentos_satisfechos+1}", tokens)
                 if error_arg: return error_arg
                 arg_ext = self._consumir_argumento_vc(tokens, contexto=f"el argumento de {primer_bloque}")
                 if "# ERROR" in arg_ext: return arg_ext
                 args_extra.append(arg_ext)
+                argumentos_satisfechos += len(arg_ext.split(","))
             
             if args_extra: res = f"{sujeto}{codigo_base}({', '.join(args_extra)})"
             else:
@@ -356,8 +356,11 @@ class MicrobitCompiler:
                 
             if sujeto == "display" and ("scroll" in codigo_base or "show" in codigo_base):
                 arg_var = args_extra[0] if args_extra else '""'
+                # --- LÓGICA DE IGNORAR IMÁGENES/MATRICES Y ELIMINACIÓN DE INPUT() ---
+                if "Image" in arg_var or ":" in arg_var:
+                    return res
                 if self.modo_tts == "pc":
-                    return f"print('TTS:' + str({arg_var}))\n{indent}{res}\n{indent}input()"
+                    return f"print('TTS:' + str({arg_var}))\n{indent}{res}"
                 elif self.modo_tts == "placa":
                     return f"speech.say(str({arg_var}))\n{indent}{res}"
                 else:
@@ -372,18 +375,23 @@ class MicrobitCompiler:
                 if codigo_base.endswith(")"): res = codigo_base
                 else: res = f"{codigo_base}()"
             else:
-                for i in range(num_args):
-                    error_arg = comprobar_pila(primer_bloque, f"el argumento número {i+1}", tokens)
+                argumentos_satisfechos = 0
+                while argumentos_satisfechos < num_args:
+                    error_arg = comprobar_pila(primer_bloque, f"el argumento número {argumentos_satisfechos+1}", tokens)
                     if error_arg: return error_arg
                     arg_func = self._consumir_argumento_vc(tokens, contexto=f"el argumento de {primer_bloque}")
                     if "# ERROR" in arg_func: return arg_func
                     args.append(arg_func)
+                    argumentos_satisfechos += len(arg_func.split(","))
                 res = f"{codigo_base}({', '.join(args)})"
 
             if "display.scroll" in codigo_base or "display.show" in codigo_base:
                 arg_var = args[0] if args else '""'
+                # --- LÓGICA DE IGNORAR IMÁGENES/MATRICES Y ELIMINACIÓN DE INPUT() ---
+                if "Image" in arg_var or ":" in arg_var:
+                    return res
                 if self.modo_tts == "pc":
-                    return f"print('TTS:' + str({arg_var}))\n{indent}{res}\n{indent}input()"
+                    return f"print('TTS:' + str({arg_var}))\n{indent}{res}"
                 elif self.modo_tts == "placa":
                     return f"speech.say(str({arg_var}))\n{indent}{res}"
                 else:
@@ -410,7 +418,6 @@ class MicrobitCompiler:
     def _consumir_argumento_vc(self, tokens, contexto=""):
         if not tokens: return ""
         
-        # Pila secundaria para la anidación (Lógica y Métodos en cadena)
         pila_errores = []
         def comprobar_pila(bloque, expectativa):
             pila_errores.append({"bloque": bloque, "espera": expectativa})
@@ -465,10 +472,15 @@ class MicrobitCompiler:
 
                 num_args = sig_info.get("args", 0)
                 args_extra = []
-                for i in range(num_args):
-                    error = comprobar_pila(metodo, f"el argumento número {i+1}")
+                
+                argumentos_satisfechos = 0
+                while argumentos_satisfechos < num_args:
+                    error = comprobar_pila(metodo, f"el argumento número {argumentos_satisfechos+1}")
                     if error: return resultado + error
-                    args_extra.append(self._consumir_argumento_vc(tokens, contexto=f"el argumento de {metodo}"))
+                    arg_func = self._consumir_argumento_vc(tokens, contexto=f"el argumento de {metodo}")
+                    if "# ERROR" in arg_func: return resultado + arg_func
+                    args_extra.append(arg_func)
+                    argumentos_satisfechos += len(arg_func.split(","))
                         
                 if args_extra:
                     resultado += f"{codigo_metodo}({', '.join(args_extra)})"

@@ -66,19 +66,19 @@
     "encender pixel": {
         "codigo": "display.set_pixel",
         "tipo": "funcion",
-        "pronunciacion": "encender pixel",
+        "pronunciacion": "encender píxel",
         "args": 3
     },
     "reproducir melodia": {
         "codigo": "music.play",
         "tipo": "funcion",
-        "pronunciacion": "reproducir cancion",
+        "pronunciacion": "reproducir canción",
         "args": 1
     },
     "parar melodia": {
         "codigo": "music.stop()",
         "tipo": "funcion",
-        "pronunciacion": "parar melodia",
+        "pronunciacion": "parar melodía",
         "args": 0
     },
     "poner tempo a": {
@@ -126,7 +126,7 @@
     "calibrar brujula": {
         "codigo": "compass.calibrate()",
         "tipo": "funcion",
-        "pronunciacion": "calibrar brujula",
+        "pronunciacion": "calibrar brújula",
         "args": 0
     },
     "leer por ordenador": {
@@ -190,7 +190,7 @@
     "mas": {
         "codigo": " + ",
         "tipo": "operador_logico",
-        "pronunciacion": "mas"
+        "pronunciacion": "más"
     },
     "menos": {
         "codigo": " - ",
@@ -215,12 +215,12 @@
     "modulo": {
         "codigo": " % ",
         "tipo": "operador_logico",
-        "pronunciacion": "modulo"
+        "pronunciacion": "módulo"
     },
     "division y redondeo": {
         "codigo": " // ",
         "tipo": "operador_logico",
-        "pronunciacion": "division y redondeo"
+        "pronunciacion": "división y redondeo"
     },
     "igual": {
         "codigo": " == ",
@@ -270,7 +270,7 @@
     "imagen si": {
         "codigo": "Image.YES",
         "tipo": "valor",
-        "pronunciacion": "imagen si"
+        "pronunciacion": "imagen sí"
     },
     "contiene": {
         "codigo": " in ",
@@ -286,7 +286,7 @@
     "numero aleatorio": {
         "codigo": "random.randint",
         "tipo": "funcion",
-        "pronunciacion": "numero aleatorio",
+        "pronunciacion": "número aleatorio",
         "args": 2
     },
     "redondeo hacia abajo": {
@@ -304,7 +304,7 @@
     "redondeo segun posicion decimal": {
         "codigo": "round",
         "tipo": "funcion",
-        "pronunciacion": "redondeo segun posicion decimal",
+        "pronunciacion": "redondeo segun posición decimal",
         "args": 2
     },
     "cambio a int": {
@@ -316,7 +316,7 @@
     "raiz": {
         "codigo": "sqrt",
         "tipo": "funcion",
-        "pronunciacion": "raiz",
+        "pronunciacion": "raíz",
         "args": 1
     },
     "coseno": {
@@ -446,13 +446,13 @@
     "a mayusculas": {
         "codigo": ".upper()",
         "tipo": "metodo",
-        "pronunciacion": "a mayusculas",
+        "pronunciacion": "a mayúsculas",
         "args": 0
     },
     "a minusculas": {
         "codigo": ".lower()",
         "tipo": "metodo",
-        "pronunciacion": "a minusculas",
+        "pronunciacion": "a minúsculas",
         "args": 0
     },
     "encontrar desde el inicio": {
@@ -470,19 +470,19 @@
     "numero de": {
         "codigo": ".count",
         "tipo": "metodo",
-        "pronunciacion": "numero de",
+        "pronunciacion": "número de",
         "args": 1
     },
     "esta en minuscula": {
         "codigo": ".islower()",
         "tipo": "metodo",
-        "pronunciacion": "esta en minuscula",
+        "pronunciacion": "esta en minúscula",
         "args": 0
     },
     "esta en mayuscula": {
         "codigo": ".isupper()",
         "tipo": "metodo",
-        "pronunciacion": "esta en mayuscula",
+        "pronunciacion": "esta en mayúscula",
         "args": 0
     },
     "es letra": {
@@ -494,7 +494,7 @@
     "es numero": {
         "codigo": ".isdigit()",
         "tipo": "metodo",
-        "pronunciacion": "es numero",
+        "pronunciacion": "es número",
         "args": 0
     },
     "es espacio": {
@@ -524,7 +524,7 @@
     "caracter": {
         "codigo": "chr",
         "tipo": "funcion",
-        "pronunciacion": "caracter",
+        "pronunciacion": "carácter",
         "args": 1
     },
     "leer digital": {
@@ -536,33 +536,33 @@
     "escribir digital": {
         "codigo": ".write_digital",
         "tipo": "metodo",
-        "pronunciacion": "escribir 1 digital",
+        "pronunciacion": "escribir digital",
         "args": 1,
         "requiere": "pin"
     },
     "leer analogico": {
         "codigo": ".read_analog()",
         "tipo": "metodo",
-        "pronunciacion": "leer analogio",
+        "pronunciacion": "leer analógico",
         "requiere": "pin"
     },
     "escribir analogico": {
         "codigo": ".write_analog",
         "tipo": "metodo",
-        "pronunciacion": "escribir analogico",
+        "pronunciacion": "escribir analógico",
         "args": 1,
         "requiere": "pin"
     },
     "boton a": {
         "codigo": "button_a",
         "tipo": "sujeto",
-        "pronunciacion": "boton a",
+        "pronunciacion": "botón a",
         "clase": "boton"
     },
     "boton b": {
         "codigo": "button_b",
         "tipo": "sujeto",
-        "pronunciacion": "boton b",
+        "pronunciacion": "botón b",
         "clase": "boton"
     },
     "logo": {
@@ -597,7 +597,7 @@
     "numero": {
         "codigo": "num",
         "tipo": "valor",
-        "pronunciacion": "numero"
+        "pronunciacion": "número"
     },
     "verdadero": {
         "codigo": "True",
@@ -617,7 +617,7 @@
     "numero e": {
         "codigo": "e",
         "tipo": "valor",
-        "pronunciacion": "numero e"
+        "pronunciacion": "número e"
     },
     "nivel de luz": {
         "codigo": "display.read_light_level()",
@@ -632,47 +632,47 @@
     "direccion brujula": {
         "codigo": "compass.heading()",
         "tipo": "valor",
-        "pronunciacion": "direccion de la brujula"
+        "pronunciacion": "dirección de la brújula"
     },
     "fuerza magnetica x": {
         "codigo": "compass.get_x()",
         "tipo": "valor",
-        "pronunciacion": "campo magnetico x"
+        "pronunciacion": "campo magnético x"
     },
     "fuerza magnetica y": {
         "codigo": "compass.get_y()",
         "tipo": "valor",
-        "pronunciacion": "campo magnetico y"
+        "pronunciacion": "campo magnético y"
     },
     "fuerza magnetica z": {
         "codigo": "compass.get_z()",
         "tipo": "valor",
-        "pronunciacion": "campo magnetico z"
+        "pronunciacion": "campo magnético z"
     },
     "campo magnetico": {
         "codigo": "compass.get_field_strength()",
         "tipo": "valor",
-        "pronunciacion": "campo magnetico"
+        "pronunciacion": "campo magnético"
     },
     "aceleracion x": {
         "codigo": "accelerometer.get_x()",
         "tipo": "valor",
-        "pronunciacion": "aceleracion x"
+        "pronunciacion": "aceleración x"
     },
     "aceleracion y": {
         "codigo": "accelerometer.get_y()",
         "tipo": "valor",
-        "pronunciacion": "aceleracion y"
+        "pronunciacion": "aceleración y"
     },
     "aceleracion z": {
         "codigo": "accelerometer.get_z()",
         "tipo": "valor",
-        "pronunciacion": "aceleracion z"
+        "pronunciacion": "aceleración z"
     },
     "nivel de ruido": {
         "codigo": "microphone.sound_level()",
         "tipo": "valor",
-        "pronunciacion": "nivel del microfono"
+        "pronunciacion": "nivel del micrófono"
     },
     "tiempo en ms": {
         "codigo": "ticks_ms()",
@@ -732,7 +732,7 @@
     "corazon": {
         "codigo": "Image.HEART",
         "tipo": "valor",
-        "pronunciacion": "imagen corazon"
+        "pronunciacion": "imagen corazón"
     },
     "corazoncito": {
         "codigo": "Image.HEART_SMALL",
@@ -882,12 +882,12 @@
     "triangulo": {
         "codigo": "Image.TRIANGLE",
         "tipo": "valor",
-        "pronunciacion": "imagen triangulo"
+        "pronunciacion": "imagen triángulo"
     },
     "triangulo izquierda": {
         "codigo": "Image.LEFT_TRIANGLE",
         "tipo": "valor",
-        "pronunciacion": "imagen triangulo izquierda"
+        "pronunciacion": "imagen triángulo izquierda"
     },
     "ajedrez": {
         "codigo": "Image.CHESS_BOARD",
@@ -1052,112 +1052,112 @@
     "caida libre": {
         "codigo": "'free fall'",
         "tipo": "valor",
-        "pronunciacion": "caida libre"
+        "pronunciacion": "caída libre"
     },
     "ba ding": {
         "codigo": "music.BA_DING",
         "tipo": "valor",
-        "pronunciacion": "cancion bading"
+        "pronunciacion": "canción ba ding"
     },
     "baddy": {
         "codigo": "music.BADDY",
         "tipo": "valor",
-        "pronunciacion": "cancion baddy"
+        "pronunciacion": "canción baddy"
     },
     "dadadadum": {
         "codigo": "music.DADADADUM",
         "tipo": "valor",
-        "pronunciacion": "cancion dadadum"
+        "pronunciacion": "canción dadadum"
     },
     "wawawawaa": {
         "codigo": "music.WAWAWAWAA",
         "tipo": "valor",
-        "pronunciacion": "cancion wawawaa"
+        "pronunciacion": "canción wa wa wa"
     },
     "entretenimiento": {
         "codigo": "music.ENTERTAINER",
         "tipo": "valor",
-        "pronunciacion": "cancion entertainer"
+        "pronunciacion": "canción entertainer"
     },
     "funeral": {
         "codigo": "music.FUNERAL",
         "tipo": "valor",
-        "pronunciacion": "cancion funeral"
+        "pronunciacion": "canción funeral"
     },
     "funk": {
         "codigo": "music.FUNK",
         "tipo": "valor",
-        "pronunciacion": "cancion funk"
+        "pronunciacion": "canción funk"
     },
     "salto arriba": {
         "codigo": "music.JUMP_UP",
         "tipo": "valor",
-        "pronunciacion": "cancion jump up"
+        "pronunciacion": "canción jump up"
     },
     "salto abajo": {
         "codigo": "music.JUMP_DOWN",
         "tipo": "valor",
-        "pronunciacion": "cancion jump down"
+        "pronunciacion": "canción jump down"
     },
     "punchline": {
         "codigo": "music.PUNCHLINE",
         "tipo": "valor",
-        "pronunciacion": "cancion punchline"
+        "pronunciacion": "canción punchline"
     },
     "cumpleanos": {
         "codigo": "music.BIRTHDAY",
         "tipo": "valor",
-        "pronunciacion": "cancion birthday"
+        "pronunciacion": "canción birthday"
     },
     "blues": {
         "codigo": "music.BLUES",
         "tipo": "valor",
-        "pronunciacion": "cancion blues"
+        "pronunciacion": "canción blues"
     },
     "persecucion": {
         "codigo": "music.CHASE",
         "tipo": "valor",
-        "pronunciacion": "cancion chase"
+        "pronunciacion": "canción chase"
     },
     "nyan": {
         "codigo": "music.NYAN",
         "tipo": "valor",
-        "pronunciacion": "cancion nyan"
+        "pronunciacion": "canción nyan"
     },
     "oda": {
         "codigo": "music.ODE",
         "tipo": "valor",
-        "pronunciacion": "cancion ode"
+        "pronunciacion": "canción ode"
     },
     "apagar": {
         "codigo": "music.POWER_DOWN",
         "tipo": "valor",
-        "pronunciacion": "cancion power down"
+        "pronunciacion": "canción power down"
     },
     "encender": {
         "codigo": "music.POWER_UP",
         "tipo": "valor",
-        "pronunciacion": "cancion power up"
+        "pronunciacion": "canción power up"
     },
     "preludio": {
         "codigo": "music.PRELUDE",
         "tipo": "valor",
-        "pronunciacion": "cancion prelude"
+        "pronunciacion": "canción prelude"
     },
     "python": {
         "codigo": "music.PYTHON",
         "tipo": "valor",
-        "pronunciacion": "cancion python"
+        "pronunciacion": "canción python"
     },
     "sonitono": {
         "codigo": "music.RINGTONE",
         "tipo": "valor",
-        "pronunciacion": "cancion ringtone"
+        "pronunciacion": "canción ringtone"
     },
     "boda": {
         "codigo": "music.WEDDING",
         "tipo": "valor",
-        "pronunciacion": "cancion wedding"
+        "pronunciacion": "canción wedding"
     },
     "brillos": {
         "codigo": "Sound.TWINKLE",
