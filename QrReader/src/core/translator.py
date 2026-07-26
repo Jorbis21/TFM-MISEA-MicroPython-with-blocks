@@ -14,6 +14,10 @@ class MicrobitCompiler:
         self.activar_voz_variables = True
         
         self.modo_tts = "pc"  
+        
+        self.historial_interacciones = []
+        self.modo_repaso = False
+        self.indice_repaso = 0
 
     def set_voice_manager(self, voice_manager):
         self.voice_manager = voice_manager
@@ -71,12 +75,10 @@ class MicrobitCompiler:
         elif texto.startswith("numero "):
             texto = texto.replace("numero ", "", 1).strip()
 
-        # --- PREPARACIÓN PARA COORDENADAS E IMÁGENES ---
         texto_multi = texto.replace(" coma ", " ").replace(",", " ").replace(" y ", " ")
         palabras_multi = [p for p in texto_multi.split() if p]
         palabras_multi = [str(numeros_letras.get(p, p)) for p in palabras_multi]
         
-        # --- Detección de Imágenes (Image) ---
         es_imagen = False
         palabras_img = palabras_multi.copy()
         
@@ -91,7 +93,6 @@ class MicrobitCompiler:
                 img_form = f"{digitos[0:5]}:{digitos[5:10]}:{digitos[10:15]}:{digitos[15:20]}:{digitos[20:25]}"
                 return f"Image('{img_form}')", img_form
 
-        # --- Detección de coordenadas triples (display.set_pixel) ---
         if len(palabras_multi) == 3:
             try:
                 valores = [int(p) for p in palabras_multi]
@@ -124,44 +125,62 @@ class MicrobitCompiler:
 
     def _gestionar_variable_voz(self, tipo_bloque, contexto=""):
         from core.audio import GestorVoz
-
         intro = f"Para {contexto}. " if contexto else ""
 
+        if getattr(self, 'modo_repaso', False) and self.indice_repaso < len(self.historial_interacciones):
+            valor_anterior = self.historial_interacciones[self.indice_repaso]
+            GestorVoz.leer_texto(f"{intro}El nombre actual es {valor_anterior}. ¿Quieres modificarlo?")
+            modificar = self.voice_manager.escuchar_dictado_sincrono()
+            
+            if modificar is True or (isinstance(modificar, str) and ("sí" in modificar or "si" in modificar)):
+                nombre = self.voice_manager.bucle_confirmacion_voz(f"Dime el nuevo nombre", valor_por_defecto="var")
+                resultado = self._normalizar_texto(nombre, es_variable=True)
+            else:
+                resultado = valor_anterior
+                
+            self.historial_interacciones[self.indice_repaso] = resultado
+            self.indice_repaso += 1
+            return resultado
+
         if not self.memoria_variables:
-            # Añadido valor por defecto en caso de omitir
-            nombre = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable", valor_por_defecto="mi_variable")
-            return self._normalizar_texto(nombre, es_variable=True)
+            nombre = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable", valor_por_defecto="var")
+            res = self._normalizar_texto(nombre, es_variable=True)
+            if not getattr(self, 'modo_repaso', False):
+                self.historial_interacciones.append(res)
+            return res
 
         ultima_var = list(self.memoria_variables[-1].keys())[0]
 
         GestorVoz.leer_texto(f"{intro}¿Quieres usar la última variable declarada, llamada {ultima_var}?")
         resp1 = self.voice_manager.escuchar_dictado_sincrono()
         
-        if resp1 and ("sí" in resp1 or "si" in resp1 or "claro" in resp1):
+        if resp1 is True or (isinstance(resp1, str) and ("sí" in resp1 or "si" in resp1 or "claro" in resp1)):
+            if not getattr(self, 'modo_repaso', False):
+                self.historial_interacciones.append(ultima_var)
             return ultima_var
 
-        resp2 = ""
+        resp2 = False
         if len(self.memoria_variables) > 1:
             GestorVoz.leer_texto("¿Quieres usar otra de las variables anteriores guardadas?")
             resp2 = self.voice_manager.escuchar_dictado_sincrono()
         
-        if resp2 and ("sí" in resp2 or "si" in resp2 or "claro" in resp2):
+        if resp2 is True or (isinstance(resp2, str) and ("sí" in resp2 or "si" in resp2 or "claro" in resp2)):
             ultimo_intento = ""
             while True:
                 GestorVoz.leer_texto("Dime el nombre de la variable para poder buscarla.")
                 texto_busqueda = self.voice_manager.escuchar_dictado_sincrono()
                 
-                if not texto_busqueda:
-                    continue
-                
-                # Protección contra Taps mientras se busca un nombre de variable
-                if texto_busqueda in ["sí", "no"]:
+                if not texto_busqueda: continue
+                if isinstance(texto_busqueda, bool):
                     GestorVoz.leer_texto("Por favor, dime el nombre, no uses toques rápidos.")
                     continue
 
                 if "pasar" in texto_busqueda or "omitir" in texto_busqueda:
-                    texto_final = ultimo_intento if ultimo_intento else "var_omitida"
-                    return self._normalizar_texto(texto_final, es_variable=True)
+                    texto_final = ultimo_intento if ultimo_intento else "var"
+                    res = self._normalizar_texto(texto_final, es_variable=True)
+                    if not getattr(self, 'modo_repaso', False):
+                        self.historial_interacciones.append(res)
+                    return res
 
                 ultimo_intento = texto_busqueda
                 texto_busqueda_norm = self._normalizar_texto(texto_busqueda, es_variable=True)
@@ -169,22 +188,44 @@ class MicrobitCompiler:
                 for var_dict in self.memoria_variables:
                     nombre_var = list(var_dict.keys())[0]
                     if texto_busqueda_norm == nombre_var:
+                        if not getattr(self, 'modo_repaso', False):
+                            self.historial_interacciones.append(nombre_var)
                         return nombre_var
                 
                 GestorVoz.leer_texto("No he encontrado esa variable en la memoria. Volvamos a intentarlo.")
 
         if tipo_bloque == "declaracion_var":
-            nombre = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable", valor_por_defecto="mi_variable")
-            return self._normalizar_texto(nombre, es_variable=True)
+            nombre = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable", valor_por_defecto="var")
+            res = self._normalizar_texto(nombre, es_variable=True)
+            if not getattr(self, 'modo_repaso', False):
+                self.historial_interacciones.append(res)
+            return res
         
+        if not getattr(self, 'modo_repaso', False):
+            self.historial_interacciones.append(ultima_var)
         return ultima_var
 
     def _manejar_declaracion(self, tokens):
         if self.voice_manager and self.activar_voz_variables:
+            from core.audio import GestorVoz
             nombre = self._gestionar_variable_voz("declaracion_var", contexto="declarar una variable nueva")
-            valor_texto = self.voice_manager.bucle_confirmacion_voz(f"Dime el valor para {nombre}", valor_por_defecto="0")
-            codigo_valor, valor_real = self._aplicar_tipado(valor_texto)
             
+            if getattr(self, 'modo_repaso', False) and self.indice_repaso < len(self.historial_interacciones):
+                valor_anterior = self.historial_interacciones[self.indice_repaso]
+                GestorVoz.leer_texto(f"Para el valor de {nombre}, el actual es {valor_anterior}. ¿Quieres modificarlo?")
+                mod = self.voice_manager.escuchar_dictado_sincrono()
+                if mod is True or (isinstance(mod, str) and ("sí" in mod or "si" in mod)):
+                    valor_texto = self.voice_manager.bucle_confirmacion_voz(f"Dime el nuevo valor para {nombre}", valor_por_defecto="var")
+                else:
+                    valor_texto = valor_anterior
+                self.historial_interacciones[self.indice_repaso] = valor_texto
+                self.indice_repaso += 1
+            else:
+                valor_texto = self.voice_manager.bucle_confirmacion_voz(f"Dime el valor para {nombre}", valor_por_defecto="var")
+                if not getattr(self, 'modo_repaso', False):
+                    self.historial_interacciones.append(valor_texto)
+
+            codigo_valor, valor_real = self._aplicar_tipado(valor_texto)
             self.memoria_variables.append({nombre: valor_real})
             tokens.clear() 
             return f"{nombre} = {codigo_valor}"
@@ -195,8 +236,25 @@ class MicrobitCompiler:
 
     def _manejar_asignacion(self, tokens, contexto=""):
         if self.voice_manager and self.activar_voz_variables:
-            pregunta = f"Para {contexto}, dime el valor" if contexto else "Dime el valor"
-            valor_texto = self.voice_manager.bucle_confirmacion_voz(pregunta, valor_por_defecto="0")
+            from core.audio import GestorVoz
+            pregunta = f"Para {contexto}, dime el nuevo valor" if contexto else "Dime el nuevo valor"
+            
+            if getattr(self, 'modo_repaso', False) and self.indice_repaso < len(self.historial_interacciones):
+                valor_anterior = self.historial_interacciones[self.indice_repaso]
+                GestorVoz.leer_texto(f"Para {contexto}, el valor actual es {valor_anterior}. ¿Quieres modificarlo?")
+                mod = self.voice_manager.escuchar_dictado_sincrono()
+                if mod is True or (isinstance(mod, str) and ("sí" in mod or "si" in mod)):
+                    valor_texto = self.voice_manager.bucle_confirmacion_voz(pregunta, valor_por_defecto="var")
+                else:
+                    valor_texto = valor_anterior
+                self.historial_interacciones[self.indice_repaso] = valor_texto
+                self.indice_repaso += 1
+            else:
+                pregunta_normal = f"Para {contexto}, dime el valor" if contexto else "Dime el valor"
+                valor_texto = self.voice_manager.bucle_confirmacion_voz(pregunta_normal, valor_por_defecto="var")
+                if not getattr(self, 'modo_repaso', False):
+                    self.historial_interacciones.append(valor_texto)
+
             codigo_valor, _ = self._aplicar_tipado(valor_texto)
             return codigo_valor
         else:
@@ -208,10 +266,15 @@ class MicrobitCompiler:
         else:
             return f"var_{self.contador_var}"
             
-    def generar_codigo(self, matriz_comandos, ruta_salida):
+    def generar_codigo(self, matriz_comandos, ruta_salida, modo_repaso=False):
         self.memoria_variables = []
         self.contador_var = 0
+        self.modo_repaso = modo_repaso
+        self.indice_repaso = 0
         
+        if not modo_repaso:
+            self.historial_interacciones = []
+            
         if not matriz_comandos:
             print("No se recibieron comandos para compilar.")
             return
@@ -470,7 +533,8 @@ class MicrobitCompiler:
                     if error: return resultado + error
                     arg_func = self._consumir_argumento_vc(tokens, contexto=f"el argumento de {metodo}")
                     if "# ERROR" in arg_func: return resultado + arg_func
-                    args_extra.append(arg_func)
+                    # --- LA CORRECCIÓN CLAVE ESTÁ AQUÍ ---
+                    args_extra.append(arg_func) 
                     argumentos_satisfechos += len(arg_func.split(","))
                         
                 if args_extra:
@@ -488,9 +552,11 @@ class MicrobitCompiler:
     def subir(self, ruta_codigo):
         print(f"Iniciando el flasheo en la micro:bit con el archivo: {ruta_codigo}")
         try:
-            subprocess.run([sys.executable, "-m", "uflash", ruta_codigo], check=True)
+            subprocess.run([sys.executable, "-m", "uflash", ruta_codigo], check=True, capture_output=True, text=True)
             print("¡Código subido con éxito a la micro:bit!")
         except subprocess.CalledProcessError as e:
             print(f"Error al intentar comunicarse con uflash: {e}")
+            from core.audio import GestorVoz
+            GestorVoz.leer_texto_interrumpiendo("Atención. No se detecta la placa Micro bit conectada. Revisa el cable USB.")
         except FileNotFoundError:
             print("Error: No se encuentra Python o uflash en el sistema.")

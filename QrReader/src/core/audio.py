@@ -8,6 +8,7 @@ import pygame
 import pyttsx3
 import queue
 import time
+import json
 
 class GestorVoz:
     VOICE = "es-ES-ElviraNeural" 
@@ -15,6 +16,19 @@ class GestorVoz:
     pygame.mixer.init()
     cola_tts = queue.Queue()
     worker_started = False
+    
+    # --- NUEVO: Cargar el índice de caché en memoria ---
+    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    CACHE_DIR = os.path.join(BASE_DIR, 'data', 'assets', 'audio_cache')
+    INDEX_FILE = os.path.join(CACHE_DIR, 'index.json')
+    
+    cache_frases = {}
+    if os.path.exists(INDEX_FILE):
+        try:
+            with open(INDEX_FILE, 'r', encoding='utf-8') as f:
+                cache_frases = json.load(f)
+        except Exception as e:
+            print(f"Aviso: No se pudo cargar el índice de caché de audio: {e}")
 
     @staticmethod
     def _iniciar_worker():
@@ -35,8 +49,32 @@ class GestorVoz:
         GestorVoz.cola_tts.put((texto, sin_internet))
 
     @staticmethod
+    def leer_texto_interrumpiendo(texto, sin_internet=False):
+        GestorVoz._iniciar_worker()
+        with GestorVoz.cola_tts.mutex:
+            GestorVoz.cola_tts.queue.clear()
+        if pygame.mixer.music.get_busy():
+            pygame.mixer.music.stop()
+        GestorVoz.cola_tts.put((texto, sin_internet))
+
+    @staticmethod
     def _procesar_voz_bloqueante(texto, sin_internet=False):
         if not sin_internet:
+            # 1. Comprobar si la frase existe en la Caché Local
+            if texto in GestorVoz.cache_frases:
+                archivo_mp3 = os.path.join(GestorVoz.CACHE_DIR, GestorVoz.cache_frases[texto])
+                if os.path.exists(archivo_mp3):
+                    try:
+                        pygame.mixer.music.load(archivo_mp3)
+                        pygame.mixer.music.play()
+                        while pygame.mixer.music.get_busy():
+                            time.sleep(0.1)
+                        pygame.mixer.music.unload()
+                        return
+                    except Exception as e:
+                        print(f"Fallo al leer caché de audio, pasando a descarga online: {e}")
+
+            # 2. Si es contenido dinámico, descargarlo al vuelo
             temp_dir = tempfile.gettempdir()
             archivo_mp3 = os.path.join(temp_dir, f"voz_{uuid.uuid4().hex}.mp3")
 
@@ -45,7 +83,6 @@ class GestorVoz:
                 pygame.mixer.music.load(archivo_mp3)
                 pygame.mixer.music.play()
                 
-                # Esperar activamente a que termine la reproducción antes de soltar el hilo
                 while pygame.mixer.music.get_busy():
                     time.sleep(0.1)
                     
@@ -57,6 +94,7 @@ class GestorVoz:
             except Exception as e:
                 print(f"Fallo Edge TTS, pasando a voz local. Motivo: {e}")
                 
+        # 3. Fallback final offline de Microsoft
         try:
             motor_offline = pyttsx3.init()
             motor_offline.setProperty('rate', 160) 

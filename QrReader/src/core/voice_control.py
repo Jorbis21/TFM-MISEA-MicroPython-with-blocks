@@ -19,9 +19,9 @@ class VoiceCommandManager:
         self.temp_file = os.path.join(workspace_dir, "inputs", "temp_voice.wav")
         
         self.modo_dictado = False
-        # Usamos una palabra clave para detectar que no hay respuesta aún en vez de 'None' 
-        # porque 'None' ahora significa "3 toques (Pasar)"
         self.texto_dictado = "___ESPERANDO___"
+        
+        self.record_id = 0
         
         self.model = None
         threading.Thread(target=self._load_model, daemon=True).start()
@@ -42,9 +42,12 @@ class VoiceCommandManager:
         self.is_recording = True
         self.audio_data = []
         
+        self.record_id = time.time()
+        current_id = self.record_id
+        
         def delayed_beep():
             time.sleep(0.4) 
-            if self.is_recording: 
+            if self.is_recording and hasattr(self, 'record_id') and self.record_id == current_id: 
                 try:
                     t = np.linspace(0, 0.15, int(self.samplerate * 0.15), False)
                     tone = np.sin(1000 * 2 * np.pi * t) * 0.5  
@@ -126,6 +129,9 @@ class VoiceCommandManager:
             self.callback_comando("leer")
         elif "voz" in texto or "audio" in texto or "hablar" in texto or "sonido" in texto:
             self.callback_comando("cambiar_tts")
+        # --- NUEVO: Captura de comandos por voz para modificar variables ---
+        elif "repasar" in texto or "modificar" in texto or "variables" in texto:
+            self.callback_comando("repasar")
         else:
             GestorVoz.leer_texto("Comando no reconocido.")
 
@@ -143,7 +149,6 @@ class VoiceCommandManager:
             self.modo_dictado = False
             if self.callback_bloqueo_ui: self.callback_bloqueo_ui(False)
 
-    # --- NUEVA LÓGICA ESTRICTA BOOLEANA ---
     def bucle_confirmacion_voz(self, pregunta, valor_por_defecto="desconocido", es_pregunta_abierta=True):
         ultimo_texto = ""
         
@@ -152,59 +157,52 @@ class VoiceCommandManager:
             
             respuesta = self.escuchar_dictado_sincrono()
             
-            # Ignoramos si la voz detectó vacío
             if isinstance(respuesta, str) and not respuesta:
                 continue
                 
             es_toque_fisico = isinstance(respuesta, bool) or respuesta is None
 
-            # FASE 1: Si pide un texto (Variable/Valor)
             if es_pregunta_abierta:
                 if es_toque_fisico:
-                    if respuesta is None: # 3 Taps (Pasar)
+                    if respuesta is None: 
                         GestorVoz.leer_texto("Saltando paso. Usando valor por defecto.")
                         return valor_por_defecto
-                    else: # 1 o 2 Taps (Sí/No)
+                    else: 
                         GestorVoz.leer_texto("Por favor, dítame la respuesta hablando, no uses los toques rápidos.")
                         continue
                 
-                # Respuesta por voz
                 if respuesta in ["pasar", "omitir"]:
                     GestorVoz.leer_texto("Saltando paso. Usando valor por defecto.")
                     return valor_por_defecto
                     
                 ultimo_texto = respuesta
 
-            # FASE 2: Si pide una decisión Sí/No (Como ampliar la cámara)
             else:
                 if es_toque_fisico:
                     if respuesta is True: return "sí"
                     if respuesta is False: return "no"
                     if respuesta is None: return "pasar"
                     
-                # Respuesta por voz
                 if respuesta in ["sí", "si", "no", "pasar", "omitir"]:
                     return respuesta
                     
                 ultimo_texto = respuesta
 
-            # FASE 3: CONFIRMACIÓN (Doble verificación para textos)
             GestorVoz.leer_texto(f"He entendido {ultimo_texto}. ¿Es correcto?")
             confirmacion = self.escuchar_dictado_sincrono()
             
             conf_es_toque = isinstance(confirmacion, bool) or confirmacion is None
 
             if conf_es_toque:
-                if confirmacion is True: # 2 Taps
+                if confirmacion is True: 
                     return ultimo_texto
-                elif confirmacion is None: # 3 Taps
+                elif confirmacion is None: 
                     GestorVoz.leer_texto("Omitiendo validación.")
                     return ultimo_texto
-                else: # 1 Tap (False)
+                else: 
                     GestorVoz.leer_texto("De acuerdo, vamos a repetirlo.")
                     continue
             else:
-                # Confirmación por voz
                 if "sí" in confirmacion or "si" in confirmacion or "correcto" in confirmacion:
                     return ultimo_texto
                 elif "pasar" in confirmacion or "omitir" in confirmacion:

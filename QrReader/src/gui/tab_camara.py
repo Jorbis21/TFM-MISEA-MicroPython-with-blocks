@@ -127,6 +127,12 @@ class TabCamara(QWidget):
         self.btn_capturar.setObjectName("btn_capturar")
         self.btn_capturar.clicked.connect(self.accion_capturar)
         layout_botones.addWidget(self.btn_capturar)
+        
+        # --- NUEVO: Botón para Modificar Variables (Repaso) ---
+        self.btn_repaso = QPushButton("Modificar Variables")
+        self.btn_repaso.setObjectName("btn_repaso")
+        self.btn_repaso.clicked.connect(self.accion_repasar_variables)
+        layout_botones.addWidget(self.btn_repaso)
 
         self.btn_enviar = QPushButton("Enviar a MicroBit")
         self.btn_enviar.setObjectName("btn_enviar")
@@ -157,6 +163,7 @@ class TabCamara(QWidget):
 
         self.btn_contraste = QPushButton("👁 Modo Contraste")
         self.btn_contraste.setObjectName("btn_contraste")
+        self.btn_contraste.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.btn_contraste.clicked.connect(lambda: self.parent_window.alternar_contraste() if hasattr(self, 'parent_window') else None)
         layout_botones.addWidget(self.btn_contraste)
 
@@ -178,6 +185,7 @@ class TabCamara(QWidget):
         
         self.btn_editar = QPushButton()
         self.btn_editar.setObjectName("btn_editar")
+        self.btn_editar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         ruta_icono_editar = os.path.join(self.assets_dir, "edit.png")
         self.btn_editar.setIcon(QIcon(ruta_icono_editar))
         self.btn_editar.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -222,6 +230,7 @@ class TabCamara(QWidget):
 
         self.combo_camaras = QComboBox()
         self.combo_camaras.setObjectName("combo_camaras")
+        self.combo_camaras.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         camaras_reales = self._detectar_camaras()
         
         for cam_id in camaras_reales:
@@ -317,6 +326,20 @@ class TabCamara(QWidget):
                     
         return nueva_super_matriz
 
+    # --- NUEVO: Acción para Repasar Variables ---
+    def accion_repasar_variables(self):
+        if not self.super_matriz:
+            GestorVoz.leer_texto_interrumpiendo("Primero debes capturar un programa para poder modificar sus variables.")
+            return
+            
+        GestorVoz.leer_texto_interrumpiendo("Iniciando el modo de repaso de variables.")
+        
+        def logica_repaso():
+            self.traductor.generar_codigo(self.super_matriz, self.ruta_codigo, modo_repaso=True)
+            QTimer.singleShot(0, self.leer_codigo_generado)
+            
+        threading.Thread(target=logica_repaso, daemon=True).start()
+
     def accion_capturar(self):
         GestorVoz.leer_texto("Capturando.")
         if not hasattr(self, 'frame_actual_bgr'): return
@@ -348,7 +371,6 @@ class TabCamara(QWidget):
             
             def logica_voz_expansion():
                 if self.traductor.voice_manager:
-                    # AQUÍ ESTÁ EL CAMBIO CLAVE: es_pregunta_abierta=False permite toques físicos directos
                     respuesta = self.traductor.voice_manager.bucle_confirmacion_voz(
                         f"El bloque {nombres_str} toca el borde. ¿Quieres ampliar el programa haciendo otra foto?",
                         es_pregunta_abierta=False
