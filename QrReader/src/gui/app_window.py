@@ -4,14 +4,12 @@ from PyQt6.QtGui import QShortcut, QKeySequence
 from PyQt6.QtCore import Qt, pyqtSignal, QEvent, QTimer
 from PyQt6.QtWidgets import QApplication, QMainWindow, QTabWidget
 
-# --- IMPORTACIONES DE MOTORES CORE ---
 from core.vision import VisionEngine
 from core.translator import MicrobitCompiler
 from core.ai_manager import AIManager
 from core.voice_control import VoiceCommandManager
 from core.serial_manager import SerialMonitor
 
-# --- IMPORTACIONES DE VISTAS (MVC) ---
 from gui.tab_camara import TabCamara
 from gui.tab_json import TabJSON
 from gui.tab_qrs import TabQRs
@@ -23,46 +21,38 @@ class AppCamara(QMainWindow):
     def __init__(self, workspace_dir, config_dir, assets_dir):
         super().__init__()
         
-        # 1. Configuración de Entorno
         self.setWindowTitle("Micro:bit Accesible - Centro de Control")
         self.resize(1280, 800)
         
-        # 2. Inicialización de Motores
         self.vision = VisionEngine()
         self.traductor = MicrobitCompiler(config_dir=config_dir)
         self.ai_manager = AIManager(api_key="AQ.Ab8RN6JQTC-SYK-S--HwCZ1vUbUvZ6-z-Frek--H-vkNUdFJ-w")
         self.serial_monitor = SerialMonitor()
         self.serial_monitor.arrancar()
 
-        # 3. Creación del Contenedor de Pestañas
         self.tabs = QTabWidget()
         self.setCentralWidget(self.tabs)
 
-        # --- NUEVO: GESTOR DE ESTILOS ---
         base_data_dir = os.path.dirname(config_dir)
         self.styles_dir = os.path.join(base_data_dir, 'styles')
         
         self.modo_alto_contraste = False
         self.cargar_tema_actual()
         
-        # Atajo provisional de teclado para alternar contraste
         self.atajo_tema = QShortcut(QKeySequence("Ctrl+T"), self)
         self.atajo_tema.activated.connect(self.alternar_contraste)
 
-        # 4. Inyección de las Vistas
         self.vista_camara = TabCamara(workspace_dir, assets_dir, self.vision, self.traductor, self.ai_manager)
-        self.vista_camara.parent_window = self  # Enlace para el botón de contraste
+        self.vista_camara.parent_window = self  
         
         self.vista_qrs = TabQRs(workspace_dir, self.traductor)
         self.vista_json = TabJSON(config_dir, self.traductor)
 
-        # 5. Añadir al sistema de pestañas
         self.tabs.addTab(self.vista_camara, "Cámara y Control")
         self.tabs.addTab(self.vista_qrs, "Generador de QRs")
         self.tabs.addTab(self.vista_json, "Editor de Diccionario")
         self.tabs.currentChanged.connect(self._gestionar_estado_camara)
 
-        # 6. Atajos globales
         self.atajo_guardar = QShortcut(QKeySequence("Ctrl+S"), self)
         self.atajo_guardar.activated.connect(self.vista_camara.accion_atajo_guardar)
         
@@ -87,12 +77,11 @@ class AppCamara(QMainWindow):
         self.atajo_h = QShortcut(QKeySequence("H"), self)
         self.atajo_h.activated.connect(lambda: self.vista_camara._tecla_pulsada("h", "Modo de lectura por variable", self.vista_camara.accion_cambiar_tts))
 
-        # 7. Motor de Control por Voz
         self.senal_voz.connect(self._ejecutar_comando_voz)
-        self.voice_manager = VoiceCommandManager(self.senal_voz.emit, workspace_dir)
+        
+        self.voice_manager = VoiceCommandManager(self.senal_voz.emit, workspace_dir, self.bloquear_interfaz)
         self.traductor.set_voice_manager(self.voice_manager)
         
-        # 8. Estado del Teclado (Nuevo sistema Tap/Hold)
         self.espacio_presionado = False
         self.tiempo_presion = 0
         self.clics_espacio = 0
@@ -102,6 +91,14 @@ class AppCamara(QMainWindow):
         self.timer_espacio.timeout.connect(self._procesar_clics_espacio)
 
         QApplication.instance().installEventFilter(self)
+
+    def bloquear_interfaz(self, bloquear):
+        self.tabs.setEnabled(not bloquear)
+        if hasattr(self, 'vista_camara'):
+            if bloquear:
+                self.vista_camara.status_label.setText("Estado: Interfaz bloqueada (Esperando respuesta por voz...)")
+            else:
+                self.vista_camara.status_label.setText("Estado: Cámara Activa")
 
     def closeEvent(self, event):
         self.vista_camara.cleanup()
@@ -157,16 +154,17 @@ class AppCamara(QMainWindow):
                 
         return super().eventFilter(obj, event)
 
+    # --- NUEVO: Conversión física a Tipos Booleanos Estrictos ---
     def _procesar_clics_espacio(self):
         taps = self.clics_espacio
         self.clics_espacio = 0
         
         if taps == 1:
-            self.voice_manager.set_texto_dictado("no")
+            self.voice_manager.set_texto_dictado(False) # 1 Tap = NO
         elif taps == 2:
-            self.voice_manager.set_texto_dictado("sí")
+            self.voice_manager.set_texto_dictado(True)  # 2 Taps = SÍ
         elif taps >= 3:
-            self.voice_manager.set_texto_dictado("pasar")
+            self.voice_manager.set_texto_dictado(None)  # 3 Taps = PASAR
             
     def _gestionar_estado_camara(self, index):
         if index == 0:  
@@ -174,11 +172,7 @@ class AppCamara(QMainWindow):
         else:
             self.vista_camara.pausar_camara()
 
-    # =========================================================
-    # MOTOR DE TEMAS (QSS) Y GESTIÓN DE Vistas
-    # =========================================================
     def cargar_tema_actual(self):
-        """Carga y aplica el QSS correspondiente desde el disco."""
         archivo = "tema_contraste.qss" if self.modo_alto_contraste else "tema_oscuro.qss"
         ruta_qss = os.path.join(self.styles_dir, archivo)
         
@@ -189,7 +183,6 @@ class AppCamara(QMainWindow):
             print(f"Aviso: No se pudo cargar el archivo CSS {archivo}: {e}")
 
     def alternar_contraste(self):
-        """Alterna el tema, recarga los estilos y oculta o muestra las pestañas secundarias."""
         self.modo_alto_contraste = not self.modo_alto_contraste
         self.cargar_tema_actual()
         
@@ -198,7 +191,6 @@ class AppCamara(QMainWindow):
         if self.modo_alto_contraste:
             self.tabs.setCurrentIndex(0)
             
-            # Extraemos y guardamos las pestañas secundarias de forma segura
             if self.tabs.count() > 2:
                 self.pestaña_json_widget = self.tabs.widget(2)
                 self.pestaña_json_texto = self.tabs.tabText(2)
@@ -214,7 +206,6 @@ class AppCamara(QMainWindow):
                 
             GestorVoz.leer_texto("Modo de alto contraste activado. Pestañas secundarias ocultas.")
         else:
-            # Reinsertamos las pestañas en orden exacto
             if hasattr(self, 'vista_qrs') and self.tabs.indexOf(self.vista_qrs) == -1:
                 self.tabs.addTab(self.vista_qrs, "Generador de QRs")
                 

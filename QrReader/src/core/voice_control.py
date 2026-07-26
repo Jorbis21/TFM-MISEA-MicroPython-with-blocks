@@ -9,17 +9,19 @@ import time
 from core.audio import GestorVoz
 
 class VoiceCommandManager:
-    def __init__(self, callback_comando, workspace_dir):
+    def __init__(self, callback_comando, workspace_dir, callback_bloqueo_ui=None):
         self.callback_comando = callback_comando
+        self.callback_bloqueo_ui = callback_bloqueo_ui
         self.is_recording = False
         self.audio_data = []
         self.samplerate = 16000
         self.stream = None
         self.temp_file = os.path.join(workspace_dir, "inputs", "temp_voice.wav")
         
-        # Estado de dictado interactivo
         self.modo_dictado = False
-        self.texto_dictado = None
+        # Usamos una palabra clave para detectar que no hay respuesta aún en vez de 'None' 
+        # porque 'None' ahora significa "3 toques (Pasar)"
+        self.texto_dictado = "___ESPERANDO___"
         
         self.model = None
         threading.Thread(target=self._load_model, daemon=True).start()
@@ -35,19 +37,14 @@ class VoiceCommandManager:
         print("Motor de voz listo.")
         GestorVoz.leer_texto("El control por voz está listo.")
 
-    # ========================================================
-    # SISTEMA HOLD-TO-TALK Y TAPS
-    # ========================================================
     def start_dictation_record(self):
-        """Inicia la grabación y emite un pitido solo si se mantiene pulsado (HOLD)."""
         if self.model is None or self.is_recording: return
         self.is_recording = True
         self.audio_data = []
         
-        # Función en segundo plano para comprobar si realmente quieres hablar
         def delayed_beep():
-            time.sleep(0.4) # Esperamos a ver si es un toque corto
-            if self.is_recording: # Si sigues grabando después de 0.4s, es un HOLD
+            time.sleep(0.4) 
+            if self.is_recording: 
                 try:
                     t = np.linspace(0, 0.15, int(self.samplerate * 0.15), False)
                     tone = np.sin(1000 * 2 * np.pi * t) * 0.5  
@@ -55,7 +52,6 @@ class VoiceCommandManager:
                 except Exception as e:
                     print(f"Aviso: No se pudo reproducir el pitido de inicio: {e}")
                     
-        # Lanzamos el comprobador de pitido sin bloquear el audio
         threading.Thread(target=delayed_beep, daemon=True).start()
         
         def audio_callback(indata, frames, tiempo, status):
@@ -65,7 +61,6 @@ class VoiceCommandManager:
         self.stream.start()
 
     def discard_dictation_record(self):
-        """Descarta el audio si fue solo un toque corto (TAP)."""
         if not self.is_recording: return
         self.is_recording = False
         if self.stream:
@@ -74,25 +69,22 @@ class VoiceCommandManager:
         self.audio_data = []
 
     def stop_dictation_and_process(self):
-        """Termina la grabación larga (HOLD), avisa al usuario y la procesa con Whisper."""
         if not self.is_recording: return
         self.is_recording = False
         if self.stream:
             self.stream.stop()
             self.stream.close()
             
-        # Aviso sonoro de que ha terminado de escuchar
         GestorVoz.leer_texto("Procesando.")
-            
         threading.Thread(target=self._process_audio, daemon=True).start()
 
     def set_texto_dictado(self, texto):
-        """Inyecta un comando directo por toques de espacio (1=sí, 2=no, 3=pasar)."""
-        print(f"[Comando inyectado por tap]: {texto}")
+        print(f"[Comando inyectado por tap booleano]: {texto}")
         if self.modo_dictado:
             self.texto_dictado = texto
         else:
-            self._analizar_intencion(texto)
+            if not isinstance(texto, bool) and texto is not None:
+                self._analizar_intencion(texto)
 
     def _process_audio(self):
         try:
@@ -104,12 +96,8 @@ class VoiceCommandManager:
             )
             
             texto_transcrito = " ".join([segment.text for segment in segments]).strip().lower()
-            
-            # --- LA CORRECCIÓN ESTÁ AQUÍ ---
-            # Quitamos interrogaciones y exclamaciones, pero dejamos las comas y los puntos decimales
             texto_limpio = texto_transcrito.replace("?", "").replace("¿", "").replace("!", "").replace("¡", "")
             
-            # Whisper suele poner un punto final al terminar de hablar. Lo quitamos si está al final del todo.
             if texto_limpio.endswith("."):
                 texto_limpio = texto_limpio[:-1]
                 
@@ -136,49 +124,91 @@ class VoiceCommandManager:
             self.callback_comando("explicar")
         elif "leer" in texto or "mesa" in texto or "qr" in texto:
             self.callback_comando("leer")
-        # --- NUEVO: Palabras clave para alternar el TTS ---
         elif "voz" in texto or "audio" in texto or "hablar" in texto or "sonido" in texto:
             self.callback_comando("cambiar_tts")
-        # --------------------------------------------------
         else:
             GestorVoz.leer_texto("Comando no reconocido.")
 
-    # ========================================================
-    # DICTADO INTERACTIVO SÍNCRONO
-    # ========================================================
     def escuchar_dictado_sincrono(self):
-        """Bloquea la compilación en segundo plano hasta que el usuario responda con toques o hablando."""
+        if self.callback_bloqueo_ui: self.callback_bloqueo_ui(True)
         self.modo_dictado = True
-        self.texto_dictado = None
-        
-        while self.texto_dictado is None:
-            QApplication.processEvents()
-            time.sleep(0.05)
-            
-        resultado = self.texto_dictado
-        self.modo_dictado = False
-        return resultado
+        self.texto_dictado = "___ESPERANDO___"
+        try:
+            while self.texto_dictado == "___ESPERANDO___":
+                QApplication.processEvents()
+                time.sleep(0.05)
+            resultado = self.texto_dictado
+            return resultado
+        finally:
+            self.modo_dictado = False
+            if self.callback_bloqueo_ui: self.callback_bloqueo_ui(False)
 
-    def bucle_confirmacion_voz(self, pregunta):
+    # --- NUEVA LÓGICA ESTRICTA BOOLEANA ---
+    def bucle_confirmacion_voz(self, pregunta, valor_por_defecto="desconocido", es_pregunta_abierta=True):
         ultimo_texto = ""
         
         while True:
             GestorVoz.leer_texto(pregunta)
             
-            texto_detectado = self.escuchar_dictado_sincrono()
-            if not texto_detectado:
+            respuesta = self.escuchar_dictado_sincrono()
+            
+            # Ignoramos si la voz detectó vacío
+            if isinstance(respuesta, str) and not respuesta:
                 continue
                 
-            ultimo_texto = texto_detectado
-            
-            GestorVoz.leer_texto(f"He entendido {texto_detectado}. ¿Es correcto?")
-            
+            es_toque_fisico = isinstance(respuesta, bool) or respuesta is None
+
+            # FASE 1: Si pide un texto (Variable/Valor)
+            if es_pregunta_abierta:
+                if es_toque_fisico:
+                    if respuesta is None: # 3 Taps (Pasar)
+                        GestorVoz.leer_texto("Saltando paso. Usando valor por defecto.")
+                        return valor_por_defecto
+                    else: # 1 o 2 Taps (Sí/No)
+                        GestorVoz.leer_texto("Por favor, dítame la respuesta hablando, no uses los toques rápidos.")
+                        continue
+                
+                # Respuesta por voz
+                if respuesta in ["pasar", "omitir"]:
+                    GestorVoz.leer_texto("Saltando paso. Usando valor por defecto.")
+                    return valor_por_defecto
+                    
+                ultimo_texto = respuesta
+
+            # FASE 2: Si pide una decisión Sí/No (Como ampliar la cámara)
+            else:
+                if es_toque_fisico:
+                    if respuesta is True: return "sí"
+                    if respuesta is False: return "no"
+                    if respuesta is None: return "pasar"
+                    
+                # Respuesta por voz
+                if respuesta in ["sí", "si", "no", "pasar", "omitir"]:
+                    return respuesta
+                    
+                ultimo_texto = respuesta
+
+            # FASE 3: CONFIRMACIÓN (Doble verificación para textos)
+            GestorVoz.leer_texto(f"He entendido {ultimo_texto}. ¿Es correcto?")
             confirmacion = self.escuchar_dictado_sincrono()
             
-            if "sí" in confirmacion or "si" in confirmacion or "correcto" in confirmacion:
-                return ultimo_texto
-            elif "pasar" in confirmacion or "omitir" in confirmacion:
-                GestorVoz.leer_texto("Omitiendo validación.")
-                return ultimo_texto
+            conf_es_toque = isinstance(confirmacion, bool) or confirmacion is None
+
+            if conf_es_toque:
+                if confirmacion is True: # 2 Taps
+                    return ultimo_texto
+                elif confirmacion is None: # 3 Taps
+                    GestorVoz.leer_texto("Omitiendo validación.")
+                    return ultimo_texto
+                else: # 1 Tap (False)
+                    GestorVoz.leer_texto("De acuerdo, vamos a repetirlo.")
+                    continue
             else:
-                GestorVoz.leer_texto("De acuerdo, vamos a repetirlo.")
+                # Confirmación por voz
+                if "sí" in confirmacion or "si" in confirmacion or "correcto" in confirmacion:
+                    return ultimo_texto
+                elif "pasar" in confirmacion or "omitir" in confirmacion:
+                    GestorVoz.leer_texto("Omitiendo validación.")
+                    return ultimo_texto
+                else:
+                    GestorVoz.leer_texto("De acuerdo, vamos a repetirlo.")

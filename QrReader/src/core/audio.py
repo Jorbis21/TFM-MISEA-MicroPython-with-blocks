@@ -6,26 +6,37 @@ import tempfile
 import edge_tts
 import pygame
 import pyttsx3
+import queue
+import time
 
 class GestorVoz:
     VOICE = "es-ES-ElviraNeural" 
     
     pygame.mixer.init()
+    cola_tts = queue.Queue()
+    worker_started = False
 
-    '''Metodo para lectura por voz'''
+    @staticmethod
+    def _iniciar_worker():
+        if not GestorVoz.worker_started:
+            GestorVoz.worker_started = True
+            threading.Thread(target=GestorVoz._bucle_reproduccion, daemon=True).start()
+
+    @staticmethod
+    def _bucle_reproduccion():
+        while True:
+            texto, sin_internet = GestorVoz.cola_tts.get()
+            GestorVoz._procesar_voz_bloqueante(texto, sin_internet)
+            GestorVoz.cola_tts.task_done()
+
     @staticmethod
     def leer_texto(texto, sin_internet=False):
-        hilo = threading.Thread(target=GestorVoz._procesar_voz, args=(texto, sin_internet,), daemon=True)
-        hilo.start()
+        GestorVoz._iniciar_worker()
+        GestorVoz.cola_tts.put((texto, sin_internet))
 
-    '''Metodo para obtener y configurar la voz neural en caso de fallo usar el tts'''
     @staticmethod
-    def _procesar_voz(texto, sin_internet=False):
+    def _procesar_voz_bloqueante(texto, sin_internet=False):
         if not sin_internet:
-            if pygame.mixer.music.get_busy():
-                pygame.mixer.music.stop()
-                pygame.mixer.music.unload()
-
             temp_dir = tempfile.gettempdir()
             archivo_mp3 = os.path.join(temp_dir, f"voz_{uuid.uuid4().hex}.mp3")
 
@@ -33,6 +44,14 @@ class GestorVoz:
                 asyncio.run(GestorVoz._descargar_audio(texto, archivo_mp3))
                 pygame.mixer.music.load(archivo_mp3)
                 pygame.mixer.music.play()
+                
+                # Esperar activamente a que termine la reproducción antes de soltar el hilo
+                while pygame.mixer.music.get_busy():
+                    time.sleep(0.1)
+                    
+                pygame.mixer.music.unload()
+                try: os.remove(archivo_mp3) 
+                except: pass
                 return
                 
             except Exception as e:
@@ -46,13 +65,11 @@ class GestorVoz:
         except Exception as e_offline:
             print(f"Error crítico en el motor de voz offline: {e_offline}")
 
-    '''Metodo para descargar la voz neural con el texto'''
     @staticmethod
     async def _descargar_audio(texto, ruta):
         communicate = edge_tts.Communicate(texto, GestorVoz.VOICE, rate="+5%")
         await communicate.save(ruta)
     
-    '''Metodo para la lectura del codigo en caso de que fallen las IAs'''
     @staticmethod
     def leer_codigo_literal(ruta_codigo, sin_internet=False):
         try:
@@ -77,13 +94,16 @@ class GestorVoz:
         except FileNotFoundError:
             GestorVoz.leer_texto("Aún no se ha generado ningún código.", sin_internet)
 
-    '''ESTE METODO HAY QUE CAMBIARLO PARA QUE DIGA EL NUMERO DE BLOQUES QUE HAY Y SU POSICION'''
-    '''Metodo para leer los bloques que esta viendo la camara'''
     @staticmethod
     def leer_qrs_pantalla(textos_qr_actuales):
         qrs_a_leer = list(textos_qr_actuales)
+        
         if not qrs_a_leer:
             GestorVoz.leer_texto("No detecto ningún bloque en la mesa.")
         else:
-            texto_unido = ". ".join(qrs_a_leer).replace("_", " ")
-            GestorVoz.leer_texto(f"Detectados {len(qrs_a_leer)} bloques. Leyendo de arriba a abajo: {texto_unido}")
+            frases_posicionadas = []
+            for indice, bloque in enumerate(qrs_a_leer):
+                frases_posicionadas.append(f"posición {indice + 1}, {bloque}")
+                
+            texto_unido = ". ".join(frases_posicionadas).replace("_", " ")
+            GestorVoz.leer_texto(f"Detectados {len(qrs_a_leer)} bloques. Leyendo de arriba a abajo... {texto_unido}.")

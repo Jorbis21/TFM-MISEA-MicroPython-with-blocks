@@ -2,6 +2,7 @@ import os
 import re
 import threading
 import cv2  
+import time 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QPushButton, QTextEdit, QFrame, QSplitter, QComboBox, QSizePolicy)
 from PyQt6.QtGui import (QImage, QPixmap, QKeyEvent, QTextCharFormat, QColor, 
@@ -9,23 +10,17 @@ from PyQt6.QtGui import (QImage, QPixmap, QKeyEvent, QTextCharFormat, QColor,
 from PyQt6.QtCore import Qt, QTimer, QRegularExpression, QSize
 from core.audio import GestorVoz
 
-# =========================================================
-# HIGHLIGHTER PERSONALIZADO PARA SINTAXIS PYTHON (VS CODE LOOK)
-# =========================================================
 class PythonHighlighter(QSyntaxHighlighter):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.reglas_estilo = []
 
-        # Errores del Compilador (Estilo VS Code)
         formato_error = QTextCharFormat()
         formato_error.setForeground(QColor("#F44747")) 
         formato_error.setUnderlineStyle(QTextCharFormat.UnderlineStyle.SpellCheckUnderline)
         formato_error.setUnderlineColor(QColor("#F44747"))
-        
         self.reglas_estilo.append((QRegularExpression(r'# ERROR.*'), formato_error))
 
-        # Palabras clave de control de flujo
         formato_flow = QTextCharFormat()
         formato_flow.setForeground(QColor("#C586C0"))
         palabras_flow = [r'\bif\b', r'\belif\b', r'\belse\b', r'\bwhile\b', 
@@ -33,36 +28,30 @@ class PythonHighlighter(QSyntaxHighlighter):
         for p in palabras_flow:
             self.reglas_estilo.append((QRegularExpression(p), formato_flow))
 
-        # Estructuras de declaración
         formato_kw = QTextCharFormat()
         formato_kw.setForeground(QColor("#569CD6"))
         palabras_kw = [r'\bfrom\b', r'\bimport\b', r'\bdef\b', r'\bclass\b', r'\bpass\b', r'\bglobal\b', r'\bas\b']
         for p in palabras_kw:
             self.reglas_estilo.append((QRegularExpression(p), formato_kw))
 
-        # Booleanos y vacíos
         formato_bool = QTextCharFormat()
         formato_bool.setForeground(QColor("#569CD6"))
         for p in [r'\bTrue\b', r'\bFalse\b', r'\bNone\b']:
             self.reglas_estilo.append((QRegularExpression(p), formato_bool))
 
-        # Funciones invocadas
         formato_func = QTextCharFormat()
         formato_func.setForeground(QColor("#DCDCAA"))
         self.reglas_estilo.append((QRegularExpression(r'\b[a-zA-Z_]\w*(?=\()'), formato_func))
 
-        # Números literales
         formato_num = QTextCharFormat()
         formato_num.setForeground(QColor("#B5CEA8"))
         self.reglas_estilo.append((QRegularExpression(r'\b\d+\.?\d*\b'), formato_num))
 
-        # Cadenas de texto (Strings)
         formato_str = QTextCharFormat()
         formato_str.setForeground(QColor("#CE9178"))
         self.reglas_estilo.append((QRegularExpression(r'".*?"'), formato_str))
         self.reglas_estilo.append((QRegularExpression(r"'.*?'"), formato_str))
 
-        # Comentarios
         formato_comment = QTextCharFormat()
         formato_comment.setForeground(QColor("#6A9955"))
         self.reglas_estilo.append((QRegularExpression(r'#.*'), formato_comment))
@@ -74,10 +63,6 @@ class PythonHighlighter(QSyntaxHighlighter):
                 match = match_iterator.next()
                 self.setFormat(match.capturedStart(), match.capturedLength(), formato)
 
-
-# =========================================================
-# COMPONENTE DE LA PESTAÑA DE LA CÁMARA
-# =========================================================
 class TabCamara(QWidget):
     def __init__(self, workspace_dir, assets_dir, vision_engine, traductor, ai_manager):
         super().__init__()
@@ -86,12 +71,10 @@ class TabCamara(QWidget):
         self.ruta_img = os.path.join(self.workspace_dir, "inputs", "program.jpg")
         self.ruta_codigo = os.path.join(self.workspace_dir, "outputs", "MicroBit_Code.py")
         
-        # Motores inyectados
         self.vision = vision_engine
         self.traductor = traductor
         self.ai_manager = ai_manager
 
-        # Estados de control accesibles
         self.modo_edicion = False
         self.rotar_camara = False
         self.apagar_camara = False
@@ -101,9 +84,12 @@ class TabCamara(QWidget):
         self.textos_qr_actuales = []
         self.bloque_pitches = []
 
+        self.estoy_ampliando = False
+        self.super_matriz = []
+        self.nexos_pendientes = []
+
         self._setup_ui()
         
-        # Bucle asíncrono para captura de fotogramas (Webcam)
         self.timer_camara = QTimer()
         self.timer_camara.timeout.connect(self.actualizar_frame)
         self.timer_camara.start(15)
@@ -128,9 +114,6 @@ class TabCamara(QWidget):
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
         layout_principal.addWidget(self.splitter)
 
-        # -------------------------------------------------
-        # PANEL IZQUIERDO: CONTROLES Y EDITOR DE CÓDIGO
-        # -------------------------------------------------
         panel_izquierdo = QFrame()
         layout_izq = QVBoxLayout(panel_izquierdo)
         
@@ -140,7 +123,6 @@ class TabCamara(QWidget):
 
         layout_botones = QHBoxLayout()
         
-        # Botones principales con ObjectName para el QSS (Sin estilos en bruto)
         self.btn_capturar = QPushButton("Tomar Foto")
         self.btn_capturar.setObjectName("btn_capturar")
         self.btn_capturar.clicked.connect(self.accion_capturar)
@@ -173,17 +155,13 @@ class TabCamara(QWidget):
         self.btn_tts.clicked.connect(self.accion_cambiar_tts)
         layout_botones.addWidget(self.btn_tts)
 
-        # --- NUEVO: Botón visual para alternar el Alto Contraste ---
         self.btn_contraste = QPushButton("👁 Modo Contraste")
         self.btn_contraste.setObjectName("btn_contraste")
-        # Conectamos el clic directamente al método global de la ventana principal (que pasaremos por referencia)
         self.btn_contraste.clicked.connect(lambda: self.parent_window.alternar_contraste() if hasattr(self, 'parent_window') else None)
         layout_botones.addWidget(self.btn_contraste)
-        # -------------------------------------------------------------
 
         layout_izq.addLayout(layout_botones)
 
-        # Monitor/Editor de texto central
         self.caja_texto = QTextEdit()
         self.caja_texto.setObjectName("caja_texto")
         self.caja_texto.setReadOnly(True)
@@ -191,7 +169,6 @@ class TabCamara(QWidget):
         self.highlighter = PythonHighlighter(self.caja_texto.document())
         layout_izq.addWidget(self.caja_texto)
 
-        # Botón flotante de edición
         layout_overlay_texto = QVBoxLayout(self.caja_texto)
         layout_overlay_texto.setContentsMargins(10, 10, 25, 15) 
         layout_overlay_texto.addStretch() 
@@ -215,9 +192,6 @@ class TabCamara(QWidget):
 
         self.splitter.addWidget(panel_izquierdo)
 
-        # -------------------------------------------------
-        # PANEL DERECHO: VISOR DE VIDEO Y CONTROLES OVERLAY
-        # -------------------------------------------------
         self.video_label = QLabel()
         self.video_label.setObjectName("video_label")
         self.video_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -286,42 +260,118 @@ class TabCamara(QWidget):
                 Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
             ))
 
-    def _procesar_clic_simple(self, text):
-        self.clics = 0
-        self.ultima_tecla = None
-        GestorVoz.leer_texto(text)
-
-    def _procesar_doble_clic(self, func):
-        func()
-    
-    def _tecla_pulsada(self, tecla_id, text, func):
-        if self.modo_edicion:
-            return 
-        if self.ultima_tecla != tecla_id:
-            if self.timer_clic and self.timer_clic.isActive():
-                self.timer_clic.stop()
-            self.clics = 0
-            self.ultima_tecla = tecla_id
+    def _fusionar_matrices(self, matriz_base, matriz_nueva, nexos_esperados):
+        ancla_base_r, ancla_base_c = -1, -1
+        nexo_usado = None
+        
+        for nexo in nexos_esperados:
+            for r in range(len(matriz_base)-1, -1, -1):
+                for c in range(len(matriz_base[r])-1, -1, -1):
+                    if matriz_base[r][c] == nexo:
+                        ancla_base_r, ancla_base_c = r, c
+                        nexo_usado = nexo
+                        break
+                if nexo_usado: break
+            if nexo_usado: break
             
-        self.clics += 1
-        if self.clics == 1:
-            self.timer_clic = QTimer()
-            self.timer_clic.setSingleShot(True)
-            self.timer_clic.timeout.connect(lambda: self._procesar_clic_simple(text))
-            self.timer_clic.start(400)
-        elif self.clics == 2:
-            if self.timer_clic and self.timer_clic.isActive():
-                self.timer_clic.stop()
-            self._procesar_doble_clic(func)
-            self.clics = 0
-            self.ultima_tecla = None
+        if not nexo_usado:
+            GestorVoz.leer_texto("No he encontrado el bloque de referencia en la matriz base. Lo añadiré debajo.")
+            return matriz_base + matriz_nueva 
+            
+        ancla_nueva_r, ancla_nueva_c = -1, -1
+        for r in range(len(matriz_nueva)):
+            for c in range(len(matriz_nueva[r])):
+                if matriz_nueva[r][c] == nexo_usado:
+                    ancla_nueva_r, ancla_nueva_c = r, c
+                    break
+            if ancla_nueva_r != -1: break
+            
+        if ancla_nueva_r == -1:
+            GestorVoz.leer_texto("Atención. No has puesto el bloque de referencia en la nueva foto. Lo añadiré al final por defecto.")
+            return matriz_base + matriz_nueva 
+            
+        offset_r = ancla_base_r - ancla_nueva_r
+        offset_c = ancla_base_c - ancla_nueva_c
+        
+        max_r = max(len(matriz_base), len(matriz_nueva) + offset_r)
+        
+        nueva_super_matriz = []
+        for r in range(max_r):
+            fila_base = matriz_base[r].copy() if r < len(matriz_base) else []
+            nueva_super_matriz.append(fila_base)
+            
+        for r in range(len(matriz_nueva)):
+            target_r = r + offset_r
+            if target_r < 0: continue 
+            
+            for c in range(len(matriz_nueva[r])):
+                val = matriz_nueva[r][c]
+                target_c = c + offset_c
+                if target_c < 0: continue 
+                
+                while len(nueva_super_matriz[target_r]) <= target_c:
+                    nueva_super_matriz[target_r].append("")
+                    
+                if val != "":
+                    nueva_super_matriz[target_r][target_c] = val
+                    
+        return nueva_super_matriz
 
     def accion_capturar(self):
-        GestorVoz.leer_texto("Capturando imagen y procesando el código.")
-        if hasattr(self, 'frame_actual_bgr'):
-            self.vision.takePhoto(self.frame_actual_bgr, self.ruta_img)
-            matriz_espacial = self.vision.get_command_matrix()
-            self.traductor.generar_codigo(matriz_espacial, self.ruta_codigo) 
+        GestorVoz.leer_texto("Capturando.")
+        if not hasattr(self, 'frame_actual_bgr'): return
+        
+        self.vision.takePhoto(self.frame_actual_bgr, self.ruta_img)
+        matriz_espacial = self.vision.get_command_matrix()
+        
+        if self.estoy_ampliando:
+            self.super_matriz = self._fusionar_matrices(self.super_matriz, matriz_espacial, self.nexos_pendientes)
+        else:
+            self.super_matriz = matriz_espacial
+            
+        desbordamiento = self.vision.comprobar_desbordamiento()
+        
+        if desbordamiento:
+            nexos = []
+            nombres_pronunciar = []
+            
+            if desbordamiento["abajo"]:
+                nexos.append(desbordamiento["abajo"])
+                nombres_pronunciar.append(self.traductor.tabla_simbolos.get(desbordamiento["abajo"].lower(), {}).get("pronunciacion", desbordamiento["abajo"]))
+            
+            for nd in desbordamiento["derecha"]:
+                if nd not in nexos:
+                    nexos.append(nd)
+                    nombres_pronunciar.append(self.traductor.tabla_simbolos.get(nd.lower(), {}).get("pronunciacion", nd))
+                    
+            nombres_str = ", y ".join(nombres_pronunciar)
+            
+            def logica_voz_expansion():
+                if self.traductor.voice_manager:
+                    # AQUÍ ESTÁ EL CAMBIO CLAVE: es_pregunta_abierta=False permite toques físicos directos
+                    respuesta = self.traductor.voice_manager.bucle_confirmacion_voz(
+                        f"El bloque {nombres_str} toca el borde. ¿Quieres ampliar el programa haciendo otra foto?",
+                        es_pregunta_abierta=False
+                    )
+                    
+                    if "sí" in respuesta or "si" in respuesta:
+                        self.estoy_ampliando = True
+                        self.nexos_pendientes = nexos
+                        GestorVoz.leer_texto(f"De acuerdo. Pon el bloque {nombres_str} en la nueva foto para usarlo de referencia. Pulsa capturar cuando estés listo.")
+                        return 
+                    else:
+                        GestorVoz.leer_texto("De acuerdo, procesando el programa completo.")
+                        
+                self.estoy_ampliando = False
+                self.traductor.generar_codigo(self.super_matriz, self.ruta_codigo) 
+                
+                QTimer.singleShot(0, self.leer_codigo_generado)
+                
+            threading.Thread(target=logica_voz_expansion, daemon=True).start()
+            
+        else:
+            self.estoy_ampliando = False
+            self.traductor.generar_codigo(self.super_matriz, self.ruta_codigo) 
             self.leer_codigo_generado()
 
     def accion_enviar(self):
@@ -349,12 +399,17 @@ class TabCamara(QWidget):
             self.vision.iniciar_camara(id_real)
 
     def accion_leer_qrs_pantalla(self):
-        GestorVoz.leer_qrs_pantalla(self.textos_qr_actuales)
+        textos_a_leer = []
+        for texto_qr in self.textos_qr_actuales:
+            clave_busqueda = str(texto_qr).strip().lower()
+            info_bloque = self.traductor.tabla_simbolos.get(clave_busqueda, {})
+            pronunciacion = info_bloque.get("pronunciacion", str(texto_qr))
+            textos_a_leer.append(pronunciacion)
+        GestorVoz.leer_qrs_pantalla(textos_a_leer)
 
     def accion_explicar_ia(self):
         def actualizar_estado(texto, color_hex):
             self.status_label.setText(texto)
-            
         threading.Thread(target=lambda: self.ai_manager.explicar_codigo(self.ruta_codigo, actualizar_estado), daemon=True).start()
 
     def accion_cambiar_tts(self):
@@ -362,7 +417,6 @@ class TabCamara(QWidget):
         modo_actual = self.modos_tts[self.idx_tts]
         
         self.btn_tts.setText(modo_actual["texto"])
-        
         if hasattr(self.traductor, 'set_modo_tts'):
             self.traductor.set_modo_tts(modo_actual["valor"])
             
@@ -418,12 +472,10 @@ class TabCamara(QWidget):
         
         if hasattr(self, 'bloque_pitches') and self.bloque_pitches:
             lineas_editadas = nuevo_codigo.split('\n')
-            
             idx_insert = 0
             for i, linea in enumerate(lineas_editadas):
                 if linea.startswith("import ") or linea.startswith("from "):
                     idx_insert = i + 1
-            
             lineas_finales = lineas_editadas[:idx_insert] + self.bloque_pitches + lineas_editadas[idx_insert:]
             codigo_a_guardar = "\n".join(lineas_finales)
         else:
@@ -476,3 +528,30 @@ class TabCamara(QWidget):
                 self.vision.iniciar_camara(idx)
             if hasattr(self, 'timer_camara') and not self.timer_camara.isActive():
                 self.timer_camara.start(15)
+
+    def _procesar_clic_simple(self, text):
+        self.clics = 0
+        self.ultima_tecla = None
+        GestorVoz.leer_texto(text)
+
+    def _procesar_doble_clic(self, func):
+        func()
+    
+    def _tecla_pulsada(self, tecla_id, text, func):
+        if self.modo_edicion: return 
+        if self.ultima_tecla != tecla_id:
+            if self.timer_clic and self.timer_clic.isActive(): self.timer_clic.stop()
+            self.clics = 0
+            self.ultima_tecla = tecla_id
+            
+        self.clics += 1
+        if self.clics == 1:
+            self.timer_clic = QTimer()
+            self.timer_clic.setSingleShot(True)
+            self.timer_clic.timeout.connect(lambda: self._procesar_clic_simple(text))
+            self.timer_clic.start(400)
+        elif self.clics == 2:
+            if self.timer_clic and self.timer_clic.isActive(): self.timer_clic.stop()
+            self._procesar_doble_clic(func)
+            self.clics = 0
+            self.ultima_tecla = None

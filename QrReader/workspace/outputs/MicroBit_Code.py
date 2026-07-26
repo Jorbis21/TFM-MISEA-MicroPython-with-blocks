@@ -11,5 +11,6 @@ music.pitch(783, 100)
 
 # --- Programa Principal ---
 while True:
-    if button_b.is_pressed():
-        music.play(['f', 'g', 'a', 'f', 'f', 'g', 'a', 'f', 'a', 'b', 'c'])
+    if button_a.is_pressed():
+        print('TTS:' + str(0))
+        display.scroll(0)

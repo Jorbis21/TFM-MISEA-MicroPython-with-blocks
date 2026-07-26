@@ -6,7 +6,7 @@ from pyzbar.pyzbar import decode, ZBarSymbol
 
 class VisionEngine:
     def __init__(self):
-        self.camera_index = 0  # Guardamos el índice actual de la cámara
+        self.camera_index = 0  
         self.cap = cv2.VideoCapture(self.camera_index, cv2.CAP_DSHOW)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
@@ -14,7 +14,6 @@ class VisionEngine:
         self.frame_actual = None
         self.elementos_detectados = []
         
-        # Memoria de Tracking para evitar parpadeos
         self.historial_qrs = [] 
         
         self.lock = threading.Lock()
@@ -37,7 +36,7 @@ class VisionEngine:
                 with self.lock:
                     self.elementos_detectados = nuevos_elementos
             
-            time.sleep(0.1) # Optimizado (no necesitamos tanta frecuencia al quitar la IA)
+            time.sleep(0.1) 
 
     def getProcessedFrame(self, frame):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -63,7 +62,6 @@ class VisionEngine:
                 qrs_frame_actual.append(qr)
                 centros_frame.append((cx, cy))
                 
-        # --- LÓGICA DE MEMORIA (ANTI-PARPADEO) ---
         for item in self.historial_qrs:
             item['ttl'] -= 1
             
@@ -129,7 +127,6 @@ class VisionEngine:
             qr = elem["qr_obj"]
             puntos = qr.polygon
             
-            # Pintamos de Verde si es número, Amarillo si es bloque de código
             color = (0, 255, 0) if elem["tipo"] == "numero" else (0, 255, 255)
             prefijo = "Num: " if elem["tipo"] == "numero" else ""
 
@@ -188,14 +185,75 @@ class VisionEngine:
                 matriz.append(fila_strings)
                 
         return matriz
-    
+        
+    # =========================================================
+    # NUEVO: SISTEMA DE DESBORDAMIENTO (CÓDIGO INFINITO)
+    # =========================================================
+    def comprobar_desbordamiento(self):
+        """Escanea si hay bloques cerca de los bordes derecho e inferior."""
+        with self.lock:
+            if self.frame_actual is None: return None
+            alto_frame, ancho_frame, _ = self.frame_actual.shape
+            elementos = list(self.elementos_detectados)
+            
+        if not elementos: return None
+        
+        # Margen (en píxeles) para considerar que toca el borde
+        margen_derecho = ancho_frame - 150
+        margen_inferior = alto_frame - 150
+        
+        # Agrupamos por filas igual que en la generación de matriz
+        elementos.sort(key=lambda obj: obj["top"])
+        filas = []
+        fila_actual = []
+        top_referencia = -1
+        
+        for elem in elementos:
+            if top_referencia == -1:
+                top_referencia = elem["top"]
+                fila_actual.append(elem)
+            elif abs(elem["top"] - top_referencia) < 50:
+                fila_actual.append(elem)
+            else:
+                fila_actual.sort(key=lambda obj: obj["left"])
+                filas.append(fila_actual)
+                fila_actual = [elem]
+                top_referencia = elem["top"]
+                
+        if fila_actual:
+            fila_actual.sort(key=lambda obj: obj["left"])
+            filas.append(fila_actual)
+
+        nexos_derecha = []
+        nexo_abajo = None
+        
+        # 1. Comprobar borde derecho (puede haber múltiples líneas tocando el borde)
+        for fila in filas:
+            ultimo_bloque = fila[-1]
+            if ultimo_bloque["left"] + ultimo_bloque["qr_obj"].rect.width > margen_derecho:
+                nexos_derecha.append(ultimo_bloque["data"])
+                
+        # 2. Comprobar borde inferior (Solo el más a la izquierda de la última fila)
+        if filas:
+            ultima_fila = filas[-1]
+            primer_bloque = ultima_fila[0] 
+            if primer_bloque["top"] + primer_bloque["qr_obj"].rect.height > margen_inferior:
+                nexo_abajo = primer_bloque["data"]
+
+        # Devolver solo si hay desbordamiento real
+        if nexos_derecha or nexo_abajo:
+            return {
+                "derecha": nexos_derecha,
+                "abajo": nexo_abajo
+            }
+            
+        return None
+
     def liberar_camara(self):
-        # Usamos self para acceder a la cámara que ya estaba abierta
         if hasattr(self, 'cap') and self.cap.isOpened():
             self.cap.release()
 
     def iniciar_camara(self, camera_index=None):
-        # Si nos pasan un número nuevo, lo actualizamos
         if camera_index is not None:
             self.camera_index = camera_index
             

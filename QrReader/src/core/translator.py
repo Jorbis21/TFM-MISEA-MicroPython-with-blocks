@@ -13,7 +13,6 @@ class MicrobitCompiler:
         self.contador_var = 0        
         self.activar_voz_variables = True
         
-        # --- Estado del sistema TTS ---
         self.modo_tts = "pc"  
 
     def set_voice_manager(self, voice_manager):
@@ -72,22 +71,12 @@ class MicrobitCompiler:
         elif texto.startswith("numero "):
             texto = texto.replace("numero ", "", 1).strip()
 
-        # --- 1. Detección de Notas Musicales (Básica) ---
-        mapa_notas = {"do": "c", "re": "d", "mi": "e", "fa": "f", "sol": "g", "la": "a", "si": "b", "do5": "c5"}
-        texto_notas = texto.replace(",", " ").replace(".", " ").replace(" y ", " ")
-        palabras_notas = [p for p in texto_notas.split() if p]
-        
-        if palabras_notas and all(p in mapa_notas for p in palabras_notas):
-            notas_traducidas = [mapa_notas[p] for p in palabras_notas]
-            return str(notas_traducidas), notas_traducidas
-        # ----------------------------------------------------
-
         # --- PREPARACIÓN PARA COORDENADAS E IMÁGENES ---
         texto_multi = texto.replace(" coma ", " ").replace(",", " ").replace(" y ", " ")
         palabras_multi = [p for p in texto_multi.split() if p]
         palabras_multi = [str(numeros_letras.get(p, p)) for p in palabras_multi]
         
-        # --- 2. Detección de Imágenes (Image) ---
+        # --- Detección de Imágenes (Image) ---
         es_imagen = False
         palabras_img = palabras_multi.copy()
         
@@ -101,16 +90,14 @@ class MicrobitCompiler:
                 digitos = digitos.ljust(25, '0')[:25] 
                 img_form = f"{digitos[0:5]}:{digitos[5:10]}:{digitos[10:15]}:{digitos[15:20]}:{digitos[20:25]}"
                 return f"Image('{img_form}')", img_form
-        # ------------------------------------------------
 
-        # --- 3. Detección de coordenadas triples (display.set_pixel) ---
+        # --- Detección de coordenadas triples (display.set_pixel) ---
         if len(palabras_multi) == 3:
             try:
                 valores = [int(p) for p in palabras_multi]
                 return f"{valores[0]}, {valores[1]}, {valores[2]}", valores
             except ValueError:
                 pass
-        # ---------------------------------------------------------------
             
         if texto in numeros_letras:
             texto = numeros_letras[texto]
@@ -141,7 +128,8 @@ class MicrobitCompiler:
         intro = f"Para {contexto}. " if contexto else ""
 
         if not self.memoria_variables:
-            nombre = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable")
+            # Añadido valor por defecto en caso de omitir
+            nombre = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable", valor_por_defecto="mi_variable")
             return self._normalizar_texto(nombre, es_variable=True)
 
         ultima_var = list(self.memoria_variables[-1].keys())[0]
@@ -166,8 +154,13 @@ class MicrobitCompiler:
                 if not texto_busqueda:
                     continue
                 
+                # Protección contra Taps mientras se busca un nombre de variable
+                if texto_busqueda in ["sí", "no"]:
+                    GestorVoz.leer_texto("Por favor, dime el nombre, no uses toques rápidos.")
+                    continue
+
                 if "pasar" in texto_busqueda or "omitir" in texto_busqueda:
-                    texto_final = ultimo_intento if ultimo_intento else texto_busqueda
+                    texto_final = ultimo_intento if ultimo_intento else "var_omitida"
                     return self._normalizar_texto(texto_final, es_variable=True)
 
                 ultimo_intento = texto_busqueda
@@ -181,7 +174,7 @@ class MicrobitCompiler:
                 GestorVoz.leer_texto("No he encontrado esa variable en la memoria. Volvamos a intentarlo.")
 
         if tipo_bloque == "declaracion_var":
-            nombre = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable")
+            nombre = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable", valor_por_defecto="mi_variable")
             return self._normalizar_texto(nombre, es_variable=True)
         
         return ultima_var
@@ -189,7 +182,7 @@ class MicrobitCompiler:
     def _manejar_declaracion(self, tokens):
         if self.voice_manager and self.activar_voz_variables:
             nombre = self._gestionar_variable_voz("declaracion_var", contexto="declarar una variable nueva")
-            valor_texto = self.voice_manager.bucle_confirmacion_voz(f"Dime el valor para {nombre}")
+            valor_texto = self.voice_manager.bucle_confirmacion_voz(f"Dime el valor para {nombre}", valor_por_defecto="0")
             codigo_valor, valor_real = self._aplicar_tipado(valor_texto)
             
             self.memoria_variables.append({nombre: valor_real})
@@ -203,7 +196,7 @@ class MicrobitCompiler:
     def _manejar_asignacion(self, tokens, contexto=""):
         if self.voice_manager and self.activar_voz_variables:
             pregunta = f"Para {contexto}, dime el valor" if contexto else "Dime el valor"
-            valor_texto = self.voice_manager.bucle_confirmacion_voz(pregunta)
+            valor_texto = self.voice_manager.bucle_confirmacion_voz(pregunta, valor_por_defecto="0")
             codigo_valor, _ = self._aplicar_tipado(valor_texto)
             return codigo_valor
         else:
@@ -262,7 +255,7 @@ class MicrobitCompiler:
         with open(ruta_salida, "w", encoding="utf-8") as file:
             file.write("\n".join(codigo_final) + "\n")
 
-        print("Código compilado con éxito mediante Analizador Predictivo (LIFO).")
+        print("Código compilado con éxito.")
 
     def procesar_fila_tokens(self, tokens, indent=""):
         if not tokens: return ""
@@ -356,7 +349,6 @@ class MicrobitCompiler:
                 
             if sujeto == "display" and ("scroll" in codigo_base or "show" in codigo_base):
                 arg_var = args_extra[0] if args_extra else '""'
-                # --- LÓGICA DE IGNORAR IMÁGENES/MATRICES Y ELIMINACIÓN DE INPUT() ---
                 if "Image" in arg_var or ":" in arg_var:
                     return res
                 if self.modo_tts == "pc":
@@ -387,7 +379,6 @@ class MicrobitCompiler:
 
             if "display.scroll" in codigo_base or "display.show" in codigo_base:
                 arg_var = args[0] if args else '""'
-                # --- LÓGICA DE IGNORAR IMÁGENES/MATRICES Y ELIMINACIÓN DE INPUT() ---
                 if "Image" in arg_var or ":" in arg_var:
                     return res
                 if self.modo_tts == "pc":
