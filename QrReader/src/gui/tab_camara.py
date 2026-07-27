@@ -304,7 +304,6 @@ class TabCamara(QWidget):
         self.splitter.addWidget(self.video_label)
         self.splitter.setSizes([640, 640])
 
-    # --- NUEVO: La interfaz ahora recibe los datos empaquetados desde el hilo ---
     def actualizar_frame(self, frame_bgr, frame_rgb, textos):
         if frame_rgb is not None:
             self.frame_actual_bgr = frame_bgr
@@ -557,14 +556,31 @@ class TabCamara(QWidget):
                 self.hilo_camara.corriendo = True
                 self.hilo_camara.start()
 
+    # --- NUEVO: Usamos el motor espacial para asegurar el orden de lectura ---
     def accion_leer_qrs_pantalla(self):
+        if not hasattr(self, 'frame_actual_bgr'):
+            GestorVoz.leer_texto("La cámara no está activa.")
+            return
+            
+        # Hacemos una captura "fantasma" temporal para aprovechar el motor espacial 
+        # que ya sabe ordenar los bloques de arriba a abajo y de izquierda a derecha.
+        ruta_temp = os.path.join(self.workspace_dir, "outputs", "temp_leer.jpg")
+        self.vision.takePhoto(self.frame_actual_bgr, ruta_temp)
+        matriz_ordenada = self.vision.get_command_matrix()
+        
         textos_a_leer = []
-        for texto_qr in self.textos_qr_actuales:
-            clave_busqueda = str(texto_qr).strip().lower()
-            info_bloque = self.traductor.tabla_simbolos.get(clave_busqueda, {})
-            pronunciacion = info_bloque.get("pronunciacion", str(texto_qr))
-            textos_a_leer.append(pronunciacion)
-        GestorVoz.leer_qrs_pantalla(textos_a_leer)
+        for fila in matriz_ordenada:
+            for bloque in fila:
+                if bloque.strip() != "":
+                    clave_busqueda = str(bloque).strip().lower()
+                    info_bloque = self.traductor.tabla_simbolos.get(clave_busqueda, {})
+                    pronunciacion = info_bloque.get("pronunciacion", str(bloque))
+                    textos_a_leer.append(pronunciacion)
+                    
+        if textos_a_leer:
+            GestorVoz.leer_qrs_pantalla(textos_a_leer)
+        else:
+            GestorVoz.leer_texto("No detecto ningún bloque en la pantalla.")
 
     def accion_explicar_ia(self):
         def actualizar_estado(texto, color_hex):

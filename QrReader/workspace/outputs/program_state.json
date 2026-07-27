@@ -1,6 +1,14 @@
 {
     "matriz": [
         [
+            "declarar variable",
+            "valor variable"
+        ],
+        [
+            "declarar variable",
+            "valor variable"
+        ],
+        [
             "para siempre"
         ],
         [
@@ -13,7 +21,7 @@
             "",
             "",
             "desplazar",
-            "valor variable"
+            "variable"
         ],
         [
             "",
@@ -23,12 +31,17 @@
         [
             "",
             "",
+            "",
             "mostrar",
-            "valor variable"
+            "variable"
         ]
     ],
     "historial": [
-        "socorrista",
-        "224"
+        "texto",
+        "alegría",
+        "numero",
+        "12",
+        "numero",
+        "numero"
     ]
 }
