@@ -1,0 +1,34 @@
+{
+    "matriz": [
+        [
+            "para siempre"
+        ],
+        [
+            "",
+            "al presionar",
+            "boton b"
+        ],
+        [
+            "",
+            "",
+            "",
+            "desplazar",
+            "valor variable"
+        ],
+        [
+            "",
+            "al presionar",
+            "boton a"
+        ],
+        [
+            "",
+            "",
+            "mostrar",
+            "valor variable"
+        ]
+    ],
+    "historial": [
+        "socorrista",
+        "224"
+    ]
+}

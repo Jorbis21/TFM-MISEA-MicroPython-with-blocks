@@ -360,20 +360,27 @@ class MicrobitCompiler:
             sujeto = self._consumir_argumento_vc(tokens, contexto=f"el método de control de {primer_bloque}")
             if "# ERROR" in sujeto: return sujeto
             
+            # --- NUEVA LÓGICA DE DISTRIBUCIÓN DE MÉTODOS PARA PINES Y LOGO ---
             if ".is_pressed" in codigo_base or ".is_touched" in codigo_base:
                 if " and " in sujeto or " or " in sujeto:
-                    partes = sujeto.replace(" and ", " _AND_ ").replace(" or ", " _OR_ ").split(" ")
-                    sujeto_final = ""
+                    partes = sujeto.replace(" and ", " _AND_ ").replace(" or ", " _OR_ ").split()
+                    sujeto_final = []
                     for parte in partes:
-                        if parte == "_AND_": sujeto_final += " and "
-                        elif parte == "_OR_": sujeto_final += " or "
+                        if parte == "_AND_": 
+                            sujeto_final.append("and")
+                        elif parte == "_OR_": 
+                            sujeto_final.append("or")
                         else:
-                            if "pin" in parte or "logo" in parte: sujeto_final += f"{parte}.is_touched()"
-                            else: sujeto_final += f"{parte}.is_pressed()"
-                    return f"if {sujeto_final}:"
+                            if "pin" in parte or "logo" in parte: 
+                                sujeto_final.append(f"{parte}.is_touched()")
+                            else: 
+                                sujeto_final.append(f"{parte}.is_pressed()")
+                    return f"if {' '.join(sujeto_final)}:"
                 else:
-                    if "pin" in sujeto or "logo" in sujeto: return f"if {sujeto}.is_touched():"
-                    else: return f"if {sujeto}.is_pressed():"
+                    if "pin" in sujeto or "logo" in sujeto: 
+                        return f"if {sujeto}.is_touched():"
+                    else: 
+                        return f"if {sujeto}.is_pressed():"
 
             if codigo_base.endswith(")"): return f"if {sujeto}{codigo_base}:"
             else: return f"if {sujeto}{codigo_base}():"
@@ -533,7 +540,6 @@ class MicrobitCompiler:
                     if error: return resultado + error
                     arg_func = self._consumir_argumento_vc(tokens, contexto=f"el argumento de {metodo}")
                     if "# ERROR" in arg_func: return resultado + arg_func
-                    # --- LA CORRECCIÓN CLAVE ESTÁ AQUÍ ---
                     args_extra.append(arg_func) 
                     argumentos_satisfechos += len(arg_func.split(","))
                         

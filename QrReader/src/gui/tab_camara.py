@@ -3,11 +3,13 @@ import re
 import threading
 import cv2  
 import time 
+import json
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QPushButton, QTextEdit, QFrame, QSplitter, QComboBox, QSizePolicy)
 from PyQt6.QtGui import (QImage, QPixmap, QKeyEvent, QTextCharFormat, QColor, 
                          QSyntaxHighlighter, QIcon)
-from PyQt6.QtCore import Qt, QTimer, QRegularExpression, QSize
+# --- AÑADIDOS: QThread y pyqtSignal para el multihilo ---
+from PyQt6.QtCore import Qt, QTimer, QRegularExpression, QSize, QThread, pyqtSignal
 from core.audio import GestorVoz
 
 class PythonHighlighter(QSyntaxHighlighter):
@@ -63,6 +65,31 @@ class PythonHighlighter(QSyntaxHighlighter):
                 match = match_iterator.next()
                 self.setFormat(match.capturedStart(), match.capturedLength(), formato)
 
+
+# --- NUEVA CLASE: Hilo independiente para la cámara ---
+class HiloCamara(QThread):
+    # Definimos la señal que enviará los datos al hilo principal (GUI) de forma segura
+    nuevo_frame = pyqtSignal(object, object, list) 
+
+    def __init__(self, vision_engine, parent=None):
+        super().__init__(parent)
+        self.vision = vision_engine
+        self.corriendo = True
+        self.rotar = False
+
+    def run(self):
+        while self.corriendo:
+            # Todo el procesamiento pesado de OpenCV ocurre aquí, sin bloquear la GUI
+            frame_bgr, frame_rgb, textos = self.vision.markElems(self.rotar)
+            if frame_rgb is not None:
+                self.nuevo_frame.emit(frame_bgr, frame_rgb, textos)
+            time.sleep(0.015) 
+
+    def stop(self):
+        self.corriendo = False
+        self.wait()
+
+
 class TabCamara(QWidget):
     def __init__(self, workspace_dir, assets_dir, vision_engine, traductor, ai_manager):
         super().__init__()
@@ -70,6 +97,7 @@ class TabCamara(QWidget):
         self.assets_dir = assets_dir
         self.ruta_img = os.path.join(self.workspace_dir, "inputs", "program.jpg")
         self.ruta_codigo = os.path.join(self.workspace_dir, "outputs", "MicroBit_Code.py")
+        self.ruta_estado = os.path.join(self.workspace_dir, "outputs", "program_state.json")
         
         self.vision = vision_engine
         self.traductor = traductor
@@ -86,16 +114,40 @@ class TabCamara(QWidget):
 
         self.estoy_ampliando = False
         self.super_matriz = []
-        self.nexos_pendientes = []
+        self.cola_ampliaciones = []
+
+        self._cargar_estado()
 
         self._setup_ui()
         
-        self.timer_camara = QTimer()
-        self.timer_camara.timeout.connect(self.actualizar_frame)
-        self.timer_camara.start(15)
+        # --- SUSTITUCIÓN DEL QTIMER POR EL QTHREAD ---
+        self.hilo_camara = HiloCamara(self.vision)
+        self.hilo_camara.nuevo_frame.connect(self.actualizar_frame)
 
         self.leer_codigo_generado()
         self.reanudar_camara()
+
+    def _guardar_estado(self):
+        try:
+            estado = {
+                "matriz": self.super_matriz,
+                "historial": getattr(self.traductor, 'historial_interacciones', [])
+            }
+            with open(self.ruta_estado, "w", encoding="utf-8") as f:
+                json.dump(estado, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            print(f"Error guardando estado: {e}")
+
+    def _cargar_estado(self):
+        if os.path.exists(self.ruta_estado):
+            try:
+                with open(self.ruta_estado, "r", encoding="utf-8") as f:
+                    estado = json.load(f)
+                    self.super_matriz = estado.get("matriz", [])
+                    if hasattr(self.traductor, 'historial_interacciones'):
+                        self.traductor.historial_interacciones = estado.get("historial", [])
+            except Exception as e:
+                print(f"Error cargando estado: {e}")
 
     def _detectar_camaras(self):
         camaras_activas = []
@@ -128,7 +180,6 @@ class TabCamara(QWidget):
         self.btn_capturar.clicked.connect(self.accion_capturar)
         layout_botones.addWidget(self.btn_capturar)
         
-        # --- NUEVO: Botón para Modificar Variables (Repaso) ---
         self.btn_repaso = QPushButton("Modificar Variables")
         self.btn_repaso.setObjectName("btn_repaso")
         self.btn_repaso.clicked.connect(self.accion_repasar_variables)
@@ -253,8 +304,8 @@ class TabCamara(QWidget):
         self.splitter.addWidget(self.video_label)
         self.splitter.setSizes([640, 640])
 
-    def actualizar_frame(self):
-        frame_bgr, frame_rgb, textos = self.vision.markElems(self.rotar_camara)
+    # --- NUEVO: La interfaz ahora recibe los datos empaquetados desde el hilo ---
+    def actualizar_frame(self, frame_bgr, frame_rgb, textos):
         if frame_rgb is not None:
             self.frame_actual_bgr = frame_bgr
             self.textos_qr_actuales = textos
@@ -269,64 +320,120 @@ class TabCamara(QWidget):
                 Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
             ))
 
-    def _fusionar_matrices(self, matriz_base, matriz_nueva, nexos_esperados):
-        ancla_base_r, ancla_base_c = -1, -1
-        nexo_usado = None
+    def _fusionar_matrices(self, matriz_base, matriz_nueva, nexos_esperados, direccion="desconocida"):
+        genericos = ["valor_variable", "numero", "texto", "verdadero", "falso", "imagen"]
+        nexos_fuertes = [n for n in nexos_esperados if str(n).strip().lower() not in genericos]
+        anclajes = nexos_fuertes if nexos_fuertes else nexos_esperados
         
-        for nexo in nexos_esperados:
-            for r in range(len(matriz_base)-1, -1, -1):
-                for c in range(len(matriz_base[r])-1, -1, -1):
-                    if matriz_base[r][c] == nexo:
-                        ancla_base_r, ancla_base_c = r, c
-                        nexo_usado = nexo
-                        break
-                if nexo_usado: break
-            if nexo_usado: break
-            
-        if not nexo_usado:
-            GestorVoz.leer_texto("No he encontrado el bloque de referencia en la matriz base. Lo añadiré debajo.")
-            return matriz_base + matriz_nueva 
-            
-        ancla_nueva_r, ancla_nueva_c = -1, -1
-        for r in range(len(matriz_nueva)):
-            for c in range(len(matriz_nueva[r])):
-                if matriz_nueva[r][c] == nexo_usado:
-                    ancla_nueva_r, ancla_nueva_c = r, c
-                    break
-            if ancla_nueva_r != -1: break
-            
-        if ancla_nueva_r == -1:
-            GestorVoz.leer_texto("Atención. No has puesto el bloque de referencia en la nueva foto. Lo añadiré al final por defecto.")
-            return matriz_base + matriz_nueva 
-            
-        offset_r = ancla_base_r - ancla_nueva_r
-        offset_c = ancla_base_c - ancla_nueva_c
+        nueva_super_matriz = [fila.copy() for fila in matriz_base]
         
-        max_r = max(len(matriz_base), len(matriz_nueva) + offset_r)
-        
-        nueva_super_matriz = []
-        for r in range(max_r):
-            fila_base = matriz_base[r].copy() if r < len(matriz_base) else []
-            nueva_super_matriz.append(fila_base)
+        if direccion == "lateral":
+            filas_mapeadas_en_nueva = set()
+            offset_c_global = 0 
             
-        for r in range(len(matriz_nueva)):
-            target_r = r + offset_r
-            if target_r < 0: continue 
-            
-            for c in range(len(matriz_nueva[r])):
-                val = matriz_nueva[r][c]
-                target_c = c + offset_c
-                if target_c < 0: continue 
+            for nexo in anclajes:
+                nexo_str = str(nexo).strip().lower()
+                r_base, c_base, r_nueva, c_nueva = -1, -1, -1, -1
                 
-                while len(nueva_super_matriz[target_r]) <= target_c:
-                    nueva_super_matriz[target_r].append("")
+                for r in range(len(nueva_super_matriz)):
+                    for c in range(len(nueva_super_matriz[r])):
+                        if str(nueva_super_matriz[r][c]).strip().lower() == nexo_str:
+                            r_base, c_base = r, c
+                            break
+                    if r_base != -1: break
+                
+                for r in range(len(matriz_nueva)):
+                    for c in range(len(matriz_nueva[r])):
+                        if str(matriz_nueva[r][c]).strip().lower() == nexo_str:
+                            r_nueva, c_nueva = r, c
+                            break
+                    if r_nueva != -1: break
+                
+                if r_base != -1 and r_nueva != -1:
+                    filas_mapeadas_en_nueva.add(r_nueva)
+                    offset_c_global = c_base - c_nueva
                     
-                if val != "":
-                    nueva_super_matriz[target_r][target_c] = val
+                    for c in range(c_nueva + 1, len(matriz_nueva[r_nueva])):
+                        val = matriz_nueva[r_nueva][c]
+                        target_c = c + offset_c_global
+                        while len(nueva_super_matriz[r_base]) <= target_c:
+                            nueva_super_matriz[r_base].append("")
+                        if val != "":
+                            nueva_super_matriz[r_base][target_c] = val
+                            
+            if filas_mapeadas_en_nueva:
+                max_r_mapeada = max(filas_mapeadas_en_nueva)
+                for r in range(max_r_mapeada + 1, len(matriz_nueva)):
+                    nueva_fila = []
+                    for c in range(len(matriz_nueva[r])):
+                        val = matriz_nueva[r][c]
+                        target_c = c + offset_c_global
+                        if target_c >= 0:
+                            while len(nueva_fila) <= target_c:
+                                nueva_fila.append("")
+                            if val != "":
+                                nueva_fila[target_c] = val
+                    nueva_super_matriz.append(nueva_fila)
+            else:
+                for r in range(len(matriz_nueva)):
+                    nueva_super_matriz.append(matriz_nueva[r])
                     
+        elif direccion == "inferior":
+            ancla_base_r, c_base = -1, -1
+            ancla_nueva_r, c_nueva = -1, -1
+            nexo_usado = None
+            
+            for nexo in anclajes:
+                nexo_str = str(nexo).strip().lower()
+                for r in range(len(nueva_super_matriz)-1, -1, -1):
+                    for c in range(len(nueva_super_matriz[r])):
+                        if str(nueva_super_matriz[r][c]).strip().lower() == nexo_str:
+                            ancla_base_r, c_base = r, c
+                            break
+                    if ancla_base_r != -1: break
+                
+                for r in range(len(matriz_nueva)):
+                    for c in range(len(matriz_nueva[r])):
+                        if str(matriz_nueva[r][c]).strip().lower() == nexo_str:
+                            ancla_nueva_r, c_nueva = r, c
+                            break
+                    if ancla_nueva_r != -1: break
+                
+                if ancla_base_r != -1 and ancla_nueva_r != -1:
+                    nexo_usado = nexo
+                    break
+            
+            if nexo_usado:
+                offset_c = c_base - c_nueva
+                
+                for c in range(c_nueva + 1, len(matriz_nueva[ancla_nueva_r])):
+                    val = matriz_nueva[ancla_nueva_r][c]
+                    target_c = c + offset_c
+                    while len(nueva_super_matriz[ancla_base_r]) <= target_c:
+                        nueva_super_matriz[ancla_base_r].append("")
+                    if val != "":
+                        nueva_super_matriz[ancla_base_r][target_c] = val
+                
+                for r in range(ancla_nueva_r + 1, len(matriz_nueva)):
+                    nueva_fila = []
+                    for c in range(len(matriz_nueva[r])):
+                        val = matriz_nueva[r][c]
+                        target_c = c + offset_c
+                        if target_c >= 0:
+                            while len(nueva_fila) <= target_c:
+                                nueva_fila.append("")
+                            if val != "":
+                                nueva_fila[target_c] = val
+                    nueva_super_matriz.append(nueva_fila)
+            else:
+                for r in range(len(matriz_nueva)):
+                    nueva_super_matriz.append(matriz_nueva[r])
+        else:
+            for r in range(len(matriz_nueva)):
+                nueva_super_matriz.append(matriz_nueva[r])
+                
         return nueva_super_matriz
 
-    # --- NUEVO: Acción para Repasar Variables ---
     def accion_repasar_variables(self):
         if not self.super_matriz:
             GestorVoz.leer_texto_interrumpiendo("Primero debes capturar un programa para poder modificar sus variables.")
@@ -336,6 +443,7 @@ class TabCamara(QWidget):
         
         def logica_repaso():
             self.traductor.generar_codigo(self.super_matriz, self.ruta_codigo, modo_repaso=True)
+            self._guardar_estado()
             QTimer.singleShot(0, self.leer_codigo_generado)
             
         threading.Thread(target=logica_repaso, daemon=True).start()
@@ -348,77 +456,106 @@ class TabCamara(QWidget):
         matriz_espacial = self.vision.get_command_matrix()
         
         if self.estoy_ampliando:
-            self.super_matriz = self._fusionar_matrices(self.super_matriz, matriz_espacial, self.nexos_pendientes)
+            self.super_matriz = self._fusionar_matrices(
+                self.super_matriz, 
+                matriz_espacial, 
+                getattr(self, 'nexos_pendientes', []), 
+                getattr(self, 'direccion_actual', "desconocida")
+            )
         else:
             self.super_matriz = matriz_espacial
+            self.cola_ampliaciones = [] 
             
         desbordamiento = self.vision.comprobar_desbordamiento()
         
         if desbordamiento:
-            nexos = []
-            nombres_pronunciar = []
+            if desbordamiento.get("derecha"):
+                self.cola_ampliaciones.append(("lateral", desbordamiento["derecha"]))
             
-            if desbordamiento["abajo"]:
-                nexos.append(desbordamiento["abajo"])
-                nombres_pronunciar.append(self.traductor.tabla_simbolos.get(desbordamiento["abajo"].lower(), {}).get("pronunciacion", desbordamiento["abajo"]))
-            
-            for nd in desbordamiento["derecha"]:
-                if nd not in nexos:
-                    nexos.append(nd)
-                    nombres_pronunciar.append(self.traductor.tabla_simbolos.get(nd.lower(), {}).get("pronunciacion", nd))
-                    
-            nombres_str = ", y ".join(nombres_pronunciar)
-            
-            def logica_voz_expansion():
-                if self.traductor.voice_manager:
-                    respuesta = self.traductor.voice_manager.bucle_confirmacion_voz(
-                        f"El bloque {nombres_str} toca el borde. ¿Quieres ampliar el programa haciendo otra foto?",
-                        es_pregunta_abierta=False
-                    )
-                    
-                    if "sí" in respuesta or "si" in respuesta:
-                        self.estoy_ampliando = True
-                        self.nexos_pendientes = nexos
-                        GestorVoz.leer_texto(f"De acuerdo. Pon el bloque {nombres_str} en la nueva foto para usarlo de referencia. Pulsa capturar cuando estés listo.")
-                        return 
-                    else:
-                        GestorVoz.leer_texto("De acuerdo, procesando el programa completo.")
-                        
-                self.estoy_ampliando = False
-                self.traductor.generar_codigo(self.super_matriz, self.ruta_codigo) 
-                
-                QTimer.singleShot(0, self.leer_codigo_generado)
-                
-            threading.Thread(target=logica_voz_expansion, daemon=True).start()
-            
-        else:
+            if desbordamiento.get("abajo"):
+                self.cola_ampliaciones.append(("inferior", [desbordamiento["abajo"]]))
+
+        self._procesar_siguiente_ampliacion()
+
+    def _procesar_siguiente_ampliacion(self):
+        if not self.cola_ampliaciones:
             self.estoy_ampliando = False
             self.traductor.generar_codigo(self.super_matriz, self.ruta_codigo) 
+            self._guardar_estado()
             self.leer_codigo_generado()
+            return
+
+        direccion, nexos = self.cola_ampliaciones.pop(0)
+        
+        self.direccion_actual = direccion
+        self.nexos_pendientes = nexos
+
+        nombres_pronunciar = []
+        for n in nexos:
+            pronunciacion = self.traductor.tabla_simbolos.get(n.lower(), {}).get("pronunciacion", n)
+            if pronunciacion not in nombres_pronunciar:
+                nombres_pronunciar.append(pronunciacion)
+                
+        nombres_str = ", y ".join(nombres_pronunciar)
+        
+        def logica_voz_expansion():
+            if self.traductor.voice_manager:
+                respuesta = self.traductor.voice_manager.bucle_confirmacion_voz(
+                    f"El bloque {nombres_str} toca el borde {direccion}. ¿Quieres ampliar el programa haciendo otra foto?",
+                    es_pregunta_abierta=False
+                )
+                
+                if "sí" in respuesta or "si" in respuesta:
+                    self.estoy_ampliando = True
+                    GestorVoz.leer_texto(f"De acuerdo. Pon el bloque {nombres_str} en la nueva foto para usarlo de referencia. Pulsa capturar cuando estés listo.")
+                    return 
+                else:
+                    GestorVoz.leer_texto("De acuerdo, cancelando el resto de ampliaciones y procesando el programa.")
+                    self.cola_ampliaciones.clear()
+                    
+            self.estoy_ampliando = False
+            self.traductor.generar_codigo(self.super_matriz, self.ruta_codigo) 
+            self._guardar_estado()
+            QTimer.singleShot(0, self.leer_codigo_generado)
+            
+        threading.Thread(target=logica_voz_expansion, daemon=True).start()
 
     def accion_enviar(self):
         GestorVoz.leer_texto("Subiendo el programa a la placa Micro:bit.")
         self.traductor.subir(self.ruta_codigo)
     
+    # --- ACTUALIZADAS PARA EL CONTROL DEL HILO ---
     def accion_rotar_camara(self):
         self.rotar_camara = not self.rotar_camara
+        if hasattr(self, 'hilo_camara'):
+            self.hilo_camara.rotar = self.rotar_camara
 
     def accion_apagar_camara(self):
         self.apagar_camara = not self.apagar_camara
         if self.apagar_camara:
+            if hasattr(self, 'hilo_camara') and self.hilo_camara.isRunning():
+                self.hilo_camara.stop()
             self.vision.liberar_camara()
             self.video_label.clear() 
             self.status_label.setText("Estado: Cámara Apagada")
         else:
             self.vision.iniciar_camara(self.combo_camaras.currentData())
+            if hasattr(self, 'hilo_camara'):
+                self.hilo_camara.corriendo = True
+                self.hilo_camara.start()
             self.status_label.setText("Estado: Cámara Activa")
 
     def accion_cambiar_camara(self, index):
         if not self.apagar_camara:
+            if hasattr(self, 'hilo_camara') and self.hilo_camara.isRunning():
+                self.hilo_camara.stop()
             self.vision.liberar_camara()
             self.video_label.clear() 
             id_real = self.combo_camaras.itemData(index)
             self.vision.iniciar_camara(id_real)
+            if hasattr(self, 'hilo_camara'):
+                self.hilo_camara.corriendo = True
+                self.hilo_camara.start()
 
     def accion_leer_qrs_pantalla(self):
         textos_a_leer = []
@@ -533,12 +670,13 @@ class TabCamara(QWidget):
             self.status_label.setText("Estado: Guardado rápido completado")
 
     def cleanup(self):
-        self.timer_camara.stop()
+        if hasattr(self, 'hilo_camara') and self.hilo_camara.isRunning():
+            self.hilo_camara.stop()
         self.vision.free()
 
     def pausar_camara(self):
-        if hasattr(self, 'timer_camara') and self.timer_camara.isActive():
-            self.timer_camara.stop()
+        if hasattr(self, 'hilo_camara') and self.hilo_camara.isRunning():
+            self.hilo_camara.stop()
         if hasattr(self.vision, 'liberar_camara'):
             self.vision.liberar_camara()
         self.video_label.clear()
@@ -548,8 +686,10 @@ class TabCamara(QWidget):
             if hasattr(self.vision, 'iniciar_camara'):
                 idx = self.combo_camaras.currentData()
                 self.vision.iniciar_camara(idx)
-            if hasattr(self, 'timer_camara') and not self.timer_camara.isActive():
-                self.timer_camara.start(15)
+            if hasattr(self, 'hilo_camara') and not self.hilo_camara.isRunning():
+                self.hilo_camara.corriendo = True
+                self.hilo_camara.rotar = self.rotar_camara
+                self.hilo_camara.start()
 
     def _procesar_clic_simple(self, text):
         self.clics = 0

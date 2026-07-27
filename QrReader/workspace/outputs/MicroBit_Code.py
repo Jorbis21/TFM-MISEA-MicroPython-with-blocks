@@ -11,6 +11,9 @@ music.pitch(783, 100)
 
 # --- Programa Principal ---
 while True:
+    if button_b.is_pressed():
+        print('TTS:' + str("socorrista"))
+        display.scroll("socorrista")
     if button_a.is_pressed():
-        print('TTS:' + str(0))
-        display.scroll(0)
+        print('TTS:' + str(224))
+        display.show(224)
