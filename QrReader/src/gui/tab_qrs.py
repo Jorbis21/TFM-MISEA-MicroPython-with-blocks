@@ -57,7 +57,7 @@ class TabQRs(QWidget):
 
         # BARRA DE BÚSQUEDA
         layout_buscador = QHBoxLayout()
-        layout_buscador.addWidget(QLabel("🔍 Buscar bloque:"))
+        layout_buscador.addWidget(QLabel("Buscar bloque:"))
         self.buscador = BuscadorAutoLimpiable()
         self.buscador.setPlaceholderText("Escribe para filtrar...")
         self.buscador.textChanged.connect(self._filtrar_tabla)
@@ -70,6 +70,7 @@ class TabQRs(QWidget):
         self.tabla = QTableWidget()
         self.tabla.setColumnCount(4)
         self.tabla.setHorizontalHeaderLabels(["Nombre del Bloque", "-", "Cantidad", "+"])
+        self.tabla.verticalHeader().setDefaultSectionSize(40)
         
         header = self.tabla.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch) 

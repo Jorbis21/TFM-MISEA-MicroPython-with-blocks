@@ -106,6 +106,7 @@ class TabCamara(QWidget):
         self.modo_edicion = False
         self.rotar_camara = False
         self.apagar_camara = False
+        self.modo_alto_contraste = True
         self.clics = 0
         self.timer_clic = None
         self.ultima_tecla = None
@@ -168,10 +169,6 @@ class TabCamara(QWidget):
 
         panel_izquierdo = QFrame()
         layout_izq = QVBoxLayout(panel_izquierdo)
-        
-        lbl_ctrl = QLabel("CONTROLES")
-        lbl_ctrl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout_izq.addWidget(lbl_ctrl)
 
         layout_botones = QHBoxLayout()
         
@@ -180,11 +177,6 @@ class TabCamara(QWidget):
         self.btn_capturar.clicked.connect(self.accion_capturar)
         layout_botones.addWidget(self.btn_capturar)
         
-        self.btn_repaso = QPushButton("Modificar Variables")
-        self.btn_repaso.setObjectName("btn_repaso")
-        self.btn_repaso.clicked.connect(self.accion_repasar_variables)
-        layout_botones.addWidget(self.btn_repaso)
-
         self.btn_enviar = QPushButton("Enviar a MicroBit")
         self.btn_enviar.setObjectName("btn_enviar")
         self.btn_enviar.clicked.connect(self.accion_enviar)
@@ -201,9 +193,9 @@ class TabCamara(QWidget):
         layout_botones.addWidget(self.btn_leer)
 
         self.modos_tts = [
-            {"texto": "🔊 Voz: PC", "valor": "pc"},
-            {"texto": "🤖 Voz: Placa", "valor": "placa"},
-            {"texto": "🔇 Voz: Apagada", "valor": "apagado"}
+            {"texto": "Voz: PC", "valor": "pc"},
+            {"texto": "Voz: Placa", "valor": "placa"},
+            {"texto": "Voz: Apagada", "valor": "apagado"}
         ]
         self.idx_tts = 0
 
@@ -212,11 +204,10 @@ class TabCamara(QWidget):
         self.btn_tts.clicked.connect(self.accion_cambiar_tts)
         layout_botones.addWidget(self.btn_tts)
 
-        self.btn_contraste = QPushButton("👁 Modo Contraste")
-        self.btn_contraste.setObjectName("btn_contraste")
-        self.btn_contraste.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.btn_contraste.clicked.connect(lambda: self.parent_window.alternar_contraste() if hasattr(self, 'parent_window') else None)
-        layout_botones.addWidget(self.btn_contraste)
+        self.btn_repaso = QPushButton("Modificar Variables")
+        self.btn_repaso.setObjectName("btn_repaso")
+        self.btn_repaso.clicked.connect(self.accion_repasar_variables)
+        layout_botones.addWidget(self.btn_repaso)
 
         layout_izq.addLayout(layout_botones)
 
@@ -237,7 +228,7 @@ class TabCamara(QWidget):
         self.btn_editar = QPushButton()
         self.btn_editar.setObjectName("btn_editar")
         self.btn_editar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        ruta_icono_editar = os.path.join(self.assets_dir, "edit.png")
+        ruta_icono_editar = os.path.join(self.assets_dir, "edit_cont.png")
         self.btn_editar.setIcon(QIcon(ruta_icono_editar))
         self.btn_editar.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_editar.clicked.connect(self.accion_editar_codigo)
@@ -269,8 +260,8 @@ class TabCamara(QWidget):
         self.btn_apagar = QPushButton()
         self.btn_apagar.setObjectName("btn_overlay")
 
-        self.btn_rotar.setIcon(QIcon(os.path.join(self.assets_dir, "sync.png")))
-        self.btn_apagar.setIcon(QIcon(os.path.join(self.assets_dir, "on-off-button.png")))
+        self.btn_rotar.setIcon(QIcon(os.path.join(self.assets_dir, "sync_cont.png")))
+        self.btn_apagar.setIcon(QIcon(os.path.join(self.assets_dir, "on-off-button_cont.png")))
 
         tamano_icono = QSize(24, 24)
         self.btn_rotar.setIconSize(tamano_icono)
@@ -519,6 +510,24 @@ class TabCamara(QWidget):
             
         threading.Thread(target=logica_voz_expansion, daemon=True).start()
 
+    def actualizar_iconos(self, modo_alto_contraste):
+        self.modo_alto_contraste = modo_alto_contraste
+        if modo_alto_contraste:
+            # Rutas a los iconos de alto contraste
+            ruta_editar = os.path.join(self.assets_dir, "edit_cont.png")
+            ruta_rotar = os.path.join(self.assets_dir, "sync_cont.png")
+            ruta_apagar = os.path.join(self.assets_dir, "on-off-button_cont.png")
+        else:
+            # Rutas a los iconos normales
+            ruta_editar = os.path.join(self.assets_dir, "edit.png")
+            ruta_rotar = os.path.join(self.assets_dir, "sync.png")
+            ruta_apagar = os.path.join(self.assets_dir, "on-off-button.png")
+            
+        # Reasignamos los iconos a los botones existentes
+        self.btn_editar.setIcon(QIcon(ruta_editar))
+        self.btn_rotar.setIcon(QIcon(ruta_rotar))
+        self.btn_apagar.setIcon(QIcon(ruta_apagar))
+
     def accion_enviar(self):
         GestorVoz.leer_texto("Subiendo el programa a la placa Micro:bit.")
         self.traductor.subir(self.ruta_codigo)
@@ -667,13 +676,19 @@ class TabCamara(QWidget):
     def accion_editar_codigo(self):
         if not self.modo_edicion:
             self.modo_edicion = True
-            self.btn_editar.setIcon(QIcon(os.path.join(self.assets_dir, "diskette.png")))
+            if self.modo_alto_contraste:
+                self.btn_editar.setIcon(QIcon(os.path.join(self.assets_dir, "diskette_cont.png")))
+            else:
+                self.btn_editar.setIcon(QIcon(os.path.join(self.assets_dir, "diskette.png")))
             self.caja_texto.setReadOnly(False)
             self.status_label.setText("Estado: MODO EDICIÓN ACTIVO")
         else:
             if self._guardar_codigo_archivo():
                 self.modo_edicion = False
-                self.btn_editar.setIcon(QIcon(os.path.join(self.assets_dir, "edit.png")))
+                if self.modo_alto_contraste:
+                    self.btn_editar.setIcon(QIcon(os.path.join(self.assets_dir, "edit_cont.png")))
+                else:
+                    self.btn_editar.setIcon(QIcon(os.path.join(self.assets_dir, "edit.png")))
                 self.caja_texto.setReadOnly(True)
                 self.leer_codigo_generado()
 

@@ -5,6 +5,7 @@ QMainWindow, QFrame {
 
 QTabWidget::pane {
     border: 3px solid #FFFF00;
+    border-radius: 8px; /* Añadido para redondear el marco grande */
     background-color: #000000;
 }
 
@@ -16,6 +17,8 @@ QTabBar::tab {
     color: #FFFFFF;
     border: 2px solid #FFFFFF;
     border-bottom: none;
+    border-top-left-radius: 8px;  /* Redondea la esquina superior izquierda */
+    border-top-right-radius: 8px; /* Redondea la esquina superior derecha */
 }
 
 QTabBar::tab:selected {
@@ -37,6 +40,7 @@ QTextEdit, QLineEdit, QTableWidget {
     font-size: 18px;
     padding: 12px;
     border: 3px solid #FFFF00;
+    border-radius: 8px; /* Añadido para redondear la caja del código */
 }
 
 /* --- BOTONES GENERALES Y ESPECÍFICOS --- */
@@ -45,7 +49,7 @@ QPushButton {
     font-weight: bold;
     padding: 14px;
     border: 3px solid #FFFF00;
-    border-radius: 0px;
+    border-radius: 8px; /* Modificado: antes estaba en 0px para ser puntiagudo */
     font-size: 18px;
     background-color: #000000;
     color: #FFFF00;

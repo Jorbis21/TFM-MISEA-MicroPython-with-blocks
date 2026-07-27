@@ -1,6 +1,6 @@
 import os
 import time
-from PyQt6.QtGui import QShortcut, QKeySequence
+from PyQt6.QtGui import QShortcut, QKeySequence, QIcon
 from PyQt6.QtCore import Qt, pyqtSignal, QEvent, QTimer
 from PyQt6.QtWidgets import QApplication, QMainWindow, QTabWidget, QPushButton
 
@@ -22,7 +22,8 @@ class AppCamara(QMainWindow):
     def __init__(self, workspace_dir, config_dir, assets_dir):
         super().__init__()
         
-        self.setWindowTitle("Micro:bit Accesible - Centro de Control")
+        self.setWindowTitle("ONCE: MicroPython por bloques")
+        self.setWindowIcon(QIcon(os.path.join(assets_dir, "once.png")))
         self.resize(1280, 800)
         
         self.vision = VisionEngine()
@@ -47,7 +48,21 @@ class AppCamara(QMainWindow):
         self.vista_camara.parent_window = self  
         
         self.vista_qrs = TabQRs(workspace_dir, self.traductor)
-        self.vista_json = TabJSON(config_dir, self.traductor)
+        self.vista_json = TabJSON(config_dir, self.traductor, assets_dir)
+
+        # ... (Tu código actual donde creas las pestañas, ej: self.tabs = QTabWidget()) ...
+
+        # 1. Creamos el botón de contraste a nivel de ventana principal
+        self.btn_contraste = QPushButton("Modo Contraste")
+        self.btn_contraste.setObjectName("btn_contraste")
+        self.btn_contraste.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        
+        # 2. Lo conectamos directamente a tu función alternar_contraste
+        # (Asegúrate de que self.alternar_contraste exista en esta clase principal)
+        self.btn_contraste.clicked.connect(self.alternar_contraste)
+        
+        # 3. La magia: lo anclamos a la esquina derecha de la barra de pestañas
+        self.tabs.setCornerWidget(self.btn_contraste, Qt.Corner.TopRightCorner)
 
         self.tabs.addTab(self.vista_camara, "Cámara y Control")
         self.tabs.addTab(self.vista_qrs, "Generador de QRs")
@@ -269,3 +284,4 @@ class AppCamara(QMainWindow):
     def alternar_contraste(self):
         self.modo_alto_contraste = not self.modo_alto_contraste
         self._aplicar_estado_contraste(silencioso=False)
+        self.vista_camara.actualizar_iconos(self.modo_alto_contraste)

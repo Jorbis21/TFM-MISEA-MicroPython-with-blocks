@@ -1,7 +1,9 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QLineEdit, QPushButton, QTableWidget, 
                              QTableWidgetItem, QHeaderView, QComboBox, QFrame)
+from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt
+import os
 from utils.json_manager import JsonManager
 
 class BuscadorAutoLimpiable(QLineEdit):
@@ -11,10 +13,11 @@ class BuscadorAutoLimpiable(QLineEdit):
         super().mousePressEvent(event)  
 
 class TabJSON(QWidget):
-    def __init__(self, config_dir, traductor):
+    def __init__(self, config_dir, traductor, assets_dir):
         super().__init__()
         self.traductor = traductor
         self.json_manager = JsonManager(config_dir)
+        self.assets_dir = assets_dir
         
         self.editando_actualmente = False
         self.llave_original = None
@@ -94,13 +97,14 @@ class TabJSON(QWidget):
         layout_lista.addWidget(lbl_lista)
 
         layout_buscador = QHBoxLayout()
-        layout_buscador.addWidget(QLabel("🔍 Buscar:"))
+        layout_buscador.addWidget(QLabel("Buscar:"))
         self.buscador = BuscadorAutoLimpiable()
         self.buscador.setPlaceholderText("Escribe para filtrar bloques...")
         self.buscador.textChanged.connect(self._filtrar_tabla)
         layout_buscador.addWidget(self.buscador)
-        
-        self.btn_borrar_sel = QPushButton("🗑 Borrar Seleccionados")
+
+        self.btn_borrar_sel = QPushButton()
+        self.btn_borrar_sel.setIcon(QIcon(os.path.join(self.assets_dir, "bin.png")))
         self.btn_borrar_sel.setObjectName("btn_eliminar_masivo")
         self.btn_borrar_sel.setEnabled(False) 
         self.btn_borrar_sel.clicked.connect(self.accion_eliminar_seleccionados)
@@ -110,15 +114,18 @@ class TabJSON(QWidget):
 
         self.tabla = QTableWidget()
         self.tabla.setColumnCount(4) 
-        self.tabla.setHorizontalHeaderLabels(["Sel", "Bloque -> Traducción", "Editar", "Borrar"])
+        # Modificado: Se movió "Sel" al final de la lista
+        self.tabla.setHorizontalHeaderLabels(["Bloque -> Traducción", "Editar", "Borrar", "Sel"])
+        self.tabla.verticalHeader().setDefaultSectionSize(40)
         
         self.tabla.itemChanged.connect(self._verificar_seleccion)
         
         header = self.tabla.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents) 
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)          
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents) 
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents) 
+        # Modificado: Se reasignaron los modos de ajuste al nuevo orden
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)          # Texto (Columna 0)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents) # Editar (Columna 1)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents) # Borrar (Columna 2)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents) # Sel (Columna 3)
         
         layout_lista.addWidget(self.tabla)
         layout_principal.addWidget(panel_lista, stretch=2)
@@ -126,7 +133,7 @@ class TabJSON(QWidget):
     def _filtrar_tabla(self, texto):
         texto = texto.lower()
         for fila in range(self.tabla.rowCount()):
-            item = self.tabla.item(fila, 1) 
+            item = self.tabla.item(fila, 0) # Modificado: El texto ahora está en la columna 0
             if item:
                 mostrar = texto in item.text().lower()
                 self.tabla.setRowHidden(fila, not mostrar)
@@ -134,7 +141,7 @@ class TabJSON(QWidget):
     def _verificar_seleccion(self):
         hay_seleccion = False
         for fila in range(self.tabla.rowCount()):
-            item_chk = self.tabla.item(fila, 0)
+            item_chk = self.tabla.item(fila, 3) # Modificado: El checkbox ahora está en la columna 3
             if item_chk and item_chk.checkState() == Qt.CheckState.Checked:
                 hay_seleccion = True
                 break
@@ -143,7 +150,7 @@ class TabJSON(QWidget):
     def accion_eliminar_seleccionados(self):
         claves_a_borrar = []
         for fila in range(self.tabla.rowCount()):
-            item_chk = self.tabla.item(fila, 0)
+            item_chk = self.tabla.item(fila, 3) # Modificado: El checkbox ahora está en la columna 3
             if item_chk and item_chk.checkState() == Qt.CheckState.Checked:
                 claves_a_borrar.append(item_chk.data(Qt.ItemDataRole.UserRole))
                 
@@ -174,26 +181,32 @@ class TabJSON(QWidget):
             clave = bloque["clave"]
             info = bloque["info"]
             
+            # Texto
+            texto = f"{clave} -> {info.get('codigo', '')}"
+            item = QTableWidgetItem(texto)
+            item.setFlags(Qt.ItemFlag.ItemIsEnabled)
+            self.tabla.setItem(fila, 0, item) # Modificado: Ahora en la columna 0
+
+            # Botón Editar
+            btn_edit = QPushButton()
+            btn_edit.setIcon(QIcon(os.path.join(self.assets_dir, "edit.png")))
+            btn_edit.setObjectName("btn_tabla_editar")
+            btn_edit.clicked.connect(lambda checked, c=clave, i=info: self._cargar_edicion(c, i))
+            self.tabla.setCellWidget(fila, 1, btn_edit) # Modificado: Ahora en la columna 1
+
+            # Botón Borrar
+            btn_del = QPushButton()
+            btn_del.setIcon(QIcon(os.path.join(self.assets_dir, "bin.png")))
+            btn_del.setObjectName("btn_tabla_borrar")
+            btn_del.clicked.connect(lambda checked, c=clave: self.accion_eliminar(c))
+            self.tabla.setCellWidget(fila, 2, btn_del) # Modificado: Ahora en la columna 2
+
+            # Checkbox de Selección
             item_chk = QTableWidgetItem()
             item_chk.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
             item_chk.setCheckState(Qt.CheckState.Unchecked)
             item_chk.setData(Qt.ItemDataRole.UserRole, clave) 
-            self.tabla.setItem(fila, 0, item_chk)
-
-            texto = f"{clave} -> {info.get('codigo', '')}"
-            item = QTableWidgetItem(texto)
-            item.setFlags(Qt.ItemFlag.ItemIsEnabled)
-            self.tabla.setItem(fila, 1, item)
-
-            btn_edit = QPushButton("✎")
-            btn_edit.setObjectName("btn_tabla_editar")
-            btn_edit.clicked.connect(lambda checked, c=clave, i=info: self._cargar_edicion(c, i))
-            self.tabla.setCellWidget(fila, 2, btn_edit)
-
-            btn_del = QPushButton("🗑")
-            btn_del.setObjectName("btn_tabla_borrar")
-            btn_del.clicked.connect(lambda checked, c=clave: self.accion_eliminar(c))
-            self.tabla.setCellWidget(fila, 3, btn_del)
+            self.tabla.setItem(fila, 3, item_chk) # Modificado: Ahora en la columna 3
             
         self.tabla.blockSignals(False)
         self._verificar_seleccion() 
