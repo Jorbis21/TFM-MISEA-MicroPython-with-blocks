@@ -5,7 +5,7 @@ import asyncio
 import hashlib
 import edge_tts
 
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 CACHE_DIR = os.path.join(BASE_DIR, 'data', 'assets', 'audio_cache')
 INDEX_FILE = os.path.join(CACHE_DIR, 'index.json')
 VOICE = "es-ES-ElviraNeural"

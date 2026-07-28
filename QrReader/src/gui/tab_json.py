@@ -17,7 +17,7 @@ class TabJSON(QWidget):
         super().__init__()
         self.traductor = traductor
         self.json_manager = JsonManager(config_dir)
-        self.assets_dir = assets_dir
+        self.icons_dir = os.path.join(assets_dir, "icons")
         
         self.editando_actualmente = False
         self.llave_original = None
@@ -104,7 +104,7 @@ class TabJSON(QWidget):
         layout_buscador.addWidget(self.buscador)
 
         self.btn_borrar_sel = QPushButton()
-        self.btn_borrar_sel.setIcon(QIcon(os.path.join(self.assets_dir, "bin.png")))
+        self.btn_borrar_sel.setIcon(QIcon(os.path.join(self.icons_dir, "bin.png")))
         self.btn_borrar_sel.setObjectName("btn_eliminar_masivo")
         self.btn_borrar_sel.setEnabled(False) 
         self.btn_borrar_sel.clicked.connect(self.accion_eliminar_seleccionados)
@@ -189,14 +189,14 @@ class TabJSON(QWidget):
 
             # Botón Editar
             btn_edit = QPushButton()
-            btn_edit.setIcon(QIcon(os.path.join(self.assets_dir, "edit.png")))
+            btn_edit.setIcon(QIcon(os.path.join(self.icons_dir, "edit.png")))
             btn_edit.setObjectName("btn_tabla_editar")
             btn_edit.clicked.connect(lambda checked, c=clave, i=info: self._cargar_edicion(c, i))
             self.tabla.setCellWidget(fila, 1, btn_edit) # Modificado: Ahora en la columna 1
 
             # Botón Borrar
             btn_del = QPushButton()
-            btn_del.setIcon(QIcon(os.path.join(self.assets_dir, "bin.png")))
+            btn_del.setIcon(QIcon(os.path.join(self.icons_dir, "bin.png")))
             btn_del.setObjectName("btn_tabla_borrar")
             btn_del.clicked.connect(lambda checked, c=clave: self.accion_eliminar(c))
             self.tabla.setCellWidget(fila, 2, btn_del) # Modificado: Ahora en la columna 2

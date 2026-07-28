@@ -1,7 +1,4 @@
-import serial
-import serial.tools.list_ports
-import threading
-import time
+import serial, serial.tools.list_ports, threading, time
 from core.audio import GestorVoz
 
 class SerialMonitor:
@@ -11,8 +8,8 @@ class SerialMonitor:
         self.thread = None
         self.baudrate = 115200 
 
+    '''Busca el puerto en el que esta la Micro:bit conectada'''
     def _buscar_puerto_microbit(self):
-        """Busca automáticamente el puerto COM donde está conectada la Micro:bit."""
         puertos = serial.tools.list_ports.comports()
         for puerto in puertos:
             desc = puerto.description.lower()
@@ -23,8 +20,8 @@ class SerialMonitor:
             return puertos[0].device
         return None
 
+    '''Inicia el demonio y gestiona el bucle'''
     def arrancar(self):
-        """Inicia el demonio en segundo plano. La conexión física se gestiona en el bucle."""
         if self.is_running:
             return
         
@@ -33,8 +30,8 @@ class SerialMonitor:
         self.thread.start()
         print("[Serial] Demonio de escucha iniciado en segundo plano.")
 
+    '''Para el bucle'''
     def detener(self):
-        """Detiene el bucle y libera el puerto USB."""
         self.is_running = False
         if self.thread:
             self.thread.join(timeout=2)
@@ -42,10 +39,14 @@ class SerialMonitor:
             self.serial_port.close()
         print("[Serial] Monitor detenido.")
 
+    '''
+        Busca puerto, si no lo encuentra espera dos segundos y lo vuelve a intentar.
+        Si lo encuentra espera a que haya algo en el puerto y lo lee en voz alta.
+        Si detecta una desconexion cierra el puerto.
+    '''
     def _bucle_escucha(self):
         """Bucle infinito con reconexión automática (Plug & Play)."""
         while self.is_running:
-            # 1. FASE DE RECONEXIÓN: Si no hay puerto abierto, lo buscamos sin parar
             if self.serial_port is None or not self.serial_port.is_open:
                 puerto_destino = self._buscar_puerto_microbit()
                 if puerto_destino:
@@ -55,12 +56,10 @@ class SerialMonitor:
                     except Exception:
                         pass
                 
-                # Si sigue sin haber puerto, esperamos 2 segundos y volvemos a intentarlo
                 if self.serial_port is None or not self.serial_port.is_open:
                     time.sleep(2)
                     continue
 
-            # 2. FASE DE LECTURA: Si estamos conectados, escuchamos el TTS
             try:
                 if self.serial_port.in_waiting > 0:
                     linea = self.serial_port.readline().decode('utf-8', errors='ignore').strip()
@@ -76,8 +75,6 @@ class SerialMonitor:
                         self.serial_port.flush()
                         
             except serial.SerialException:
-                # Si el usuario tira del cable, cerramos el puerto de forma segura.
-                # En la siguiente vuelta del 'while', entrará en la FASE DE RECONEXIÓN automáticamente.
                 print("[Serial] Cable desconectado. Esperando a que vuelva a conectarse...")
                 if self.serial_port:
                     self.serial_port.close()

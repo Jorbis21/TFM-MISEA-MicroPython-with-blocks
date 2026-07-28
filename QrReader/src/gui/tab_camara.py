@@ -94,7 +94,7 @@ class TabCamara(QWidget):
     def __init__(self, workspace_dir, assets_dir, vision_engine, traductor, ai_manager):
         super().__init__()
         self.workspace_dir = workspace_dir
-        self.assets_dir = assets_dir
+        self.icons_dir = os.path.join(assets_dir, "icons")
         self.ruta_img = os.path.join(self.workspace_dir, "inputs", "program.jpg")
         self.ruta_codigo = os.path.join(self.workspace_dir, "outputs", "MicroBit_Code.py")
         self.ruta_estado = os.path.join(self.workspace_dir, "outputs", "program_state.json")
@@ -228,7 +228,7 @@ class TabCamara(QWidget):
         self.btn_editar = QPushButton()
         self.btn_editar.setObjectName("btn_editar")
         self.btn_editar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        ruta_icono_editar = os.path.join(self.assets_dir, "edit_cont.png")
+        ruta_icono_editar = os.path.join(self.icons_dir, "edit_cont.png")
         self.btn_editar.setIcon(QIcon(ruta_icono_editar))
         self.btn_editar.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_editar.clicked.connect(self.accion_editar_codigo)
@@ -260,8 +260,8 @@ class TabCamara(QWidget):
         self.btn_apagar = QPushButton()
         self.btn_apagar.setObjectName("btn_overlay")
 
-        self.btn_rotar.setIcon(QIcon(os.path.join(self.assets_dir, "sync_cont.png")))
-        self.btn_apagar.setIcon(QIcon(os.path.join(self.assets_dir, "on-off-button_cont.png")))
+        self.btn_rotar.setIcon(QIcon(os.path.join(self.icons_dir, "sync_cont.png")))
+        self.btn_apagar.setIcon(QIcon(os.path.join(self.icons_dir, "on-off-button_cont.png")))
 
         tamano_icono = QSize(24, 24)
         self.btn_rotar.setIconSize(tamano_icono)
@@ -514,14 +514,14 @@ class TabCamara(QWidget):
         self.modo_alto_contraste = modo_alto_contraste
         if modo_alto_contraste:
             # Rutas a los iconos de alto contraste
-            ruta_editar = os.path.join(self.assets_dir, "edit_cont.png")
-            ruta_rotar = os.path.join(self.assets_dir, "sync_cont.png")
-            ruta_apagar = os.path.join(self.assets_dir, "on-off-button_cont.png")
+            ruta_editar = os.path.join(self.icons_dir, "edit_cont.png")
+            ruta_rotar = os.path.join(self.icons_dir, "sync_cont.png")
+            ruta_apagar = os.path.join(self.icons_dir, "on-off-button_cont.png")
         else:
             # Rutas a los iconos normales
-            ruta_editar = os.path.join(self.assets_dir, "edit.png")
-            ruta_rotar = os.path.join(self.assets_dir, "sync.png")
-            ruta_apagar = os.path.join(self.assets_dir, "on-off-button.png")
+            ruta_editar = os.path.join(self.icons_dir, "edit.png")
+            ruta_rotar = os.path.join(self.icons_dir, "sync.png")
+            ruta_apagar = os.path.join(self.icons_dir, "on-off-button.png")
             
         # Reasignamos los iconos a los botones existentes
         self.btn_editar.setIcon(QIcon(ruta_editar))
@@ -677,25 +677,25 @@ class TabCamara(QWidget):
         if not self.modo_edicion:
             self.modo_edicion = True
             if self.modo_alto_contraste:
-                self.btn_editar.setIcon(QIcon(os.path.join(self.assets_dir, "diskette_cont.png")))
+                self.btn_editar.setIcon(QIcon(os.path.join(self.icons_dir, "diskette_cont.png")))
             else:
-                self.btn_editar.setIcon(QIcon(os.path.join(self.assets_dir, "diskette.png")))
+                self.btn_editar.setIcon(QIcon(os.path.join(self.icons_dir, "diskette.png")))
             self.caja_texto.setReadOnly(False)
             self.status_label.setText("Estado: MODO EDICIÓN ACTIVO")
         else:
             if self._guardar_codigo_archivo():
                 self.modo_edicion = False
                 if self.modo_alto_contraste:
-                    self.btn_editar.setIcon(QIcon(os.path.join(self.assets_dir, "edit_cont.png")))
+                    self.btn_editar.setIcon(QIcon(os.path.join(self.icons_dir, "edit_cont.png")))
                 else:
-                    self.btn_editar.setIcon(QIcon(os.path.join(self.assets_dir, "edit.png")))
+                    self.btn_editar.setIcon(QIcon(os.path.join(self.icons_dir, "edit.png")))
                 self.caja_texto.setReadOnly(True)
                 self.leer_codigo_generado()
 
     def accion_atajo_guardar(self):
         if self.modo_edicion and self._guardar_codigo_archivo():
             self.modo_edicion = False
-            self.btn_editar.setIcon(QIcon(os.path.join(self.assets_dir, "edit.png")))
+            self.btn_editar.setIcon(QIcon(os.path.join(self.icons_dir, "edit.png")))
             self.caja_texto.setReadOnly(True)
             self.leer_codigo_generado()
             self.status_label.setText("Estado: Guardado rápido completado")
