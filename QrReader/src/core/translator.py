@@ -2,6 +2,8 @@ import os
 import json
 import subprocess
 import sys
+from utils.constants import TipoEvento
+from core.voice_control import EventoInteraccion
 
 class MicrobitCompiler:
     def __init__(self, config_dir):
@@ -12,9 +14,9 @@ class MicrobitCompiler:
         self.memoria_variables = []  
         self.contador_var = 0        
         self.activar_voz_variables = True
-        
         self.modo_tts = "pc"  
         
+        # INICIALIZACIÓN ESTRICTA
         self.historial_interacciones = []
         self.modo_repaso = False
         self.indice_repaso = 0
@@ -43,23 +45,16 @@ class MicrobitCompiler:
         
     def _normalizar_texto(self, texto, es_variable=False):
         if not texto: return ""
-        
         texto = texto.strip().lower()
-        
-        reemplazos = {
-            'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ü': 'u'
-        }
+        reemplazos = {'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ü': 'u'}
         for original, nuevo in reemplazos.items():
             texto = texto.replace(original, nuevo)
-            
         if es_variable:
             texto = texto.replace(" ", "_")
-            
         return texto
 
     def _aplicar_tipado(self, texto):
         texto = texto.strip().lower()
-        
         numeros_letras = {
             "cero": "0", "uno": "1", "dos": "2", "tres": "3", "cuatro": "4",
             "cinco": "5", "seis": "6", "siete": "7", "ocho": "8", "nueve": "9",
@@ -103,17 +98,13 @@ class MicrobitCompiler:
         if texto in numeros_letras:
             texto = numeros_letras[texto]
             
-        texto_parseado = texto.replace(" coma ", ".")
-        texto_parseado = texto_parseado.replace(" con ", ".")
-        texto_parseado = texto_parseado.replace(",", ".")
-        texto_parseado = texto_parseado.replace(" .", ".").replace(". ", ".")
+        texto_parseado = texto.replace(" coma ", ".").replace(" con ", ".").replace(",", ".").replace(" .", ".").replace(". ", ".")
         
         try:
             val = int(texto_parseado)
             return str(val), val
         except ValueError:
             pass
-        
         try:
             val = float(texto_parseado)
             return str(val), val
@@ -127,13 +118,19 @@ class MicrobitCompiler:
         from core.audio import GestorVoz
         intro = f"Para {contexto}. " if contexto else ""
 
-        if getattr(self, 'modo_repaso', False) and self.indice_repaso < len(self.historial_interacciones):
+        # --- CASO 1: MODO REPASO ---
+        if self.modo_repaso and self.indice_repaso < len(self.historial_interacciones):
             valor_anterior = self.historial_interacciones[self.indice_repaso]
             GestorVoz.leer_texto(f"{intro}El nombre actual es {valor_anterior}. ¿Quieres modificarlo?")
-            modificar = self.voice_manager.escuchar_dictado_sincrono()
             
-            if modificar is True or (isinstance(modificar, str) and ("sí" in modificar or "si" in modificar)):
-                nombre = self.voice_manager.bucle_confirmacion_voz(f"Dime el nuevo nombre", valor_por_defecto="var")
+            evento = self.voice_manager.escuchar_dictado_sincrono()
+            quiere_modificar = (
+                (evento.tipo == TipoEvento.TOQUE_FISICO and evento.es_afirmativo) or
+                (evento.tipo == TipoEvento.VOZ and ("sí" in evento.texto or "si" in evento.texto))
+            )
+            
+            if quiere_modificar:
+                nombre = self.voice_manager.bucle_confirmacion_voz("Dime el nuevo nombre", valor_por_defecto="var", es_pregunta_abierta=True)
                 resultado = self._normalizar_texto(nombre, es_variable=True)
             else:
                 resultado = valor_anterior
@@ -142,66 +139,81 @@ class MicrobitCompiler:
             self.indice_repaso += 1
             return resultado
 
+        # --- CASO 2: PRIMERA VARIABLE EN MEMORIA ---
         if not self.memoria_variables:
-            nombre = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable", valor_por_defecto="var")
+            nombre = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable", valor_por_defecto="var", es_pregunta_abierta=True)
             res = self._normalizar_texto(nombre, es_variable=True)
-            if not getattr(self, 'modo_repaso', False):
+            if not self.modo_repaso:
                 self.historial_interacciones.append(res)
             return res
 
+        # --- CASO 3: PREGUNTAR POR LA ÚLTIMA VARIABLE ---
         ultima_var = list(self.memoria_variables[-1].keys())[0]
-
         GestorVoz.leer_texto(f"{intro}¿Quieres usar la última variable declarada, llamada {ultima_var}?")
-        resp1 = self.voice_manager.escuchar_dictado_sincrono()
         
-        if resp1 is True or (isinstance(resp1, str) and ("sí" in resp1 or "si" in resp1 or "claro" in resp1)):
-            if not getattr(self, 'modo_repaso', False):
+        resp1 = self.voice_manager.escuchar_dictado_sincrono()
+        usar_ultima = (
+            (resp1.tipo == TipoEvento.TOQUE_FISICO and resp1.es_afirmativo) or
+            (resp1.tipo == TipoEvento.VOZ and any(p in resp1.texto for p in ["sí", "si", "claro", "correcto"]))
+        )
+        
+        if usar_ultima:
+            if not self.modo_repaso:
                 self.historial_interacciones.append(ultima_var)
             return ultima_var
 
-        resp2 = False
+        # --- CASO 4: BUSCAR EN OTRAS VARIABLES GUARDADAS ---
         if len(self.memoria_variables) > 1:
             GestorVoz.leer_texto("¿Quieres usar otra de las variables anteriores guardadas?")
             resp2 = self.voice_manager.escuchar_dictado_sincrono()
-        
-        if resp2 is True or (isinstance(resp2, str) and ("sí" in resp2 or "si" in resp2 or "claro" in resp2)):
-            ultimo_intento = ""
-            while True:
-                GestorVoz.leer_texto("Dime el nombre de la variable para poder buscarla.")
-                texto_busqueda = self.voice_manager.escuchar_dictado_sincrono()
-                
-                if not texto_busqueda: continue
-                if isinstance(texto_busqueda, bool):
-                    GestorVoz.leer_texto("Por favor, dime el nombre, no uses toques rápidos.")
-                    continue
+            
+            usar_anteriores = (
+                (resp2.tipo == TipoEvento.TOQUE_FISICO and resp2.es_afirmativo) or
+                (resp2.tipo == TipoEvento.VOZ and any(p in resp2.texto for p in ["sí", "si", "claro", "correcto"]))
+            )
+            
+            if usar_anteriores:
+                ultimo_intento = ""
+                while True:
+                    GestorVoz.leer_texto("Dime el nombre de la variable para poder buscarla.")
+                    busqueda_ev = self.voice_manager.escuchar_dictado_sincrono()
+                    
+                    if busqueda_ev.tipo == TipoEvento.TOQUE_FISICO:
+                        GestorVoz.leer_texto("Por favor, dime el nombre hablando, no uses toques rápidos.")
+                        continue
+                        
+                    texto_busqueda = busqueda_ev.texto
+                    if not texto_busqueda:
+                        continue
 
-                if "pasar" in texto_busqueda or "omitir" in texto_busqueda:
-                    texto_final = ultimo_intento if ultimo_intento else "var"
-                    res = self._normalizar_texto(texto_final, es_variable=True)
-                    if not getattr(self, 'modo_repaso', False):
-                        self.historial_interacciones.append(res)
-                    return res
+                    if "pasar" in texto_busqueda or "omitir" in texto_busqueda:
+                        texto_final = ultimo_intento if ultimo_intento else "var"
+                        res = self._normalizar_texto(texto_final, es_variable=True)
+                        if not self.modo_repaso:
+                            self.historial_interacciones.append(res)
+                        return res
 
-                ultimo_intento = texto_busqueda
-                texto_busqueda_norm = self._normalizar_texto(texto_busqueda, es_variable=True)
+                    ultimo_intento = texto_busqueda
+                    texto_busqueda_norm = self._normalizar_texto(texto_busqueda, es_variable=True)
 
-                for var_dict in self.memoria_variables:
-                    nombre_var = list(var_dict.keys())[0]
-                    if texto_busqueda_norm == nombre_var:
-                        if not getattr(self, 'modo_repaso', False):
-                            self.historial_interacciones.append(nombre_var)
-                        return nombre_var
-                
-                GestorVoz.leer_texto("No he encontrado esa variable en la memoria. Volvamos a intentarlo.")
+                    for var_dict in self.memoria_variables:
+                        nombre_var = list(var_dict.keys())[0]
+                        if texto_busqueda_norm == nombre_var:
+                            if not self.modo_repaso:
+                                self.historial_interacciones.append(nombre_var)
+                            return nombre_var
+                    
+                    GestorVoz.leer_texto("No he encontrado esa variable en la memoria. Volvamos a intentarlo.")
 
+        # --- CASO 5: DECLARACIÓN DE NUEVA VARIABLE ---
         if tipo_bloque == "declaracion_var":
-            nombre = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable", valor_por_defecto="var")
+            nombre = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable", valor_por_defecto="var", es_pregunta_abierta=True)
             res = self._normalizar_texto(nombre, es_variable=True)
-            if not getattr(self, 'modo_repaso', False):
+            if not self.modo_repaso:
                 self.historial_interacciones.append(res)
             return res
         
-        if not getattr(self, 'modo_repaso', False):
+        if not self.modo_repaso:
             self.historial_interacciones.append(ultima_var)
         return ultima_var
 
@@ -210,19 +222,25 @@ class MicrobitCompiler:
             from core.audio import GestorVoz
             nombre = self._gestionar_variable_voz("declaracion_var", contexto="declarar una variable nueva")
             
-            if getattr(self, 'modo_repaso', False) and self.indice_repaso < len(self.historial_interacciones):
+            if self.modo_repaso and self.indice_repaso < len(self.historial_interacciones):
                 valor_anterior = self.historial_interacciones[self.indice_repaso]
                 GestorVoz.leer_texto(f"Para el valor de {nombre}, el actual es {valor_anterior}. ¿Quieres modificarlo?")
-                mod = self.voice_manager.escuchar_dictado_sincrono()
-                if mod is True or (isinstance(mod, str) and ("sí" in mod or "si" in mod)):
-                    valor_texto = self.voice_manager.bucle_confirmacion_voz(f"Dime el nuevo valor para {nombre}", valor_por_defecto="var")
+                
+                evento = self.voice_manager.escuchar_dictado_sincrono()
+                quiere_modificar = (
+                    (evento.tipo == TipoEvento.TOQUE_FISICO and evento.es_afirmativo) or
+                    (evento.tipo == TipoEvento.VOZ and ("sí" in evento.texto or "si" in evento.texto))
+                )
+                
+                if quiere_modificar:
+                    valor_texto = self.voice_manager.bucle_confirmacion_voz(f"Dime el nuevo valor para {nombre}", valor_por_defecto="var", es_pregunta_abierta=True)
                 else:
                     valor_texto = valor_anterior
                 self.historial_interacciones[self.indice_repaso] = valor_texto
                 self.indice_repaso += 1
             else:
-                valor_texto = self.voice_manager.bucle_confirmacion_voz(f"Dime el valor para {nombre}", valor_por_defecto="var")
-                if not getattr(self, 'modo_repaso', False):
+                valor_texto = self.voice_manager.bucle_confirmacion_voz(f"Dime el valor para {nombre}", valor_por_defecto="var", es_pregunta_abierta=True)
+                if not self.modo_repaso:
                     self.historial_interacciones.append(valor_texto)
 
             codigo_valor, valor_real = self._aplicar_tipado(valor_texto)
@@ -239,20 +257,26 @@ class MicrobitCompiler:
             from core.audio import GestorVoz
             pregunta = f"Para {contexto}, dime el nuevo valor" if contexto else "Dime el nuevo valor"
             
-            if getattr(self, 'modo_repaso', False) and self.indice_repaso < len(self.historial_interacciones):
+            if self.modo_repaso and self.indice_repaso < len(self.historial_interacciones):
                 valor_anterior = self.historial_interacciones[self.indice_repaso]
                 GestorVoz.leer_texto(f"Para {contexto}, el valor actual es {valor_anterior}. ¿Quieres modificarlo?")
-                mod = self.voice_manager.escuchar_dictado_sincrono()
-                if mod is True or (isinstance(mod, str) and ("sí" in mod or "si" in mod)):
-                    valor_texto = self.voice_manager.bucle_confirmacion_voz(pregunta, valor_por_defecto="var")
+                
+                evento = self.voice_manager.escuchar_dictado_sincrono()
+                quiere_modificar = (
+                    (evento.tipo == TipoEvento.TOQUE_FISICO and evento.es_afirmativo) or
+                    (evento.tipo == TipoEvento.VOZ and ("sí" in evento.texto or "si" in evento.texto))
+                )
+                
+                if quiere_modificar:
+                    valor_texto = self.voice_manager.bucle_confirmacion_voz(pregunta, valor_por_defecto="var", es_pregunta_abierta=True)
                 else:
                     valor_texto = valor_anterior
                 self.historial_interacciones[self.indice_repaso] = valor_texto
                 self.indice_repaso += 1
             else:
                 pregunta_normal = f"Para {contexto}, dime el valor" if contexto else "Dime el valor"
-                valor_texto = self.voice_manager.bucle_confirmacion_voz(pregunta_normal, valor_por_defecto="var")
-                if not getattr(self, 'modo_repaso', False):
+                valor_texto = self.voice_manager.bucle_confirmacion_voz(pregunta_normal, valor_por_defecto="var", es_pregunta_abierta=True)
+                if not self.modo_repaso:
                     self.historial_interacciones.append(valor_texto)
 
             codigo_valor, _ = self._aplicar_tipado(valor_texto)
@@ -360,7 +384,6 @@ class MicrobitCompiler:
             sujeto = self._consumir_argumento_vc(tokens, contexto=f"el método de control de {primer_bloque}")
             if "# ERROR" in sujeto: return sujeto
             
-            # --- NUEVA LÓGICA DE DISTRIBUCIÓN DE MÉTODOS PARA PINES Y LOGO ---
             if ".is_pressed" in codigo_base or ".is_touched" in codigo_base:
                 if " and " in sujeto or " or " in sujeto:
                     partes = sujeto.replace(" and ", " _AND_ ").replace(" or ", " _OR_ ").split()
@@ -427,7 +450,6 @@ class MicrobitCompiler:
                     return f"speech.say(str({arg_var}))\n{indent}{res}"
                 else:
                     return res
-            
             return res
                 
         elif tipo == "funcion":
@@ -457,7 +479,6 @@ class MicrobitCompiler:
                     return f"speech.say(str({arg_var}))\n{indent}{res}"
                 else:
                     return res
-            
             return res
             
         elif tipo == "control":

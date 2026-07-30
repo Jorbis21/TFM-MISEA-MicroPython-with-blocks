@@ -250,7 +250,7 @@ class VisionEngine:
         return None
 
     def liberar_camara(self):
-        if hasattr(self, 'cap') and self.cap.isOpened():
+        if self.cap is not None and self.cap.isOpened():
             self.cap.release()
 
     def iniciar_camara(self, camera_index=None):
