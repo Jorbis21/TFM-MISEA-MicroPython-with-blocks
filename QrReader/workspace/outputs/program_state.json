@@ -1,12 +1,33 @@
 {
     "matriz": [
         [
+            "declarar variable",
+            "valor variable"
+        ],
+        [
             "para siempre"
         ],
         [
             "",
+            "",
             "al presionar",
+            "boton a",
+            "o",
             "logo"
+        ],
+        [
+            "",
+            "",
+            "",
+            "desplazar",
+            "variable"
+        ],
+        [
+            "",
+            "al presionar",
+            "boton b",
+            "y",
+            "pin 0"
         ],
         [
             "",
@@ -14,22 +35,12 @@
             "",
             "mostrar",
             "valor variable"
-        ],
-        [
-            "",
-            "al presionar",
-            "boton a"
-        ],
-        [
-            "",
-            "",
-            "",
-            "desplazar",
-            "valor variable"
         ]
     ],
     "historial": [
-        "5",
-        "chocolate"
+        "texto",
+        "chocoraté",
+        "texto",
+        "ocho"
     ]
 }

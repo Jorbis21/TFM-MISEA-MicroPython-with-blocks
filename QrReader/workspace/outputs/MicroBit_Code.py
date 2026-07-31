@@ -10,10 +10,11 @@ music.pitch(698, 100)
 music.pitch(783, 100)
 
 # --- Programa Principal ---
+texto = "chocorate"
 while True:
-    if pin_logo.is_touched():
-        print('TTS:' + str(5))
-        display.show(5)
-    if button_a.is_pressed():
-        print('TTS:' + str("chocolate"))
-        display.scroll("chocolate")
+    if button_a.is_pressed() or pin_logo.is_touched():
+        print('TTS:' + str(texto))
+        display.scroll(texto)
+    if button_b.is_pressed() and pin0.is_touched():
+        print('TTS:' + str(8))
+        display.show(8)
