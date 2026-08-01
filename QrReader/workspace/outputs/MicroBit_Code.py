@@ -3,13 +3,13 @@ import speech
 import music
 import random
 from math import *
-
 # --- Sonido de inicialización ---
 music.pitch(587, 100)
 music.pitch(698, 100)
 music.pitch(783, 100)
-
 # --- Programa Principal ---
+
+
 texto = "chocorate"
 while True:
     if button_a.is_pressed() or pin_logo.is_touched():

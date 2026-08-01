@@ -186,9 +186,6 @@ class VisionEngine:
                 
         return matriz
         
-    # =========================================================
-    # NUEVO: SISTEMA DE DESBORDAMIENTO (CÓDIGO INFINITO)
-    # =========================================================
     def comprobar_desbordamiento(self):
         """Escanea si hay bloques cerca de los bordes derecho e inferior."""
         with self.lock:

@@ -6,16 +6,16 @@ from PyQt6.QtCore import Qt, QTimer, QSize
 from models.audio import GestorVoz
 from views.highlighter import PythonHighlighter
 from utils.constants import ModoTTS
-from controllers.hilo_camara import HiloCamara 
+from controllers.thread_camera_controller import ThreadCameraController
 
 class TabCamara(QWidget):
-    def __init__(self, workspace_dir, assets_dir, camara_ctrl, vision_engine, ai_manager):
+    def __init__(self, workspace_dir, assets_dir, camera_ctrl, vision_engine, ai_manager):
         super().__init__()
         self.workspace_dir = workspace_dir
         self.icons_dir = os.path.join(assets_dir, "icons")
         self.ruta_img = os.path.join(self.workspace_dir, "inputs", "program.jpg")
         
-        self.controlador = camara_ctrl
+        self.controlador = camera_ctrl
         self.vision = vision_engine
         self.ai_manager = ai_manager
 
@@ -31,7 +31,7 @@ class TabCamara(QWidget):
         self.bloque_pitches = []
         self.frame_actual_bgr = None
 
-        self.hilo_camara = HiloCamara(self.vision)
+        self.hilo_camara = ThreadCameraController(self.vision)
         self.hilo_camara.nuevo_frame.connect(self.actualizar_frame)
 
         self._setup_ui()
@@ -148,7 +148,7 @@ class TabCamara(QWidget):
         self.combo_camaras.setObjectName("combo_camaras")
         self.combo_camaras.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         
-        camaras_reales = HiloCamara.detectar_camaras() 
+        camaras_reales = ThreadCameraController.detectar_camaras() 
         for cam_id in camaras_reales:
             nombre = "Cámara Principal" if cam_id == 0 else f"Cámara Secundaria ({cam_id})"
             self.combo_camaras.addItem(nombre, userData=cam_id)

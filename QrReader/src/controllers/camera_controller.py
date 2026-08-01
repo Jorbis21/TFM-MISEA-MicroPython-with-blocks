@@ -1,37 +1,32 @@
-# core/controlador_sesion.py
-
 import threading
 from utils.constants import ModoTTS
-from PyQt6.QtCore import QTimer
 from models.audio import GestorVoz
 from utils.matrix_process import fusionar_matrices_espaciales
 
-class CamaraController:
+class CameraController:
     def __init__(self, traductor, gestor_archivos, ruta_codigo):
         self.traductor = traductor
         self.gestor_archivos = gestor_archivos
         self.ruta_codigo = ruta_codigo
         
-        # Estado de la sesión (El Modelo de datos)
         self.super_matriz = []
         self.cola_ampliaciones = []
         self.nexos_pendientes = []
         self.direccion_actual = "desconocida"
         self.estoy_ampliando = False
 
+    '''Carga el estado del ultimo codigo generado'''
     def cargar_estado(self):
-        """Carga el estado al abrir la aplicación."""
         self.super_matriz, historial = self.gestor_archivos.cargar_estado()
-        if self.traductor is not None:
-            self.traductor.historial_interacciones = historial
+        self.traductor.historial_interacciones = historial
 
+    '''Guarda el estado del ultimo codigo generado'''
     def guardar_estado(self):
-        """Guarda el estado actual en el disco."""
-        historial = self.traductor.historial_interacciones if self.traductor is not None else []
+        historial = self.traductor.historial_interacciones
         self.gestor_archivos.guardar_estado(self.super_matriz, historial)
 
+    '''Comprueba si se tiene que ampliar y en caso de ser asi fusiona'''
     def procesar_captura(self, matriz_espacial, desbordamiento, callback_actualizacion_ui):
-        """Lógica central: fusiona matrices y evalúa si hay que ampliar."""
         if self.estoy_ampliando:
             self.super_matriz = fusionar_matrices_espaciales(
                 self.super_matriz, 
@@ -51,13 +46,13 @@ class CamaraController:
 
         self._procesar_siguiente_ampliacion(callback_actualizacion_ui)
 
+    '''Bucle para las expansiones de codigo'''
     def _procesar_siguiente_ampliacion(self, callback_actualizacion_ui):
-        """Lógica del bucle de voz para hacer expansiones de código."""
         if not self.cola_ampliaciones:
             self.estoy_ampliando = False
             self.traductor.generar_codigo(self.super_matriz, self.ruta_codigo) 
             self.guardar_estado()
-            callback_actualizacion_ui() # Llama a leer_codigo_generado en la vista
+            callback_actualizacion_ui()
             return
 
         direccion, nexos = self.cola_ampliaciones.pop(0)
@@ -71,8 +66,8 @@ class CamaraController:
                 nombres_pronunciar.append(pronunciacion)
                 
         nombres_str = ", y ".join(nombres_pronunciar)
-        
-        # Ahora se ejecuta correctamente en el hilo principal
+
+        '''COMPROBAR QUE EL VOICE MANAGER ESTA INSTANCIADO ANTES DE LLEGAR AQUI'''
         if self.traductor.voice_manager is not None:
             respuesta = self.traductor.voice_manager.bucle_confirmacion_voz(
                 f"El bloque {nombres_str} toca el borde {direccion}. ¿Quieres ampliar el programa haciendo otra foto?",
@@ -92,21 +87,20 @@ class CamaraController:
         self.guardar_estado()
         callback_actualizacion_ui()
 
+    '''Modifica las variables tras haber creado el programa'''
     def repasar_variables(self, callback_actualizacion_ui):
-        """Lógica para modificar variables usando la voz."""
         if not self.super_matriz:
             GestorVoz.leer_texto_interrumpiendo("Primero debes capturar un programa para poder modificar sus variables.")
             return
             
         GestorVoz.leer_texto_interrumpiendo("Iniciando el modo de repaso de variables.")
-        
-        # Ahora se ejecuta correctamente en el hilo principal
+
         self.traductor.generar_codigo(self.super_matriz, self.ruta_codigo, modo_repaso=True)
         self.guardar_estado()
         callback_actualizacion_ui()
 
+    '''Lee el codigo generado en el archivo, comprueba su sintaxis y lo pone en la vista'''
     def obtener_codigo_vista(self):
-        """Lee el código, lo formatea para la vista y comprueba su sintaxis."""
         try:
             with open(self.ruta_codigo, "r", encoding="utf-8") as file:
                 codigo = file.read()
@@ -114,21 +108,26 @@ class CamaraController:
             return "# Archivo no generado de momento.", "Estado: Esperando captura...", [], False
 
         lineas = codigo.split('\n')
-        idx_ultimo_pitch = -1
+        linea_corte_fin = -1
+        linea_corte_ini = -1
         for i, linea in enumerate(lineas):
-            if "music.pitch" in linea: idx_ultimo_pitch = i
-            if linea.startswith("while ") or linea.startswith("if ") or linea.startswith("def "): break
+            if "# --- Sonido de inicialización ---" in linea:
+                linea_corte_ini = i
+            if "# --- Programa Principal ---" in linea: 
+                linea_corte_fin = i
+                break
 
         bloque_pitches = []
-        if idx_ultimo_pitch != -1:
+        if linea_corte_ini != -1 and linea_corte_fin != -1:
             lineas_visibles = []
             for i, linea in enumerate(lineas):
-                if i <= idx_ultimo_pitch:
-                    if linea.startswith("import ") or linea.startswith("from "): lineas_visibles.append(linea)
-                    elif "music.pitch" in linea: bloque_pitches.append(linea)
-                else:
-                    if i == idx_ultimo_pitch + 1 and linea.strip() == "" and lineas_visibles and lineas_visibles[-1].strip() == "": continue
+                if i < linea_corte_ini:
                     lineas_visibles.append(linea)
+                elif i >= linea_corte_ini and i <= linea_corte_fin:
+                    bloque_pitches.append(linea)
+                else:
+                    lineas_visibles.append(linea)
+
             codigo_mostrar = "\n".join(lineas_visibles)
         else:
             codigo_mostrar = codigo
@@ -136,9 +135,8 @@ class CamaraController:
         estado = "Estado: Código sin errores"
         hay_error = False
         
-        # --- SOLUCIÓN: Limpiamos la basura invisible del QTextEdit y aseguramos el EOF ---
         codigo_a_compilar = codigo_mostrar.replace('\xa0', ' ').replace('\t', '    ') + '\n'
-        
+
         try:
             compile(codigo_a_compilar, '<string>', 'exec')
         except SyntaxError as e:
@@ -147,8 +145,8 @@ class CamaraController:
 
         return codigo_mostrar, estado, bloque_pitches, hay_error
 
+    '''Lee los QR's que estan en la camara'''
     def procesar_qrs_pantalla(self, frame_bgr, vision, workspace_dir):
-        """Orquesta la lectura de QRs sueltos en pantalla."""
         import os
         if frame_bgr is None:
             GestorVoz.leer_texto("La cámara no está activa.")
@@ -171,20 +169,22 @@ class CamaraController:
             GestorVoz.leer_qrs_pantalla(textos_a_leer)
         else:
             GestorVoz.leer_texto("No detecto ningún bloque en la pantalla.")
-            
+
+    '''Guarda el codigo modificado en la vista'''
     def guardar_codigo_manual(self, nuevo_codigo, bloque_pitches):
-        # Limpiamos caracteres invisibles conflictivos antes de pasarlo al disco
         codigo_limpio = nuevo_codigo.replace('\xa0', ' ').replace('\t', '    ')
         return self.gestor_archivos.guardar_codigo_editado(codigo_limpio, bloque_pitches)
 
+    '''Se inicia el proceso para subir el codigo a la placa'''
     def enviar_a_microbit(self):
         GestorVoz.leer_texto("Subiendo el programa a la placa Micro:bit.")
-        self.traductor.subir(self.ruta_codigo)
+        self.gestor_archivos.subir()    
 
+    '''Llama al hilo encargado de llamar a la IA y explicar el codigo generado'''
     def explicar_codigo_ia(self, ai_manager, callback_estado):
-        if ai_manager is not None:
-            threading.Thread(target=lambda: ai_manager.explicar_codigo(self.ruta_codigo, callback_estado), daemon=True).start()
+        threading.Thread(target=lambda: ai_manager.explicar_codigo(self.ruta_codigo, callback_estado), daemon=True).start()
 
+    '''Cambia el modo de lectura de variables'''
     def alternar_tts(self, modos_tts, idx_actual):
         siguiente_idx = (idx_actual + 1) % len(modos_tts)
         modo = modos_tts[siguiente_idx]

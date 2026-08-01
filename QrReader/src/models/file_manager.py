@@ -1,5 +1,5 @@
-import json
-import os
+import json, os, subprocess, sys
+from models.audio import GestorVoz
 
 class FileManager:
     def __init__(self, ruta_estado, ruta_codigo):
@@ -28,16 +28,15 @@ class FileManager:
         return [], []
 
     def guardar_codigo_editado(self, nuevo_codigo, bloque_pitches):
-        if bloque_pitches and len(bloque_pitches) > 0:
-            lineas_editadas = nuevo_codigo.split('\n')
-            idx_insert = 0
-            for i, linea in enumerate(lineas_editadas):
-                if linea.startswith("import ") or linea.startswith("from "):
-                    idx_insert = i + 1
-            lineas_finales = lineas_editadas[:idx_insert] + bloque_pitches + lineas_editadas[idx_insert:]
-            codigo_a_guardar = "\n".join(lineas_finales)
-        else:
-            codigo_a_guardar = nuevo_codigo
+        lineas_editadas = nuevo_codigo.split('\n')
+        idx_insert = 0
+        for i, linea in enumerate(lineas_editadas):
+            if linea.startswith("import ") or linea.startswith("from "):
+                idx_insert = i + 1
+            else:
+                break
+        lineas_finales = lineas_editadas[:idx_insert] + bloque_pitches + lineas_editadas[idx_insert:]
+        codigo_a_guardar = "\n".join(lineas_finales)
             
         try:
             with open(self.ruta_codigo, "w", encoding="utf-8") as f:
@@ -45,3 +44,14 @@ class FileManager:
             return True, None
         except Exception as e:
             return False, str(e)
+
+    def subir(self):
+        print(f"Iniciando el flasheo en la micro:bit con el archivo: {self.ruta_codigo}")
+        try:
+            subprocess.run([sys.executable, "-m", "uflash", self.ruta_codigo], check=True, capture_output=True, text=True)
+            print("Código subido con exito")
+        except subprocess.CalledProcessError as e:
+            print(f"Error al intentar comunicarse con uflash: {e}")
+            GestorVoz.leer_texto_interrumpiendo("Atención. No se detecta la placa Micro bit conectada. Revisa el cable USB.")
+        except FileNotFoundError:
+            print("Error: No se encuentra Python o uflash en el sistema.")

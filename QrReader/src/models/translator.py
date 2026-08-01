@@ -1,14 +1,13 @@
 import os
 import json
-import subprocess
-import sys
 from utils.constants import TipoEvento
 from models.audio import GestorVoz
 
 class MicrobitCompiler:
-    def __init__(self, config_dir):
+    def __init__(self, config_dir, json_ctrl):
         self.config_dir = config_dir
-        self.tabla_simbolos = self._construir_tabla_simbolos()
+        self.json_ctrl = json_ctrl
+        self.tabla_simbolos = self.json_ctrl.construir_tabla_simbolos()
         
         self.voice_manager = None
         self.memoria_variables = []  
@@ -16,7 +15,6 @@ class MicrobitCompiler:
         self.activar_voz_variables = True
         self.modo_tts = "pc"  
         
-        # INICIALIZACIÓN ESTRICTA
         self.historial_interacciones = []
         self.modo_repaso = False
         self.indice_repaso = 0
@@ -25,16 +23,7 @@ class MicrobitCompiler:
         self.voice_manager = voice_manager
 
     def set_modo_tts(self, modo):
-        self.modo_tts = modo
-
-    def _construir_tabla_simbolos(self):
-        ruta_json = os.path.join(self.config_dir, 'bloques.json')
-        try:
-            with open(ruta_json, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except FileNotFoundError:
-            print(f"Advertencia: No se encontró {ruta_json}")
-            return {}
+        self.modo_tts = modo    
 
     def _es_valor_numerico(self, token):
         try:
@@ -310,7 +299,7 @@ class MicrobitCompiler:
             "music.pitch(587, 100)",
             "music.pitch(698, 100)",
             "music.pitch(783, 100)",
-            "\n# --- Programa Principal ---"
+            "# --- Programa Principal ---\n"
         ]
 
         niveles_activos = [0] 
@@ -572,14 +561,3 @@ class MicrobitCompiler:
                 break
                 
         return resultado
-
-    def subir(self, ruta_codigo):
-        print(f"Iniciando el flasheo en la micro:bit con el archivo: {ruta_codigo}")
-        try:
-            subprocess.run([sys.executable, "-m", "uflash", ruta_codigo], check=True, capture_output=True, text=True)
-            print("¡Código subido con éxito a la micro:bit!")
-        except subprocess.CalledProcessError as e:
-            print(f"Error al intentar comunicarse con uflash: {e}")
-            GestorVoz.leer_texto_interrumpiendo("Atención. No se detecta la placa Micro bit conectada. Revisa el cable USB.")
-        except FileNotFoundError:
-            print("Error: No se encuentra Python o uflash en el sistema.")

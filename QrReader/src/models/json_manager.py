@@ -47,3 +47,11 @@ class JsonManager:
                 json.dump(datos, f, indent=4, ensure_ascii=False)
         except Exception as e:
             raise Exception(f"Fallo al eliminar en disco: {e}")
+
+    def construir_tabla_simbolos(self):
+        try:
+            with open(self.ruta_json, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            print(f"Advertencia: No se encontró {self.ruta_json}")
+            return {}
