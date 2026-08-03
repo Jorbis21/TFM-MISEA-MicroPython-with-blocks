@@ -1,8 +1,8 @@
 import serial, serial.tools.list_ports, threading, time
-from models.audio import GestorVoz
 
 class SerialMonitor:
-    def __init__(self):
+    def __init__(self, audio_service):
+        self.audio_service = audio_service
         self.serial_port = None
         self.is_running = False
         self.thread = None
@@ -68,7 +68,7 @@ class SerialMonitor:
                         texto_a_leer = linea.replace("TTS:", "").strip()
                         print(f"[Serial] Petición de lectura interceptada: {texto_a_leer}")
                         
-                        GestorVoz.leer_texto(texto_a_leer)
+                        self.audio_service.leer_texto(texto_a_leer)
                         
                         time.sleep(0.1) 
                         self.serial_port.write(b'\r\n')

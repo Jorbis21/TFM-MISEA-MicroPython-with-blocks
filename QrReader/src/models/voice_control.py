@@ -3,7 +3,7 @@ from faster_whisper import WhisperModel
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import QTimer, QThread
 from dataclasses import dataclass
-from models.audio import GestorVoz
+
 from utils.constants import TipoEvento, ComandoVoz
 
 @dataclass
@@ -13,9 +13,10 @@ class EventoInteraccion:
     es_afirmativo: bool = False
 
 class VoiceCommandManager:
-    def __init__(self, callback_comando, workspace_dir, callback_bloqueo_ui=None):
+    def __init__(self, callback_comando, workspace_dir, audio_service, callback_bloqueo_ui=None):
         self.callback_comando = callback_comando
         self.callback_bloqueo_ui = callback_bloqueo_ui
+        self.audio_service = audio_service
         self.is_recording = False
         self.audio_data = []
         self.samplerate = 16000
@@ -38,7 +39,7 @@ class VoiceCommandManager:
             cpu_threads=4
         )
         print("Motor de voz listo.")
-        GestorVoz.leer_texto("El control por voz está listo.")
+        self.audio_service.leer_texto("El control por voz está listo.")
 
     def _process_audio(self):
         try:
@@ -74,7 +75,7 @@ class VoiceCommandManager:
         elif "repasar" in texto or "modificar" in texto or "variables" in texto:
             self.callback_comando(ComandoVoz.REPASAR)
         else:
-            GestorVoz.leer_texto("Comando no reconocido.")
+            self.audio_service.leer_texto("Comando no reconocido.")
 
     @staticmethod
     def _interpretar_confirmacion(evento: EventoInteraccion):
@@ -131,7 +132,7 @@ class VoiceCommandManager:
             self.stream.stop()
             self.stream.close()
             
-        GestorVoz.leer_texto("Procesando.")
+        self.audio_service.leer_texto("Procesando.")
         threading.Thread(target=self._process_audio, daemon=True).start()
 
     def inyectar_evento(self, evento: EventoInteraccion):
@@ -165,16 +166,16 @@ class VoiceCommandManager:
         ultimo_texto = ""
 
         while True:
-            GestorVoz.leer_texto(pregunta)
+            self.audio_service.leer_texto(pregunta)
             respuesta: EventoInteraccion = self.escuchar_dictado_sincrono()
 
             if respuesta.tipo == TipoEvento.OMITIR:
-                GestorVoz.leer_texto("Saltando paso. Usando valor por defecto.")
+                self.audio_service.leer_texto("Saltando paso. Usando valor por defecto.")
                 return valor_por_defecto
 
             if es_pregunta_abierta:
                 if respuesta.tipo == TipoEvento.TOQUE_FISICO:
-                    GestorVoz.leer_texto("Por favor, dígame la respuesta hablando, no uses los toques rápidos.")
+                    self.audio_service.leer_texto("Por favor, dígame la respuesta hablando, no uses los toques rápidos.")
                     continue
                 if not respuesta.texto:
                     continue
@@ -190,14 +191,14 @@ class VoiceCommandManager:
                     return respuesta.texto
                 ultimo_texto = respuesta.texto
 
-            GestorVoz.leer_texto(f"He entendido {ultimo_texto}. ¿Es correcto?")
+            self.audio_service.leer_texto(f"He entendido {ultimo_texto}. ¿Es correcto?")
             confirmacion: EventoInteraccion = self.escuchar_dictado_sincrono()
             intencion = self._interpretar_confirmacion(confirmacion)
 
             if intencion == "confirmar":
                 return ultimo_texto
             elif intencion == "omitir":
-                GestorVoz.leer_texto("Omitiendo validación.")
+                self.audio_service.leer_texto("Omitiendo validación.")
                 return ultimo_texto
             else:
-                GestorVoz.leer_texto("De acuerdo, vamos a repetirlo.")
+                self.audio_service.leer_texto("De acuerdo, vamos a repetirlo.")

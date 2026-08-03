@@ -3,13 +3,12 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QPushButton, QTextEdit, QFrame, QSplitter, QComboBox, QSizePolicy)
 from PyQt6.QtGui import (QImage, QPixmap, QIcon)
 from PyQt6.QtCore import Qt, QTimer, QSize
-from models.audio import GestorVoz
 from views.highlighter import PythonHighlighter
 from utils.constants import ModoTTS
-from controllers.thread_camera_controller import ThreadCameraController
+from controllers.camera_worker import CameraWorker
 
 class TabCamara(QWidget):
-    def __init__(self, workspace_dir, assets_dir, camera_ctrl, vision_engine, ai_manager):
+    def __init__(self, workspace_dir, assets_dir, camera_ctrl, vision_engine, ai_manager, audio_service):
         super().__init__()
         self.workspace_dir = workspace_dir
         self.icons_dir = os.path.join(assets_dir, "icons")
@@ -18,6 +17,7 @@ class TabCamara(QWidget):
         self.controlador = camera_ctrl
         self.vision = vision_engine
         self.ai_manager = ai_manager
+        self.audio_service = audio_service
 
         self.modo_edicion = False
         self.rotar_camara = False
@@ -31,7 +31,7 @@ class TabCamara(QWidget):
         self.bloque_pitches = []
         self.frame_actual_bgr = None
 
-        self.hilo_camara = ThreadCameraController(self.vision)
+        self.hilo_camara = CameraWorker(self.vision)
         self.hilo_camara.nuevo_frame.connect(self.actualizar_frame)
 
         self._setup_ui()
@@ -148,7 +148,7 @@ class TabCamara(QWidget):
         self.combo_camaras.setObjectName("combo_camaras")
         self.combo_camaras.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         
-        camaras_reales = ThreadCameraController.detectar_camaras() 
+        camaras_reales = CameraWorker.detectar_camaras() 
         for cam_id in camaras_reales:
             nombre = "Cámara Principal" if cam_id == 0 else f"Cámara Secundaria ({cam_id})"
             self.combo_camaras.addItem(nombre, userData=cam_id)
@@ -187,7 +187,7 @@ class TabCamara(QWidget):
     def _procesar_clic_simple(self, text):
         self.clics = 0
         self.ultima_tecla = None
-        GestorVoz.leer_texto(text)
+        self.audio_service.leer_texto(text)
     
     def _procesar_doble_clic(self, func):
         func()
@@ -230,7 +230,7 @@ class TabCamara(QWidget):
 
     # --- ACCIONES DELEGADAS AL CONTROLADOR ---
     def accion_capturar(self):
-        GestorVoz.leer_texto("Capturando.")
+        self.audio_service.leer_texto("Capturando.")
         if self.frame_actual_bgr is None: return
         
         self.vision.takePhoto(self.frame_actual_bgr, self.ruta_img)
@@ -264,7 +264,7 @@ class TabCamara(QWidget):
         self.status_label.setText(estado)
         
         if hay_error:
-            GestorVoz.leer_texto("Atención. Hay un error de sintaxis en el archivo.")
+            self.audio_service.leer_texto("Atención. Hay un error de sintaxis en el archivo.")
 
     def accion_editar_codigo(self):
         if not self.modo_edicion:

@@ -1,10 +1,10 @@
 import json, os, subprocess, sys
-from models.audio import GestorVoz
 
 class FileManager:
-    def __init__(self, ruta_estado, ruta_codigo):
+    def __init__(self, ruta_estado, ruta_codigo, audio_service):
         self.ruta_estado = ruta_estado
         self.ruta_codigo = ruta_codigo
+        self.audio_service = audio_service
 
     def guardar_estado(self, super_matriz, historial):
         try:
@@ -52,6 +52,6 @@ class FileManager:
             print("Código subido con exito")
         except subprocess.CalledProcessError as e:
             print(f"Error al intentar comunicarse con uflash: {e}")
-            GestorVoz.leer_texto_interrumpiendo("Atención. No se detecta la placa Micro bit conectada. Revisa el cable USB.")
+            self.audio_service.leer_texto_interrumpiendo("Atención. No se detecta la placa Micro bit conectada. Revisa el cable USB.")
         except FileNotFoundError:
             print("Error: No se encuentra Python o uflash en el sistema.")

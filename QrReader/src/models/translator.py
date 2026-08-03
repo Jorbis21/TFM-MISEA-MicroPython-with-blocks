@@ -1,26 +1,26 @@
-import os
-import json
 from utils.constants import TipoEvento
-from models.audio import GestorVoz
 
 class MicrobitCompiler:
-    def __init__(self, config_dir, json_ctrl):
+    def __init__(self, config_dir, json_manager, audio_service):
         self.config_dir = config_dir
-        self.json_ctrl = json_ctrl
-        self.tabla_simbolos = self.json_ctrl.construir_tabla_simbolos()
+        self.json_manager = json_manager
+        self.audio_service = audio_service
+        self.tabla_simbolos = self.json_manager.construir_tabla_simbolos()
         
-        self.voice_manager = None
         self.memoria_variables = []  
         self.contador_var = 0        
-        self.activar_voz_variables = True
         self.modo_tts = "pc"  
         
         self.historial_interacciones = []
         self.modo_repaso = False
-        self.indice_repaso = 0
+        self.indice_historial = 0
+        
+        # Punteros inyectados
+        self.voice_manager = None
 
-    def set_voice_manager(self, voice_manager):
+    def set_voice_manager(self, voice_manager, audio_service):
         self.voice_manager = voice_manager
+        self.audio_service = audio_service
 
     def set_modo_tts(self, modo):
         self.modo_tts = modo    
@@ -54,10 +54,8 @@ class MicrobitCompiler:
             "noventa": "90", "cien": "100"
         }
         
-        if texto.startswith("número "):
-            texto = texto.replace("número ", "", 1).strip()
-        elif texto.startswith("numero "):
-            texto = texto.replace("numero ", "", 1).strip()
+        if texto.startswith("número ") or texto.startswith("numero "):
+            texto = texto.replace("número ", "", 1).replace("numero ", "", 1).strip()
 
         texto_multi = texto.replace(" coma ", " ").replace(",", " ").replace(" y ", " ")
         palabras_multi = [p for p in texto_multi.split() if p]
@@ -103,45 +101,68 @@ class MicrobitCompiler:
         texto_limpio = self._normalizar_texto(texto, es_variable=False)
         return f'"{texto_limpio}"', texto_limpio
 
-    def _gestionar_variable_voz(self, tipo_bloque, contexto=""):
-        intro = f"Para {contexto}. " if contexto else ""
+    # --- LÓGICA DE VARIABLES RESTAURADA A SU ESTADO ORIGINAL ---
 
-        # --- CASO 1: MODO REPASO ---
-        if self.modo_repaso and self.indice_repaso < len(self.historial_interacciones):
-            valor_anterior = self.historial_interacciones[self.indice_repaso]
-            GestorVoz.leer_texto(f"{intro}El nombre actual es {valor_anterior}. ¿Quieres modificarlo?")
-            
+    def _gestionar_variable_voz(self, tipo_bloque, contexto=""):
+        if not self.voice_manager or not self.audio_service:
+            self.contador_var += 1
+            return f"var_{self.contador_var}"
+
+        intro = f"Para {contexto}. " if contexto else ""
+        
+        # CASO 1: MODO REPASO
+        if self.modo_repaso and self.indice_historial < len(self.historial_interacciones):
+            valor_anterior = self.historial_interacciones[self.indice_historial]
+            if tipo_bloque == "asignacion_val":
+                self.audio_service.leer_texto(f"{intro}El valor actual es {valor_anterior}. ¿Quieres modificarlo?")
+            else:
+                self.audio_service.leer_texto(f"{intro}El nombre actual es {valor_anterior}. ¿Quieres modificarlo?")
+                
             evento = self.voice_manager.escuchar_dictado_sincrono()
             quiere_modificar = (
-                (evento.tipo == TipoEvento.TOQUE_FISICO and evento.es_afirmativo) or
+                (evento.tipo == TipoEvento.TOQUE_FISICO and evento.es_afirmativo) or 
                 (evento.tipo == TipoEvento.VOZ and ("sí" in evento.texto or "si" in evento.texto))
             )
             
             if quiere_modificar:
-                nombre = self.voice_manager.bucle_confirmacion_voz("Dime el nuevo nombre", valor_por_defecto="var", es_pregunta_abierta=True)
-                resultado = self._normalizar_texto(nombre, es_variable=True)
+                pregunta = "Dime el nuevo valor" if tipo_bloque == "asignacion_val" else "Dime el nuevo nombre"
+                res = self.voice_manager.bucle_confirmacion_voz(pregunta, "0" if tipo_bloque == "asignacion_val" else "var")
             else:
-                resultado = valor_anterior
+                res = valor_anterior
                 
-            self.historial_interacciones[self.indice_repaso] = resultado
-            self.indice_repaso += 1
-            return resultado
+            self.historial_interacciones[self.indice_historial] = res
+            self.indice_historial += 1
+            return self._normalizar_texto(res, es_variable=(tipo_bloque != "asignacion_val"))
 
-        # --- CASO 2: PRIMERA VARIABLE EN MEMORIA ---
-        if not self.memoria_variables:
-            nombre = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable", valor_por_defecto="var", es_pregunta_abierta=True)
-            res = self._normalizar_texto(nombre, es_variable=True)
+        # CASO 2: ASIGNACIÓN DE VALOR
+        if tipo_bloque == "asignacion_val":
+            res = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el valor", "0")
             if not self.modo_repaso:
                 self.historial_interacciones.append(res)
             return res
 
-        # --- CASO 3: PREGUNTAR POR LA ÚLTIMA VARIABLE ---
+        # CASO 3: DECLARACIÓN DE VARIABLE NUEVA (Vuelve a pedir el nombre SIEMPRE que hay un bloque declarar)
+        if tipo_bloque == "declaracion_var":
+            nombre = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable", "var")
+            res = self._normalizar_texto(nombre, es_variable=True)
+            if not self.modo_repaso:
+                self.historial_interacciones.append(res)
+            return res
+            
+        # CASO 4: REFERENCIA - MEMORIA VACÍA
+        if not self.memoria_variables:
+            nombre = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable", "var")
+            res = self._normalizar_texto(nombre, es_variable=True)
+            if not self.modo_repaso:
+                self.historial_interacciones.append(res)
+            return res
+            
+        # CASO 5: REFERENCIA - USAR ÚLTIMA
         ultima_var = list(self.memoria_variables[-1].keys())[0]
-        GestorVoz.leer_texto(f"{intro}¿Quieres usar la última variable declarada, llamada {ultima_var}?")
-        
+        self.audio_service.leer_texto(f"{intro}¿Quieres usar la última variable declarada, llamada {ultima_var}?")
         resp1 = self.voice_manager.escuchar_dictado_sincrono()
         usar_ultima = (
-            (resp1.tipo == TipoEvento.TOQUE_FISICO and resp1.es_afirmativo) or
+            (resp1.tipo == TipoEvento.TOQUE_FISICO and resp1.es_afirmativo) or 
             (resp1.tipo == TipoEvento.VOZ and any(p in resp1.texto for p in ["sí", "si", "claro", "correcto"]))
         )
         
@@ -150,138 +171,67 @@ class MicrobitCompiler:
                 self.historial_interacciones.append(ultima_var)
             return ultima_var
 
-        # --- CASO 4: BUSCAR EN OTRAS VARIABLES GUARDADAS ---
+        # CASO 6: REFERENCIA - BUSCAR OTRAS
         if len(self.memoria_variables) > 1:
-            GestorVoz.leer_texto("¿Quieres usar otra de las variables anteriores guardadas?")
+            self.audio_service.leer_texto("¿Quieres usar otra de las variables anteriores?")
             resp2 = self.voice_manager.escuchar_dictado_sincrono()
-            
-            usar_anteriores = (
-                (resp2.tipo == TipoEvento.TOQUE_FISICO and resp2.es_afirmativo) or
+            usar_otra = (
+                (resp2.tipo == TipoEvento.TOQUE_FISICO and resp2.es_afirmativo) or 
                 (resp2.tipo == TipoEvento.VOZ and any(p in resp2.texto for p in ["sí", "si", "claro", "correcto"]))
             )
             
-            if usar_anteriores:
-                ultimo_intento = ""
+            if usar_otra:
                 while True:
-                    GestorVoz.leer_texto("Dime el nombre de la variable para poder buscarla.")
-                    busqueda_ev = self.voice_manager.escuchar_dictado_sincrono()
+                    self.audio_service.leer_texto("Dime el nombre de la variable para buscarla.")
+                    busqueda = self.voice_manager.escuchar_dictado_sincrono()
+                    if busqueda.tipo == TipoEvento.TOQUE_FISICO:
+                        self.audio_service.leer_texto("Por favor, dime el nombre hablando.")
+                        continue
                     
-                    if busqueda_ev.tipo == TipoEvento.TOQUE_FISICO:
-                        GestorVoz.leer_texto("Por favor, dime el nombre hablando, no uses toques rápidos.")
-                        continue
-                        
-                    texto_busqueda = busqueda_ev.texto
-                    if not texto_busqueda:
-                        continue
-
+                    texto_busqueda = self._normalizar_texto(busqueda.texto, es_variable=True)
                     if "pasar" in texto_busqueda or "omitir" in texto_busqueda:
-                        texto_final = ultimo_intento if ultimo_intento else "var"
-                        res = self._normalizar_texto(texto_final, es_variable=True)
                         if not self.modo_repaso:
-                            self.historial_interacciones.append(res)
-                        return res
-
-                    ultimo_intento = texto_busqueda
-                    texto_busqueda_norm = self._normalizar_texto(texto_busqueda, es_variable=True)
-
-                    for var_dict in self.memoria_variables:
-                        nombre_var = list(var_dict.keys())[0]
-                        if texto_busqueda_norm == nombre_var:
-                            if not self.modo_repaso:
-                                self.historial_interacciones.append(nombre_var)
-                            return nombre_var
+                            self.historial_interacciones.append("var")
+                        return "var"
                     
-                    GestorVoz.leer_texto("No he encontrado esa variable en la memoria. Volvamos a intentarlo.")
+                    for var_dict in self.memoria_variables:
+                        if texto_busqueda == list(var_dict.keys())[0]:
+                            if not self.modo_repaso:
+                                self.historial_interacciones.append(texto_busqueda)
+                            return texto_busqueda
+                    self.audio_service.leer_texto("No he encontrado esa variable. Volvamos a intentarlo.")
 
-        # --- CASO 5: DECLARACIÓN DE NUEVA VARIABLE ---
-        if tipo_bloque == "declaracion_var":
-            nombre = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable", valor_por_defecto="var", es_pregunta_abierta=True)
-            res = self._normalizar_texto(nombre, es_variable=True)
-            if not self.modo_repaso:
-                self.historial_interacciones.append(res)
-            return res
-        
+        # FALLBACK
+        nombre = self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre", "var")
+        res = self._normalizar_texto(nombre, es_variable=True)
         if not self.modo_repaso:
-            self.historial_interacciones.append(ultima_var)
-        return ultima_var
+            self.historial_interacciones.append(res)
+        return res
 
     def _manejar_declaracion(self, tokens):
-        if self.voice_manager and self.activar_voz_variables:
-            nombre = self._gestionar_variable_voz("declaracion_var", contexto="declarar una variable nueva")
-            
-            if self.modo_repaso and self.indice_repaso < len(self.historial_interacciones):
-                valor_anterior = self.historial_interacciones[self.indice_repaso]
-                GestorVoz.leer_texto(f"Para el valor de {nombre}, el actual es {valor_anterior}. ¿Quieres modificarlo?")
-                
-                evento = self.voice_manager.escuchar_dictado_sincrono()
-                quiere_modificar = (
-                    (evento.tipo == TipoEvento.TOQUE_FISICO and evento.es_afirmativo) or
-                    (evento.tipo == TipoEvento.VOZ and ("sí" in evento.texto or "si" in evento.texto))
-                )
-                
-                if quiere_modificar:
-                    valor_texto = self.voice_manager.bucle_confirmacion_voz(f"Dime el nuevo valor para {nombre}", valor_por_defecto="var", es_pregunta_abierta=True)
-                else:
-                    valor_texto = valor_anterior
-                self.historial_interacciones[self.indice_repaso] = valor_texto
-                self.indice_repaso += 1
-            else:
-                valor_texto = self.voice_manager.bucle_confirmacion_voz(f"Dime el valor para {nombre}", valor_por_defecto="var", es_pregunta_abierta=True)
-                if not self.modo_repaso:
-                    self.historial_interacciones.append(valor_texto)
-
-            codigo_valor, valor_real = self._aplicar_tipado(valor_texto)
-            self.memoria_variables.append({nombre: valor_real})
-            tokens.clear() 
-            return f"{nombre} = {codigo_valor}"
-        else:
-            self.contador_var += 1
-            resto_de_la_fila = self._consumir_argumento_vc(tokens)
-            return f"var_{self.contador_var} = {resto_de_la_fila}"
+        nombre = self._gestionar_variable_voz("declaracion_var", "declarar una variable nueva")
+        valor_texto = self._gestionar_variable_voz("asignacion_val", f"el valor para {nombre}")
+        
+        codigo_valor, valor_real = self._aplicar_tipado(valor_texto)
+        self.memoria_variables.append({nombre: valor_real})
+        tokens.clear() 
+        return f"{nombre} = {codigo_valor}"
 
     def _manejar_asignacion(self, tokens, contexto=""):
-        if self.voice_manager and self.activar_voz_variables:
-            pregunta = f"Para {contexto}, dime el nuevo valor" if contexto else "Dime el nuevo valor"
-            
-            if self.modo_repaso and self.indice_repaso < len(self.historial_interacciones):
-                valor_anterior = self.historial_interacciones[self.indice_repaso]
-                GestorVoz.leer_texto(f"Para {contexto}, el valor actual es {valor_anterior}. ¿Quieres modificarlo?")
-                
-                evento = self.voice_manager.escuchar_dictado_sincrono()
-                quiere_modificar = (
-                    (evento.tipo == TipoEvento.TOQUE_FISICO and evento.es_afirmativo) or
-                    (evento.tipo == TipoEvento.VOZ and ("sí" in evento.texto or "si" in evento.texto))
-                )
-                
-                if quiere_modificar:
-                    valor_texto = self.voice_manager.bucle_confirmacion_voz(pregunta, valor_por_defecto="var", es_pregunta_abierta=True)
-                else:
-                    valor_texto = valor_anterior
-                self.historial_interacciones[self.indice_repaso] = valor_texto
-                self.indice_repaso += 1
-            else:
-                pregunta_normal = f"Para {contexto}, dime el valor" if contexto else "Dime el valor"
-                valor_texto = self.voice_manager.bucle_confirmacion_voz(pregunta_normal, valor_por_defecto="var", es_pregunta_abierta=True)
-                if not self.modo_repaso:
-                    self.historial_interacciones.append(valor_texto)
-
-            codigo_valor, _ = self._aplicar_tipado(valor_texto)
-            return codigo_valor
-        else:
-            return f"val_{self.contador_var}"
+        valor_texto = self._gestionar_variable_voz("asignacion_val", contexto)
+        codigo_valor, _ = self._aplicar_tipado(valor_texto)
+        return codigo_valor
 
     def _manejar_referencia(self, tokens, contexto=""):
-        if self.voice_manager and self.activar_voz_variables:
-            return self._gestionar_variable_voz("referencia_var", contexto)
-        else:
-            return f"var_{self.contador_var}"
-            
+        return self._gestionar_variable_voz("referencia_var", contexto)
+
+    # --- MOTOR PRINCIPAL ---
+
     def generar_codigo(self, matriz_comandos, ruta_salida, modo_repaso=False):
         self.memoria_variables = []
         self.contador_var = 0
         self.modo_repaso = modo_repaso
-        self.indice_repaso = 0
-        
+        self.indice_historial = 0
         if not modo_repaso:
             self.historial_interacciones = []
             

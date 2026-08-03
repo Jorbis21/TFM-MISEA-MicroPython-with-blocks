@@ -11,9 +11,9 @@
             "",
             "",
             "al presionar",
-            "boton a",
-            "o",
-            "logo"
+            "logo",
+            "y",
+            "boton b"
         ],
         [
             "",
@@ -25,12 +25,11 @@
         [
             "",
             "al presionar",
-            "boton b",
-            "y",
+            "boton a",
+            "o",
             "pin 0"
         ],
         [
-            "",
             "",
             "",
             "mostrar",
@@ -39,8 +38,8 @@
     ],
     "historial": [
         "texto",
-        "chocoraté",
+        "chocolate",
         "texto",
-        "ocho"
+        "8"
     ]
 }

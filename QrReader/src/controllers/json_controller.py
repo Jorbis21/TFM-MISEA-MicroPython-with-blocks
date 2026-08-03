@@ -1,9 +1,12 @@
+
+'''Esta clase o el manager necesita un observer para modificar el traductor'''
+
 class JsonController:
-    def __init__(self, json_manager):
+    def __init__(self, json_manager, traductor):
         self.json_manager = json_manager
+        self.traductor = traductor
 
     '''Lee todos los bloques del json'''
-    #ESTO NO SE SI ESTA BIEN
     def obtener_bloques(self):
         return self.json_manager.obtener_todos_los_bloques()
 
@@ -17,7 +20,3 @@ class JsonController:
         self.json_manager.eliminar_bloque(clave)
         self.traductor.tabla_simbolos = self.json_manager.construir_tabla_simbolos()
 
-    '''Carga la tabla de simbolos'''
-    #ESTO NO SE SI ESTA BIEN
-    def construir_tabla_simbolos(self):
-        return self.json_manager.construir_tabla_simbolos()

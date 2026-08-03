@@ -2,13 +2,13 @@ import threading
 from models.qr_manager import QRManager
 
 class QRController:
-    def __init__(self, json_ctrl, workspace_dir):
-        self.json_ctrl = json_ctrl
+    def __init__(self, json_manager, workspace_dir):
+        self.json_manager = json_manager
         self.workspace_dir = workspace_dir
 
     '''Obtiene todos los simbolos del json para poderlos seleccionar en la pestaña de QR'''
     def obtener_simbolos(self):
-        return sorted(self.json_ctrl.construir_tabla_simbolos().keys())
+        return sorted(self.json_manager.construir_tabla_simbolos().keys())
 
     '''Genera el pdf con los elementos seleccionados'''
     def generar_pdf(self, elementos, tamano_mm, callback_estado):
