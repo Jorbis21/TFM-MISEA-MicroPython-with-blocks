@@ -156,6 +156,7 @@ class CameraController:
             respuestas = self._ejecutar_interaccion_variables(necesidades, modo_repaso=False)
             self.traductor.generar_codigo(self.super_matriz, self.ruta_codigo, respuestas) 
             self.guardar_estado()
+            self.audio_service.leer_texto("El código nuevo ya está generado.")
             callback_actualizacion_ui()
             return
 
@@ -188,6 +189,7 @@ class CameraController:
         respuestas = self._ejecutar_interaccion_variables(necesidades, modo_repaso=False)
         self.traductor.generar_codigo(self.super_matriz, self.ruta_codigo, respuestas) 
         self.guardar_estado()
+        self.audio_service.leer_texto("El código nuevo ya está generado.")
         callback_actualizacion_ui()
 
     def repasar_variables(self, callback_actualizacion_ui):
@@ -200,6 +202,7 @@ class CameraController:
         respuestas = self._ejecutar_interaccion_variables(necesidades, modo_repaso=True)
         self.traductor.generar_codigo(self.super_matriz, self.ruta_codigo, respuestas)
         self.guardar_estado()
+        self.audio_service.leer_texto("Variables modificadas. El código nuevo ya está generado.")
         callback_actualizacion_ui()
 
     def obtener_codigo_vista(self):
@@ -304,6 +307,10 @@ class CameraController:
 
     def set_rotacion_camara(self, rotar):
         self.hilo_camara.rotar = rotar
+        if rotar:
+            self.audio_service.leer_texto_interrumpiendo("Cámara en modo vertical.")
+        else:
+            self.audio_service.leer_texto_interrumpiendo("Cámara en modo horizontal.")
 
     def liberar_recursos_camara(self):
         self.hilo_camara.liberar_todo()

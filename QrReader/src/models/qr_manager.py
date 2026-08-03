@@ -7,7 +7,7 @@ class QRManager:
     """Motor encargado de la generación de imágenes QR y compilación de PDFs."""
     
     @staticmethod
-    def generar_pdf_impresion(elementos, tamano_mm, workspace_dir):
+    def generar_pdf_impresion(elementos, tamano_mm, ruta_pdf_final, workspace_dir):
         """
         Genera los QRs y los empaqueta en un PDF.
         Devuelve la ruta absoluta del PDF generado.
@@ -64,7 +64,7 @@ class QRManager:
                 pdf.add_page()
                 x, y = x_start, y_start
                 
-        ruta_pdf_final = os.path.join(workspace_dir, "outputs", "qrs_impresion.pdf")
+        #ruta_pdf_final = os.path.join(workspace_dir, "outputs", "qrs_impresion.pdf")
         pdf.output(ruta_pdf_final)
         
         # 3. Limpieza de memoria temporal

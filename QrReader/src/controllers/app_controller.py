@@ -57,6 +57,7 @@ class AppController:
         self.ventana.espacio_soltado.connect(self.on_espacio_soltado)
         self.ventana.comando_atajo.connect(self.on_comando_atajo)
         self.ventana.foco_cambiado.connect(self.on_foco_cambiado)
+        self.ventana.ventana_cerrada.connect(self.apagar_sistema)
         
         # Enlazamos el motor de voz con el controlador
         self.voice_manager.callback_comando = self.on_comando_voz
@@ -71,8 +72,13 @@ class AppController:
 
     def iniciar(self):
         self.ventana.show()
+        self.audio_service.leer_texto("Sistema listo. La cámara está en modo horizontal.")
 
     def apagar_sistema(self):
+        # AÑADIMOS EL APAGADO DEL MOTOR DE VOZ
+        if self.voice_manager is not None:
+            self.voice_manager.detener()
+            
         if self.ai_manager is not None:
             self.ai_manager.apagar_ollama()
         if self.serial_monitor is not None:

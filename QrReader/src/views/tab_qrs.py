@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QLineEdit, QPushButton, QTableWidget, 
-                             QTableWidgetItem, QHeaderView)
+                             QTableWidgetItem, QHeaderView, QFileDialog)
 from PyQt6.QtCore import Qt
 
 class BuscadorAutoLimpiable(QLineEdit):
@@ -207,8 +207,20 @@ class TabQRs(QWidget):
             self.lbl_estado_qr.setText("No has seleccionado ninguna cantidad.")
             return
 
+        # --- NUEVO: ABRIR VENTANA DE GUARDADO ---
+        ruta_destino, _ = QFileDialog.getSaveFileName(
+            self,
+            "Guardar PDF de Códigos QR",
+            "qrs_impresion.pdf", 
+            "Archivos PDF (*.pdf)"
+        )
+
+        if not ruta_destino:
+            self.lbl_estado_qr.setText("Operación de guardado cancelada.")
+            return
+
         def actualizar_estado(msg):
             self.lbl_estado_qr.setText(msg)
 
-        # Toda la lógica de hilos y PDFs delegada al controlador
-        self.qr_ctrl.generar_pdf(elementos_a_generar, tamano_mm, actualizar_estado)
+        # Delegamos al controlador pasándole la ruta que eligió el usuario
+        self.qr_ctrl.generar_pdf(elementos_a_generar, tamano_mm, ruta_destino, actualizar_estado)

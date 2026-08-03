@@ -11,10 +11,11 @@ class QRController:
         return sorted(self.json_manager.construir_tabla_simbolos().keys())
 
     '''Genera el pdf con los elementos seleccionados'''
-    def generar_pdf(self, elementos, tamano_mm, callback_estado):
+    def generar_pdf(self, elementos, tamano_mm, ruta_destino, callback_estado):
         def _tarea():
             try:
-                ruta_pdf = QRManager.generar_pdf_impresion(elementos, tamano_mm, self.workspace_dir)
+                # Pasamos la ruta_destino al Manager
+                ruta_pdf = QRManager.generar_pdf_impresion(elementos, tamano_mm, ruta_destino, self.workspace_dir)
                 callback_estado(f"¡Éxito! PDF guardado en: {ruta_pdf}")
             except Exception as e:
                 callback_estado(f"Error al generar PDF: {e}")

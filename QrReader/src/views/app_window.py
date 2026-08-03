@@ -15,6 +15,7 @@ class AppCamara(QMainWindow):
     espacio_soltado = pyqtSignal()
     comando_atajo = pyqtSignal(str)
     foco_cambiado = pyqtSignal(str) # Avisa para que el controlador hable
+    ventana_cerrada = pyqtSignal()
 
     def __init__(self, workspace_dir, assets_dir, camara_ctrl, json_ctrl, qr_ctrl):
         super().__init__()
@@ -189,4 +190,5 @@ class AppCamara(QMainWindow):
     def closeEvent(self, event):
         if self.vista_camara is not None:
             self.vista_camara.cleanup()
+        self.ventana_cerrada.emit()
         event.accept()

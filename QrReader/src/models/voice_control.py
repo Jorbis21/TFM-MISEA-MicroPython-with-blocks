@@ -25,10 +25,15 @@ class VoiceCommandManager:
         
         self.modo_dictado = False
         self.evento_actual = None 
+        self.corriendo = True
         
         self.record_id = 0
         self.model = None
         threading.Thread(target=self._load_model, daemon=True).start()
+
+    def detener(self):
+        self.corriendo = False
+        self.discard_dictation_record()
 
     def _load_model(self):
         print("Cargando motor de voz (Whisper Medium)...")
@@ -179,10 +184,13 @@ class VoiceCommandManager:
         self.evento_actual = None
         
         try:
-            while self.evento_actual is None:
+            while self.evento_actual is None and self.corriendo:
                 if QThread.currentThread() == QApplication.instance().thread():
                     QApplication.processEvents()
                 time.sleep(0.05)
+
+            if not self.corriendo:
+                return EventoInteraccion(tipo=TipoEvento.OMITIR)
                 
             return self.evento_actual
             
