@@ -26,17 +26,20 @@ class AppController:
         # 2. Inicialización de archivos
         ruta_estado = os.path.join(workspace_dir, "outputs", "program_state.json")
         ruta_codigo = os.path.join(workspace_dir, "outputs", "MicroBit_Code.py")
-        self.file_manager = FileManager(ruta_estado, ruta_codigo, self.audio_service)
+        self.file_manager = FileManager(ruta_estado, ruta_codigo)
 
         # 3. Arrancamos los demonios que vienen inyectados
         self.serial_monitor.arrancar()
 
         # 4. Instanciamos los sub-controladores
-        self.camara_ctrl = CameraController(self.traductor, self.file_manager, self.audio_service, ruta_codigo)
+        self.camara_ctrl = CameraController(
+            self.traductor, self.file_manager, self.audio_service, 
+            ruta_codigo, self.vision, self.ai_manager, workspace_dir
+        )
         self.camara_ctrl.cargar_estado()
         # Le pasamos el voice_manager al controlador de la cámara
         self.camara_ctrl.set_voice_manager(self.voice_manager)
-        self.traductor.set_voice_manager(self.voice_manager, self.audio_service)
+        
         self.json_ctrl = JsonController(self.json_manager, self.traductor)
         self.qr_ctrl = QRController(self.json_manager, workspace_dir)
 
@@ -46,10 +49,7 @@ class AppController:
             assets_dir, 
             self.camara_ctrl, 
             self.json_ctrl, 
-            self.qr_ctrl,
-            self.vision,
-            self.ai_manager,
-            self.audio_service
+            self.qr_ctrl
         )
 
         # 6. Conectamos señales de la vista a este controlador

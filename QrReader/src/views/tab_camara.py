@@ -8,16 +8,14 @@ from utils.constants import ModoTTS
 from controllers.camera_worker import CameraWorker
 
 class TabCamara(QWidget):
-    def __init__(self, workspace_dir, assets_dir, camera_ctrl, vision_engine, ai_manager, audio_service):
+    # YA NO RECIBE AI_MANAGER NI AUDIO_SERVICE. MANTIENE VISION SOLO PARA EL WORKER.
+    def __init__(self, workspace_dir, assets_dir, camera_ctrl):
         super().__init__()
         self.workspace_dir = workspace_dir
         self.icons_dir = os.path.join(assets_dir, "icons")
         self.ruta_img = os.path.join(self.workspace_dir, "inputs", "program.jpg")
         
         self.controlador = camera_ctrl
-        self.vision = vision_engine
-        self.ai_manager = ai_manager
-        self.audio_service = audio_service
 
         self.modo_edicion = False
         self.rotar_camara = False
@@ -31,8 +29,8 @@ class TabCamara(QWidget):
         self.bloque_pitches = []
         self.frame_actual_bgr = None
 
-        self.hilo_camara = CameraWorker(self.vision)
-        self.hilo_camara.nuevo_frame.connect(self.actualizar_frame)
+        
+        self.controlador.hilo_camara.nuevo_frame.connect(self.actualizar_frame)
 
         self._setup_ui()
         self.leer_codigo_generado()
@@ -187,7 +185,8 @@ class TabCamara(QWidget):
     def _procesar_clic_simple(self, text):
         self.clics = 0
         self.ultima_tecla = None
-        self.audio_service.leer_texto(text)
+        # AQUÍ LA VISTA DELEGA EN EL CONTROLADOR LA PETICIÓN DE LECTURA DE INTERFAZ
+        self.controlador.audio_service.leer_texto(text)
     
     def _procesar_doble_clic(self, func):
         func()
@@ -228,16 +227,10 @@ class TabCamara(QWidget):
         self.btn_rotar.setIcon(QIcon(ruta_rotar))
         self.btn_apagar.setIcon(QIcon(ruta_apagar))
 
-    # --- ACCIONES DELEGADAS AL CONTROLADOR ---
+    # --- ACCIONES PURIFICADAS QUE SOLO DELEGAN ---
     def accion_capturar(self):
-        self.audio_service.leer_texto("Capturando.")
         if self.frame_actual_bgr is None: return
-        
-        self.vision.takePhoto(self.frame_actual_bgr, self.ruta_img)
-        matriz_espacial = self.vision.get_command_matrix()
-        desbordamiento = self.vision.comprobar_desbordamiento()
-        
-        self.controlador.procesar_captura(matriz_espacial, desbordamiento, self.leer_codigo_generado)
+        self.controlador.procesar_captura_completa(self.frame_actual_bgr, self.ruta_img, self.leer_codigo_generado)
 
     def accion_repasar_variables(self):
         self.controlador.repasar_variables(self.leer_codigo_generado)
@@ -246,16 +239,16 @@ class TabCamara(QWidget):
         self.controlador.enviar_a_microbit()
 
     def accion_explicar_ia(self):
-        def actualizar_estado(texto, color_hex):
+        def actualizar_estado(texto, color_hex=None):
             self.status_label.setText(texto)
-        self.controlador.explicar_codigo_ia(self.ai_manager, actualizar_estado)
+        self.controlador.explicar_codigo_ia(actualizar_estado)
 
     def accion_cambiar_tts(self):
         self.idx_tts, texto_boton = self.controlador.alternar_tts(self.modos_tts, self.idx_tts)
         self.btn_tts.setText(texto_boton)
 
     def accion_leer_qrs_pantalla(self):
-        self.controlador.procesar_qrs_pantalla(self.frame_actual_bgr, self.vision, self.workspace_dir)
+        self.controlador.procesar_qrs_pantalla(self.frame_actual_bgr)
 
     def leer_codigo_generado(self):
         self.caja_texto.clear()
@@ -264,7 +257,7 @@ class TabCamara(QWidget):
         self.status_label.setText(estado)
         
         if hay_error:
-            self.audio_service.leer_texto("Atención. Hay un error de sintaxis en el archivo.")
+            self.controlador.audio_service.leer_texto("Atención. Hay un error de sintaxis en el archivo.")
 
     def accion_editar_codigo(self):
         if not self.modo_edicion:
@@ -301,46 +294,46 @@ class TabCamara(QWidget):
                 self.leer_codigo_generado()
                 self.status_label.setText("Estado: Guardado rápido completado")
 
-    # --- CONTROL DE HARDWARE (MANTENIDO EN LA VISTA) ---
+    # --- CONTROL DE HARDWARE (MANTENIDO EN LA VISTA SOLO COMO BOTONES) ---
     def accion_rotar_camara(self):
         self.rotar_camara = not self.rotar_camara
-        if self.hilo_camara is not None:
-            self.hilo_camara.rotar = self.rotar_camara
+        self.controlador.set_rotacion_camara(self.rotar_camara)
 
     def accion_apagar_camara(self):
         self.apagar_camara = not self.apagar_camara
         if self.apagar_camara:
-            if self.hilo_camara is not None:
-                self.hilo_camara.pausar_hardware()
-            self.video_label.clear() 
+            self.controlador.pausar_camara_hardware()
+            
+            # Limpiamos la imagen y ponemos el fondo completamente negro
+            self.video_label.clear()
+            self.video_label.setStyleSheet("background-color: black;")
+            
             self.status_label.setText("Estado: Cámara Apagada")
         else:
-            if self.hilo_camara is not None:
-                idx = self.combo_camaras.currentData()
-                self.hilo_camara.iniciar_hardware(idx)
+            # Quitamos el fondo negro al encender
+            self.video_label.setStyleSheet("")
+            idx = self.combo_camaras.currentData()
+            self.controlador.iniciar_camara_hardware(idx, self.rotar_camara)
             self.status_label.setText("Estado: Cámara Activa")
 
     def accion_cambiar_camara(self, index):
         if not self.apagar_camara:
-            if self.hilo_camara is not None:
-                self.hilo_camara.pausar_hardware()
+            self.controlador.pausar_camara_hardware()
             self.video_label.clear() 
             id_real = self.combo_camaras.itemData(index)
-            if self.hilo_camara is not None:
-                self.hilo_camara.iniciar_hardware(id_real)
+            self.controlador.iniciar_camara_hardware(id_real, self.rotar_camara)
 
     def cleanup(self):
-        if self.hilo_camara is not None:
-            self.hilo_camara.liberar_todo()
+        self.controlador.liberar_recursos_camara()
 
     def pausar_camara(self):
-        if self.hilo_camara is not None:
-            self.hilo_camara.pausar_hardware()
+        self.controlador.pausar_camara_hardware()
         self.video_label.clear()
+        self.video_label.setStyleSheet("background-color: black;")
 
     def reanudar_camara(self):
         if not self.apagar_camara:
-            if self.hilo_camara is not None:
-                idx = self.combo_camaras.currentData()
-                self.hilo_camara.rotar = self.rotar_camara
-                self.hilo_camara.iniciar_hardware(idx)
+            # Nos aseguramos de limpiar el fondo negro al reanudar
+            self.video_label.setStyleSheet("")
+            idx = self.combo_camaras.currentData()
+            self.controlador.iniciar_camara_hardware(idx, self.rotar_camara)

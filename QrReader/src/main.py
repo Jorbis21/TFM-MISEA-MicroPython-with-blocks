@@ -33,7 +33,7 @@ def main():
     voice_manager = VoiceCommandManager(None, workspace_dir, audio_service)
     vision_engine = VisionEngine()
     json_manager = JsonManager(config_dir)
-    traductor = MicrobitCompiler(config_dir, json_manager, audio_service)
+    traductor = MicrobitCompiler(config_dir, json_manager)
     
     # Fíjate cómo ahora le pasamos el audio por parámetro
     ai_manager = AIManager("AQ.Ab8RN6JQTC-SYK-S--HwCZ1vUbUvZ6-z-Frek--H-vkNUdFJ-w", audio_service) 

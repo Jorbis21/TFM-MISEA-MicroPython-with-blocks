@@ -1,10 +1,10 @@
 import json, os, subprocess, sys
 
 class FileManager:
-    def __init__(self, ruta_estado, ruta_codigo, audio_service):
+    # ELIMINADO: audio_service
+    def __init__(self, ruta_estado, ruta_codigo):
         self.ruta_estado = ruta_estado
         self.ruta_codigo = ruta_codigo
-        self.audio_service = audio_service
 
     def guardar_estado(self, super_matriz, historial):
         try:
@@ -49,9 +49,10 @@ class FileManager:
         print(f"Iniciando el flasheo en la micro:bit con el archivo: {self.ruta_codigo}")
         try:
             subprocess.run([sys.executable, "-m", "uflash", self.ruta_codigo], check=True, capture_output=True, text=True)
-            print("Código subido con exito")
+            return True, "Código subido con éxito"
         except subprocess.CalledProcessError as e:
             print(f"Error al intentar comunicarse con uflash: {e}")
-            self.audio_service.leer_texto_interrumpiendo("Atención. No se detecta la placa Micro bit conectada. Revisa el cable USB.")
+            # DEVOLVEMOS EL ERROR EN VEZ DE HABLARLO DIRECTAMENTE
+            return False, "Atención. No se detecta la placa Micro bit conectada. Revisa el cable USB."
         except FileNotFoundError:
-            print("Error: No se encuentra Python o uflash en el sistema.")
+            return False, "Error. No se encuentra Python o uflash en el sistema."

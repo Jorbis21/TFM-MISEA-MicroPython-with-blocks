@@ -1,10 +1,6 @@
 {
     "matriz": [
         [
-            "declarar variable",
-            "valor variable"
-        ],
-        [
             "para siempre"
         ],
         [
@@ -20,7 +16,7 @@
             "",
             "",
             "desplazar",
-            "variable"
+            "valor variable"
         ],
         [
             "",
@@ -32,14 +28,13 @@
         [
             "",
             "",
+            "",
             "mostrar",
             "valor variable"
         ]
     ],
     "historial": [
-        "texto",
-        "chocolate",
-        "texto",
-        "8"
+        "el caballero de la triste figura",
+        "6"
     ]
 }

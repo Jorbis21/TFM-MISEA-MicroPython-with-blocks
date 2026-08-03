@@ -62,11 +62,15 @@ class VoiceCommandManager:
     def _analizar_intencion(self, texto):
         if not texto: return
             
+        # Añadimos un espacio al principio y al final para poder buscar palabras exactas cortas
+        texto_espaciado = f" {texto} "
+            
         if "foto" in texto or "capturar" in texto or "cámara" in texto:
             self.callback_comando(ComandoVoz.CAPTURAR)
         elif "enviar" in texto or "subir" in texto or "placa" in texto or "microbit" in texto:
             self.callback_comando(ComandoVoz.ENVIAR)
-        elif "explicar" in texto or "inteligencia" in texto or "ia" in texto or "qué hace" in texto:
+        # Aquí pedimos que " ia " tenga espacios alrededor para no cazarla dentro de "variables"
+        elif "explicar" in texto or "inteligencia" in texto or " ia " in texto_espaciado or "qué hace" in texto:
             self.callback_comando(ComandoVoz.EXPLICAR)
         elif "leer" in texto or "mesa" in texto or "qr" in texto:
             self.callback_comando(ComandoVoz.LEER)
@@ -103,6 +107,8 @@ class VoiceCommandManager:
             time.sleep(0.4) 
             if self.is_recording and self.record_id == current_id: 
                 try:
+                    import numpy as np
+                    import sounddevice as sd
                     t = np.linspace(0, 0.15, int(self.samplerate * 0.15), False)
                     tone = np.sin(1000 * 2 * np.pi * t) * 0.5  
                     sd.play(tone, self.samplerate)
@@ -114,23 +120,46 @@ class VoiceCommandManager:
         def audio_callback(indata, frames, tiempo, status):
             self.audio_data.extend(indata.copy())
             
-        self.stream = sd.InputStream(samplerate=self.samplerate, channels=1, callback=audio_callback)
-        self.stream.start()
+        def _arrancar_hardware():
+            import sounddevice as sd
+            try:
+                # Esta es la línea que bloqueaba el sistema por culpa del Bluetooth
+                nuevo_stream = sd.InputStream(samplerate=self.samplerate, channels=1, callback=audio_callback)
+                nuevo_stream.start()
+                
+                # Comprobación de seguridad: Si el usuario ha hecho un toque rápido
+                # y ya ha soltado el espacio antes de que el Bluetooth reaccione, cerramos.
+                if self.is_recording and self.record_id == current_id:
+                    self.stream = nuevo_stream
+                else:
+                    nuevo_stream.stop()
+                    nuevo_stream.close()
+            except Exception as e:
+                print(f"Error accediendo al micrófono: {e}")
+
+        # Arrancamos el hardware en un hilo secundario para no congelar la UI
+        threading.Thread(target=_arrancar_hardware, daemon=True).start()
 
     def discard_dictation_record(self):
         if not self.is_recording: return
         self.is_recording = False
         if self.stream:
-            self.stream.stop()
-            self.stream.close()
+            try:
+                self.stream.stop()
+                self.stream.close()
+            except Exception: pass
+            self.stream = None
         self.audio_data = []
 
     def stop_dictation_and_process(self):
         if not self.is_recording: return
         self.is_recording = False
         if self.stream:
-            self.stream.stop()
-            self.stream.close()
+            try:
+                self.stream.stop()
+                self.stream.close()
+            except Exception: pass
+            self.stream = None
             
         self.audio_service.leer_texto("Procesando.")
         threading.Thread(target=self._process_audio, daemon=True).start()

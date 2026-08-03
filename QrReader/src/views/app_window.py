@@ -16,7 +16,7 @@ class AppCamara(QMainWindow):
     comando_atajo = pyqtSignal(str)
     foco_cambiado = pyqtSignal(str) # Avisa para que el controlador hable
 
-    def __init__(self, workspace_dir, assets_dir, camara_ctrl, json_ctrl, qr_ctrl, vision, ai_manager, audio_service):
+    def __init__(self, workspace_dir, assets_dir, camara_ctrl, json_ctrl, qr_ctrl):
         super().__init__()
         
         self.setWindowTitle("ONCE: MicroPython por bloques")
@@ -33,7 +33,7 @@ class AppCamara(QMainWindow):
         self.atajo_tema = QShortcut(QKeySequence("Ctrl+T"), self)
         self.atajo_tema.activated.connect(self.alternar_contraste)
 
-        self.vista_camara = TabCamara(workspace_dir, assets_dir, camara_ctrl, vision, ai_manager, audio_service)
+        self.vista_camara = TabCamara(workspace_dir, assets_dir, camara_ctrl)
         self.vista_camara.parent_window = self  
         
         self.vista_qrs = TabQRs(qr_ctrl)
