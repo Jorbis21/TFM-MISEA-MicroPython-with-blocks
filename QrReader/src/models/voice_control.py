@@ -13,9 +13,9 @@ class EventoInteraccion:
     es_afirmativo: bool = False
 
 class VoiceCommandManager:
-    def __init__(self, callback_comando, workspace_dir, audio_service, callback_bloqueo_ui=None):
-        self.callback_comando = callback_comando
-        self.callback_bloqueo_ui = callback_bloqueo_ui
+    def __init__(self, callback_command, workspace_dir, audio_service, callback_freeze_ui=None):
+        self.callback_command = callback_command
+        self.callback_freeze_ui = callback_freeze_ui
         self.audio_service = audio_service
         self.is_recording = False
         self.audio_data = []
@@ -71,18 +71,18 @@ class VoiceCommandManager:
         texto_espaciado = f" {texto} "
             
         if "foto" in texto or "capturar" in texto or "cámara" in texto:
-            self.callback_comando(ComandoVoz.CAPTURAR)
+            self.callback_command(ComandoVoz.CAPTURAR)
         elif "enviar" in texto or "subir" in texto or "placa" in texto or "microbit" in texto:
-            self.callback_comando(ComandoVoz.ENVIAR)
+            self.callback_command(ComandoVoz.ENVIAR)
         # Aquí pedimos que " ia " tenga espacios alrededor para no cazarla dentro de "variables"
         elif "explicar" in texto or "inteligencia" in texto or " ia " in texto_espaciado or "qué hace" in texto:
-            self.callback_comando(ComandoVoz.EXPLICAR)
+            self.callback_command(ComandoVoz.EXPLICAR)
         elif "leer" in texto or "mesa" in texto or "qr" in texto:
-            self.callback_comando(ComandoVoz.LEER)
+            self.callback_command(ComandoVoz.LEER)
         elif "voz" in texto or "audio" in texto or "hablar" in texto or "sonido" in texto:
-            self.callback_comando(ComandoVoz.CAMBIAR_TTS)
+            self.callback_command(ComandoVoz.CAMBIAR_TTS)
         elif "repasar" in texto or "modificar" in texto or "variables" in texto:
-            self.callback_comando(ComandoVoz.REPASAR)
+            self.callback_command(ComandoVoz.REPASAR)
         else:
             self.audio_service.leer_texto("Comando no reconocido.")
 
@@ -177,8 +177,8 @@ class VoiceCommandManager:
                 self._analizar_intencion(evento.texto)
 
     def escuchar_dictado_sincrono(self) -> EventoInteraccion:
-        if self.callback_bloqueo_ui: 
-            QTimer.singleShot(0, lambda: self.callback_bloqueo_ui(True))
+        if self.callback_freeze_ui: 
+            QTimer.singleShot(0, lambda: self.callback_freeze_ui(True))
             
         self.modo_dictado = True
         self.evento_actual = None
@@ -196,8 +196,8 @@ class VoiceCommandManager:
             
         finally:
             self.modo_dictado = False
-            if self.callback_bloqueo_ui: 
-                QTimer.singleShot(0, lambda: self.callback_bloqueo_ui(False))
+            if self.callback_freeze_ui: 
+                QTimer.singleShot(0, lambda: self.callback_freeze_ui(False))
 
     def bucle_confirmacion_voz(self, pregunta, valor_por_defecto="desconocido", es_pregunta_abierta=True):
         ultimo_texto = ""

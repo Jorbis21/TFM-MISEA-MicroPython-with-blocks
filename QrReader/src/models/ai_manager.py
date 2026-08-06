@@ -5,9 +5,17 @@ from google.genai import types
 class AIManager:
     '''Inicializacion'''
     def __init__(self, api_key, audio_service):
-        self.cliente_gemini = genai.Client(api_key=api_key)
-        self.ollama_process = None  # Variable para saber si el servidor de la IA local esta encendido
         self.audio_service = audio_service
+        self.ollama_process = None  
+        if api_key:
+            try:
+                self.cliente_gemini = genai.Client(api_key=api_key)
+            except Exception as e:
+                print(f"Aviso: No se pudo iniciar el cliente Gemini: {e}")
+                self.cliente_gemini = None
+        else:
+            print("Aviso: No se proporcionó API Key. Se usará IA local por defecto.")
+            self.cliente_gemini = None
 
     '''Metodo para comprobar la conexion a internet'''
     def _hay_internet(self):
@@ -99,7 +107,7 @@ class AIManager:
 
         sin_internet = not self._hay_internet()
 
-        if not sin_internet:
+        if not sin_internet and self.cliente_gemini is not None:
             callback_estado("Estado: Conectando con Gemini...", "#8E44AD")
             self.audio_service.leer_texto("Conectando con Gemini para la explicación de código")
             time.sleep(3)
@@ -117,8 +125,11 @@ class AIManager:
                 print(f"Fallo en Gemini: {e_gemini}")
                 callback_estado("Estado: Fallo API Gemini. Iniciando IA local...", "#D4AC0D")
         else:
-            callback_estado("Estado: Sin internet. Iniciando IA local...", "#D4AC0D")
-
+            # Avisos visuales específicos dependiendo de por qué vamos a local
+            if self.cliente_gemini is None:
+                callback_estado("Estado: Sin API Key. Iniciando IA local...", "#D4AC0D")
+            else:
+                callback_estado("Estado: Sin internet. Iniciando IA local...", "#D4AC0D")
         try:
             self.audio_service.leer_texto("Usando IA local, puede tardar en responder")
             self.encender_ollama()
@@ -142,7 +153,7 @@ class AIManager:
                         "num_predict": 80
                     }
                 }, 
-                timeout=20
+                timeout=30
             )
             respuesta_local.raise_for_status()
             

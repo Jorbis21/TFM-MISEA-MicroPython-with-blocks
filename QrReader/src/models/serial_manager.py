@@ -21,7 +21,7 @@ class SerialMonitor:
         return None
 
     '''Inicia el demonio y gestiona el bucle'''
-    def arrancar(self):
+    def start(self):
         if self.is_running:
             return
         

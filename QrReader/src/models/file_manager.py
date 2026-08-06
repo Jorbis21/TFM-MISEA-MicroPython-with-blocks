@@ -1,28 +1,28 @@
 import json, os, subprocess, sys
 
 class FileManager:
-    # ELIMINADO: audio_service
-    def __init__(self, ruta_estado, ruta_codigo):
-        self.ruta_estado = ruta_estado
-        self.ruta_codigo = ruta_codigo
+
+    def __init__(self, state_dir, code_dir):
+        self.state_dir = state_dir
+        self.code_dir = code_dir
 
     def guardar_estado(self, super_matriz, historial):
         try:
-            estado = {
+            st = {
                 "matriz": super_matriz,
                 "historial": historial
             }
-            with open(self.ruta_estado, "w", encoding="utf-8") as f:
-                json.dump(estado, f, ensure_ascii=False, indent=4)
+            with open(self.state_dir, "w", encoding="utf-8") as f:
+                json.dump(st, f, ensure_ascii=False, indent=4)
         except Exception as e:
             print(f"Error guardando estado: {e}")
 
     def cargar_estado(self):
-        if os.path.exists(self.ruta_estado):
+        if os.path.exists(self.state_dir):
             try:
-                with open(self.ruta_estado, "r", encoding="utf-8") as f:
-                    estado = json.load(f)
-                    return estado.get("matriz", []), estado.get("historial", [])
+                with open(self.state_dir, "r", encoding="utf-8") as f:
+                    st = json.load(f)
+                    return st.get("matriz", []), st.get("historial", [])
             except Exception as e:
                 print(f"Error cargando estado: {e}")
         return [], []
@@ -39,16 +39,16 @@ class FileManager:
         codigo_a_guardar = "\n".join(lineas_finales)
             
         try:
-            with open(self.ruta_codigo, "w", encoding="utf-8") as f:
+            with open(self.code_dir, "w", encoding="utf-8") as f:
                 f.write(codigo_a_guardar)
             return True, None
         except Exception as e:
             return False, str(e)
 
     def subir(self):
-        print(f"Iniciando el flasheo en la micro:bit con el archivo: {self.ruta_codigo}")
+        print(f"Iniciando el flasheo en la micro:bit con el archivo: {self.code_dir}")
         try:
-            subprocess.run([sys.executable, "-m", "uflash", self.ruta_codigo], check=True, capture_output=True, text=True)
+            subprocess.run([sys.executable, "-m", "uflash", self.code_dir], check=True, capture_output=True, text=True)
             return True, "Código subido con éxito"
         except subprocess.CalledProcessError as e:
             print(f"Error al intentar comunicarse con uflash: {e}")

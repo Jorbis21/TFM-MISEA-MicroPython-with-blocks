@@ -9,6 +9,7 @@ from models.json_manager import JsonManager
 from models.vision import VisionEngine
 from models.translator import MicrobitCompiler
 from models.voice_control import VoiceCommandManager
+from models.file_manager import FileManager
 from controllers.app_controller import AppController
 
 
@@ -40,14 +41,19 @@ def main():
     
     ai_manager = AIManager(api_key, audio_service) 
     serial_monitor = SerialMonitor(audio_service)
+    serial_monitor.start()
 
-    controlador_principal = AppController(
-        workspace_dir, assets_dir, audio_service, vision_engine, 
-        json_manager, traductor, ai_manager, serial_monitor, voice_manager
+    state_dir = os.path.join(workspace_dir, "outputs", "program_state.json")
+    code_dir = os.path.join(workspace_dir, "outputs", "MicroBit_Code.py")
+    file_manager = FileManager(state_dir, code_dir)
+
+    main_controller = AppController(
+        workspace_dir, assets_dir, code_dir, audio_service, vision_engine, 
+        json_manager, traductor, ai_manager, serial_monitor, voice_manager, file_manager
     )
-    voice_manager.callback_bloqueo_ui = controlador_principal.ventana.bloquear_interfaz
+    voice_manager.callback_freeze_ui = main_controller.window.freeze_ui
     
-    controlador_principal.iniciar()
+    main_controller.start()
     sys.exit(app.exec())
 
 if __name__ == "__main__":

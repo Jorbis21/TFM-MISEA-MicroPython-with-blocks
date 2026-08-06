@@ -11,11 +11,11 @@ from views.tab_qrs import TabQRs
 class AppCamara(QMainWindow):
 
     # Señales puras para comunicarse con el Controlador
-    espacio_presionado = pyqtSignal()
-    espacio_soltado = pyqtSignal()
-    comando_atajo = pyqtSignal(str)
-    foco_cambiado = pyqtSignal(str) # Avisa para que el controlador hable
-    ventana_cerrada = pyqtSignal()
+    spacebar_pressed = pyqtSignal()
+    spacebar_released = pyqtSignal()
+    shortcut_command = pyqtSignal(str)
+    changed_focus = pyqtSignal(str) # Avisa para que el controlador hable
+    window_closed = pyqtSignal()
 
     def __init__(self, workspace_dir, assets_dir, camara_ctrl, json_ctrl, qr_ctrl):
         super().__init__()
@@ -97,7 +97,7 @@ class AppCamara(QMainWindow):
                 elif new_widget == self.vista_camara.btn_apagar: texto = "Apagar cámara"
             
             if texto:
-                self.foco_cambiado.emit(texto)
+                self.changed_focus.emit(texto)
 
     def _gestionar_estado_camara(self, index):
         if index == 0: self.vista_camara.reanudar_camara()
@@ -113,23 +113,23 @@ class AppCamara(QMainWindow):
                 self.tabs.removeTab(1)
             self.btn_contraste.setText("Modo Estándar")
             if not silencioso: 
-                self.foco_cambiado.emit("Modo de alto contraste activado.")
+                self.changed_focus.emit("Modo de alto contraste activado.")
         else:
             if self.tabs.count() == 1:
                 self.tabs.addTab(self.vista_qrs, "Generador de QRs")
                 self.tabs.addTab(self.vista_json, "Editor de Diccionario")
             self.btn_contraste.setText("Modo Contraste")
             if not silencioso: 
-                self.foco_cambiado.emit("Modo estándar activado.")
+                self.changed_focus.emit("Modo estándar activado.")
 
     def alternar_contraste(self):
         self.modo_alto_contraste = not self.modo_alto_contraste
         self._aplicar_estado_contraste(silencioso=False)
         self.vista_camara.actualizar_iconos(self.modo_alto_contraste)
 
-    def bloquear_interfaz(self, bloquear):
-        self.tabs.setEnabled(not bloquear)
-        if bloquear: 
+    def freeze_ui(self, freeze):
+        self.tabs.setEnabled(not freeze)
+        if freeze: 
             self.vista_camara.status_label.setText("Estado: Interfaz bloqueada (Esperando respuesta por voz...)")
         else: 
             self.vista_camara.status_label.setText("Estado: Cámara Activa")
@@ -149,7 +149,7 @@ class AppCamara(QMainWindow):
                         
                         if not self.espacio_mantenido:
                             self.espacio_mantenido = True
-                            self.espacio_presionado.emit()
+                            self.spacebar_pressed.emit()
                         return True 
                     
                     elif event.key() in (Qt.Key.Key_Right, Qt.Key.Key_Down):
@@ -173,7 +173,7 @@ class AppCamara(QMainWindow):
                         
                         if self.espacio_mantenido:
                             self.espacio_mantenido = False
-                            self.espacio_soltado.emit()
+                            self.spacebar_released.emit()
                             return True
                         
         return super().eventFilter(obj, event)
@@ -190,5 +190,5 @@ class AppCamara(QMainWindow):
     def closeEvent(self, event):
         if self.vista_camara is not None:
             self.vista_camara.cleanup()
-        self.ventana_cerrada.emit()
+        self.window_closed.emit()
         event.accept()

@@ -1,4 +1,3 @@
-# utils/constants.py
 from enum import Enum
 
 class ComandoVoz(Enum):
