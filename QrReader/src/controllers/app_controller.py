@@ -7,7 +7,7 @@ from controllers.qr_controller import QRController
 from views.app_window import AppCamara
 
 from models.voice_control import EventoInteraccion
-from utils.constants import TipoEvento, ComandoVoz
+from utils.constants import EventType, VoiceCommand
 
 class AppController:
 
@@ -56,9 +56,9 @@ class AppController:
 
     """Control de teclado"""
 
-    def on_changed_focus(self, texto):
+    def on_changed_focus(self, text):
         """Lee el texto de los botones al pasar por ellos"""
-        self.audio_service.leer_texto_interrumpiendo(texto)
+        self.audio_service.leer_texto_interrumpiendo(text)
 
     def on_spacebar_pressed(self):
         """Gestiona el inicio del sistema de grabacion"""
@@ -84,33 +84,33 @@ class AppController:
         self.space_clicks = 0
         
         if taps == 1:
-            self.voice_manager.inyectar_evento(EventoInteraccion(tipo=TipoEvento.TOQUE_FISICO, es_afirmativo=False))
+            self.voice_manager.inject_event(EventoInteraccion(tipo=EventType.TAP, es_afirmativo=False))
         elif taps == 2:
-            self.voice_manager.inyectar_evento(EventoInteraccion(tipo=TipoEvento.TOQUE_FISICO, es_afirmativo=True))
+            self.voice_manager.inject_event(EventoInteraccion(tipo=EventType.TAP, es_afirmativo=True))
         elif taps >= 3:
-            self.voice_manager.inyectar_evento(EventoInteraccion(tipo=TipoEvento.OMITIR))
+            self.voice_manager.inject_event(EventoInteraccion(tipo=EventType.SKIP))
 
     """Comandos por voz"""
 
-    def on_shortcut_command(self, accion):
+    def on_shortcut_command(self, action):
         """Ejecuta la accion recibida por atajo de teclado"""
-        self._run_command(accion)
+        self._run_command(action)
 
-    def on_voice_command(self, accion):
+    def on_voice_command(self, action):
         """Ejecuta la accion recibida por voz"""
-        self._run_command(accion)
+        self._run_command(action)
 
-    def _run_command(self, accion):
+    def _run_command(self, action):
         """Ejecuta la accion segun el commando recibido"""
-        if accion == ComandoVoz.CAPTURAR:
-            self.window.vista_camara.accion_capturar()
-        elif accion == ComandoVoz.ENVIAR:
-            self.window.vista_camara.accion_enviar()
-        elif accion == ComandoVoz.EXPLICAR:
-            self.window.vista_camara.accion_explicar_ia()
-        elif accion == ComandoVoz.LEER:
-            self.window.vista_camara.accion_leer_qrs_pantalla()
-        elif accion == ComandoVoz.CAMBIAR_TTS:
-            self.window.vista_camara.accion_cambiar_tts()
-        elif accion == ComandoVoz.REPASAR:
-            self.window.vista_camara.accion_repasar_variables()
+        if action == VoiceCommand.CAPTURE:
+            self.window.camera_view.action_capture()
+        elif action == VoiceCommand.SEND:
+            self.window.camera_view.action_send()
+        elif action == VoiceCommand.EXPLAIN:
+            self.window.camera_view.action_ia_explain()
+        elif action == VoiceCommand.READ:
+            self.window.camera_view.action_read_qrs()
+        elif action == VoiceCommand.CHANGE_TTS:
+            self.window.camera_view.action_change_tts()
+        elif action == VoiceCommand.REVIEW:
+            self.window.camera_view.action_var_review()

@@ -1,19 +1,19 @@
 from enum import Enum
 
-class ComandoVoz(Enum):
-    CAPTURAR = "capturar"
-    ENVIAR = "enviar"
-    EXPLICAR = "explicar"
-    LEER = "leer"
-    CAMBIAR_TTS = "cambiar_tts"
-    REPASAR = "repasar"
+class VoiceCommand(Enum):
+    CAPTURE = "capturar"
+    SEND = "enviar"
+    EXPLAIN = "explicar"
+    READ = "leer"
+    CHANGE_TTS = "cambiar_tts"
+    REVIEW = "repasar"
 
-class ModoTTS(Enum):
+class TTSMode(Enum):
     PC = "pc"
-    PLACA = "placa"
-    APAGADO = "apagado"
+    BOARD = "placa"
+    SHUTDONW = "apagado"
 
-class TipoEvento(Enum):
-    VOZ = "voz"
-    TOQUE_FISICO = "toque_fisico"
-    OMITIR = "omitir"
+class EventType(Enum):
+    VOICE = "voz"
+    TAP = "toque_fisico"
+    SKIP = "omitir"

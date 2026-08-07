@@ -1,40 +1,4 @@
 {
-    "matriz": [
-        [
-            "para siempre"
-        ],
-        [
-            "",
-            "",
-            "al presionar",
-            "logo",
-            "y",
-            "boton b"
-        ],
-        [
-            "",
-            "",
-            "",
-            "desplazar",
-            "valor variable"
-        ],
-        [
-            "",
-            "al presionar",
-            "boton a",
-            "o",
-            "pin 0"
-        ],
-        [
-            "",
-            "",
-            "",
-            "mostrar",
-            "valor variable"
-        ]
-    ],
-    "historial": [
-        "el caballero de la triste figura",
-        "6"
-    ]
+    "matriz": [],
+    "historial": []
 }

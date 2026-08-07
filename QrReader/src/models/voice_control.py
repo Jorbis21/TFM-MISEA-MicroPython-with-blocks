@@ -4,15 +4,16 @@ from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import QTimer, QThread
 from dataclasses import dataclass
 
-from utils.constants import TipoEvento, ComandoVoz
+from utils.constants import EventType, VoiceCommand
 
 @dataclass
 class EventoInteraccion:
-    tipo: TipoEvento
+    tipo: EventType
     texto: str = ""
     es_afirmativo: bool = False
 
 class VoiceCommandManager:
+
     def __init__(self, callback_command, workspace_dir, audio_service, callback_freeze_ui=None):
         self.callback_command = callback_command
         self.callback_freeze_ui = callback_freeze_ui
@@ -56,13 +57,13 @@ class VoiceCommandManager:
             
             print(f"[Voz detectada]: {texto_limpio}")
             
-            evento_voz = EventoInteraccion(tipo=TipoEvento.VOZ, texto=texto_limpio)
-            self.inyectar_evento(evento_voz)
+            evento_voz = EventoInteraccion(tipo=EventType.VOICE, texto=texto_limpio)
+            self.inject_event(evento_voz)
             
         except Exception as e:
             print(f"Error procesando voz: {e}")
             if self.modo_dictado:
-                self.evento_actual = EventoInteraccion(tipo=TipoEvento.VOZ, texto="")
+                self.evento_actual = EventoInteraccion(tipo=EventType.VOICE, texto="")
 
     def _analizar_intencion(self, texto):
         if not texto: return
@@ -71,26 +72,26 @@ class VoiceCommandManager:
         texto_espaciado = f" {texto} "
             
         if "foto" in texto or "capturar" in texto or "cámara" in texto:
-            self.callback_command(ComandoVoz.CAPTURAR)
+            self.callback_command(VoiceCommand.CAPTURE)
         elif "enviar" in texto or "subir" in texto or "placa" in texto or "microbit" in texto:
-            self.callback_command(ComandoVoz.ENVIAR)
+            self.callback_command(VoiceCommand.SEND)
         # Aquí pedimos que " ia " tenga espacios alrededor para no cazarla dentro de "variables"
         elif "explicar" in texto or "inteligencia" in texto or " ia " in texto_espaciado or "qué hace" in texto:
-            self.callback_command(ComandoVoz.EXPLICAR)
+            self.callback_command(VoiceCommand.EXPLAIN)
         elif "leer" in texto or "mesa" in texto or "qr" in texto:
-            self.callback_command(ComandoVoz.LEER)
+            self.callback_command(VoiceCommand.READ)
         elif "voz" in texto or "audio" in texto or "hablar" in texto or "sonido" in texto:
-            self.callback_command(ComandoVoz.CAMBIAR_TTS)
+            self.callback_command(VoiceCommand.CHANGE_TTS)
         elif "repasar" in texto or "modificar" in texto or "variables" in texto:
-            self.callback_command(ComandoVoz.REPASAR)
+            self.callback_command(VoiceCommand.REVIEW)
         else:
             self.audio_service.leer_texto("Comando no reconocido.")
 
     @staticmethod
     def _interpretar_confirmacion(evento: EventoInteraccion):
-        if evento.tipo == TipoEvento.OMITIR:
+        if evento.tipo == EventType.SKIP:
             return "omitir"
-        if evento.tipo == TipoEvento.TOQUE_FISICO:
+        if evento.tipo == EventType.TAP:
             return "confirmar" if evento.es_afirmativo else "repetir"
             
         valor = evento.texto.lower()
@@ -169,11 +170,11 @@ class VoiceCommandManager:
         self.audio_service.leer_texto("Procesando.")
         threading.Thread(target=self._process_audio, daemon=True).start()
 
-    def inyectar_evento(self, evento: EventoInteraccion):
+    def inject_event(self, evento: EventoInteraccion):
         if self.modo_dictado:
             self.evento_actual = evento
         else:
-            if evento.tipo == TipoEvento.VOZ and evento.texto:
+            if evento.tipo == EventType.VOICE and evento.texto:
                 self._analizar_intencion(evento.texto)
 
     def escuchar_dictado_sincrono(self) -> EventoInteraccion:
@@ -190,7 +191,7 @@ class VoiceCommandManager:
                 time.sleep(0.05)
 
             if not self.corriendo:
-                return EventoInteraccion(tipo=TipoEvento.OMITIR)
+                return EventoInteraccion(tipo=EventType.SKIP)
                 
             return self.evento_actual
             
@@ -206,19 +207,19 @@ class VoiceCommandManager:
             self.audio_service.leer_texto(pregunta)
             respuesta: EventoInteraccion = self.escuchar_dictado_sincrono()
 
-            if respuesta.tipo == TipoEvento.OMITIR:
+            if respuesta.tipo == EventType.SKIP:
                 self.audio_service.leer_texto("Saltando paso. Usando valor por defecto.")
                 return valor_por_defecto
 
             if es_pregunta_abierta:
-                if respuesta.tipo == TipoEvento.TOQUE_FISICO:
+                if respuesta.tipo == EventType.TAP:
                     self.audio_service.leer_texto("Por favor, dígame la respuesta hablando, no uses los toques rápidos.")
                     continue
                 if not respuesta.texto:
                     continue
                 ultimo_texto = respuesta.texto
             else:
-                if respuesta.tipo == TipoEvento.TOQUE_FISICO:
+                if respuesta.tipo == EventType.TAP:
                     return "sí" if respuesta.es_afirmativo else "no"
                     
                 if not respuesta.texto:

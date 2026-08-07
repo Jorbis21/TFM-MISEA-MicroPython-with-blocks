@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PyQt6.QtGui import (QImage, QPixmap, QIcon)
 from PyQt6.QtCore import Qt, QTimer, QSize
 from views.highlighter import PythonHighlighter
-from utils.constants import ModoTTS
+from utils.constants import TTSMode
 from controllers.camera_worker import CameraWorker
 
 class TabCamara(QWidget):
@@ -47,38 +47,38 @@ class TabCamara(QWidget):
         
         self.btn_capturar = QPushButton("Tomar Foto")
         self.btn_capturar.setObjectName("btn_capturar")
-        self.btn_capturar.clicked.connect(self.accion_capturar)
+        self.btn_capturar.clicked.connect(self.action_capture)
         layout_botones.addWidget(self.btn_capturar)
         
         self.btn_enviar = QPushButton("Enviar a MicroBit")
         self.btn_enviar.setObjectName("btn_enviar")
-        self.btn_enviar.clicked.connect(self.accion_enviar)
+        self.btn_enviar.clicked.connect(self.action_send)
         layout_botones.addWidget(self.btn_enviar)
 
         self.btn_ia = QPushButton("Explicar con IA")
         self.btn_ia.setObjectName("btn_ia")
-        self.btn_ia.clicked.connect(self.accion_explicar_ia)
+        self.btn_ia.clicked.connect(self.action_ia_explain)
         layout_botones.addWidget(self.btn_ia)
 
         self.btn_leer = QPushButton("Leer QRs")
         self.btn_leer.setObjectName("btn_leer")
-        self.btn_leer.clicked.connect(self.accion_leer_qrs_pantalla)
+        self.btn_leer.clicked.connect(self.action_read_qrs)
         layout_botones.addWidget(self.btn_leer)
 
         self.modos_tts = [
-            {"texto": "Voz: PC", "valor": ModoTTS.PC.value},
-            {"texto": "Voz: Placa", "valor": ModoTTS.PLACA.value},
-            {"texto": "Voz: Apagada", "valor": ModoTTS.APAGADO.value}
+            {"texto": "Voz: PC", "valor": TTSMode.PC.value},
+            {"texto": "Voz: Placa", "valor": TTSMode.BOARD.value},
+            {"texto": "Voz: Apagada", "valor": TTSMode.SHUTDONW.value}
         ]
         self.idx_tts = 0
         self.btn_tts = QPushButton(self.modos_tts[self.idx_tts]["texto"])
         self.btn_tts.setObjectName("btn_tts")
-        self.btn_tts.clicked.connect(self.accion_cambiar_tts)
+        self.btn_tts.clicked.connect(self.action_change_tts)
         layout_botones.addWidget(self.btn_tts)
 
         self.btn_repaso = QPushButton("Modificar Variables")
         self.btn_repaso.setObjectName("btn_repaso")
-        self.btn_repaso.clicked.connect(self.accion_repasar_variables)
+        self.btn_repaso.clicked.connect(self.action_var_review)
         layout_botones.addWidget(self.btn_repaso)
 
         layout_izq.addLayout(layout_botones)
@@ -228,26 +228,26 @@ class TabCamara(QWidget):
         self.btn_apagar.setIcon(QIcon(ruta_apagar))
 
     # --- ACCIONES PURIFICADAS QUE SOLO DELEGAN ---
-    def accion_capturar(self):
+    def action_capture(self):
         if self.frame_actual_bgr is None: return
         self.controlador.procesar_captura_completa(self.frame_actual_bgr, self.ruta_img, self.leer_codigo_generado)
 
-    def accion_repasar_variables(self):
+    def action_var_review(self):
         self.controlador.repasar_variables(self.leer_codigo_generado)
 
-    def accion_enviar(self):
+    def action_send(self):
         self.controlador.enviar_a_microbit()
 
-    def accion_explicar_ia(self):
+    def action_ia_explain(self):
         def actualizar_estado(texto, color_hex=None):
             self.status_label.setText(texto)
         self.controlador.explicar_codigo_ia(actualizar_estado)
 
-    def accion_cambiar_tts(self):
+    def action_change_tts(self):
         self.idx_tts, texto_boton = self.controlador.alternar_tts(self.modos_tts, self.idx_tts)
         self.btn_tts.setText(texto_boton)
 
-    def accion_leer_qrs_pantalla(self):
+    def action_read_qrs(self):
         self.controlador.procesar_qrs_pantalla(self.frame_actual_bgr)
 
     def leer_codigo_generado(self):

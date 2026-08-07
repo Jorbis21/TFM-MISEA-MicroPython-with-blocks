@@ -1,5 +1,5 @@
 import threading, re, os
-from utils.constants import ModoTTS, TipoEvento
+from utils.constants import TTSMode, EventType
 from controllers.camera_worker import CameraWorker
 
 class CameraController:
@@ -123,11 +123,11 @@ class CameraController:
         if self.traductor is not None:
             self.traductor.set_modo_tts(modo["valor"])
             
-        if modo["valor"] == ModoTTS.PC.value:
+        if modo["valor"] == TTSMode.PC.value:
             self.audio_service.leer_texto("Modo de voz por ordenador activado.")
-        elif modo["valor"] == ModoTTS.PLACA.value:
+        elif modo["valor"] == TTSMode.BOARD.value:
             self.audio_service.leer_texto("Modo de voz en la placa activado.")
-        elif modo["valor"] == ModoTTS.APAGADO.value:
+        elif modo["valor"] == TTSMode.SHUTDONW.value:
             self.audio_service.leer_texto("Voz de ejecución desactivada.")
             
         return siguiente_idx, modo["texto"]
@@ -197,8 +197,8 @@ class CameraController:
                 
             evento = self.voice_manager.escuchar_dictado_sincrono()
             quiere_modificar = (
-                (evento.tipo == TipoEvento.TOQUE_FISICO and evento.es_afirmativo) or 
-                (evento.tipo == TipoEvento.VOZ and ("sí" in evento.texto or "si" in evento.texto))
+                (evento.tipo == EventType.TAP and evento.es_afirmativo) or 
+                (evento.tipo == EventType.VOICE and ("sí" in evento.texto or "si" in evento.texto))
             )
             
             if quiere_modificar:
@@ -214,8 +214,8 @@ class CameraController:
         self.audio_service.leer_texto(f"{intro}¿Quieres usar la última variable declarada, llamada {ultima_var}?")
         resp1 = self.voice_manager.escuchar_dictado_sincrono()
         usar_ultima = (
-            (resp1.tipo == TipoEvento.TOQUE_FISICO and resp1.es_afirmativo) or 
-            (resp1.tipo == TipoEvento.VOZ and any(p in resp1.texto for p in ["sí", "si", "claro", "correcto"]))
+            (resp1.tipo == EventType.TAP and resp1.es_afirmativo) or 
+            (resp1.tipo == EventType.VOICE and any(p in resp1.texto for p in ["sí", "si", "claro", "correcto"]))
         )
         if usar_ultima: return ultima_var
 
@@ -223,14 +223,14 @@ class CameraController:
             self.audio_service.leer_texto("¿Quieres usar otra de las variables anteriores?")
             resp2 = self.voice_manager.escuchar_dictado_sincrono()
             usar_otra = (
-                (resp2.tipo == TipoEvento.TOQUE_FISICO and resp2.es_afirmativo) or 
-                (resp2.tipo == TipoEvento.VOZ and any(p in resp2.texto for p in ["sí", "si", "claro", "correcto"]))
+                (resp2.tipo == EventType.TAP and resp2.es_afirmativo) or 
+                (resp2.tipo == EventType.VOICE and any(p in resp2.texto for p in ["sí", "si", "claro", "correcto"]))
             )
             if usar_otra:
                 while True:
                     self.audio_service.leer_texto("Dime el nombre de la variable para buscarla.")
                     busqueda = self.voice_manager.escuchar_dictado_sincrono()
-                    if busqueda.tipo == TipoEvento.TOQUE_FISICO:
+                    if busqueda.tipo == EventType.TAP:
                         self.audio_service.leer_texto("Por favor, dime el nombre hablando.")
                         continue
                     texto_busqueda = self.traductor._normalizar_texto(busqueda.texto, es_variable=True)
