@@ -44,7 +44,7 @@ class AIManager:
             time.sleep(2.5)
 
     '''Metodo para apagar la IA local'''
-    def apagar_ollama(self):
+    def shutdown_ollama(self):
         try:
             if os.name == 'nt':  # Windows
                 subprocess.run(
@@ -87,18 +87,18 @@ class AIManager:
         2. Si no puede lo explica la IA local
         3. Si falla lee el codigo literalmente
     '''
-    def explicar_codigo(self, ruta_codigo, callback_estado):
+    def explain_code(self, ruta_codigo, callback_estado):
         try:
             with open(ruta_codigo, "r", encoding="utf-8") as file:
                 codigo = file.read()
         except FileNotFoundError:
-            self.audio_service.leer_texto("Aún no se ha generado ningún programa.")
+            self.audio_service.read_text("Aún no se ha generado ningún programa.")
             return
 
         codigo_limpio = self._limpiar_codigo(codigo)
         
         if not codigo_limpio.strip():
-            self.audio_service.leer_texto("El archivo de código está vacío.")
+            self.audio_service.read_text("El archivo de código está vacío.")
             return
 
         prompt = f"""Eres un asistente de accesibilidad. Explica en una o dos frases, con lenguaje cotidiano
@@ -109,7 +109,7 @@ class AIManager:
 
         if not sin_internet and self.cliente_gemini is not None:
             callback_estado("Estado: Conectando con Gemini...", "#8E44AD")
-            self.audio_service.leer_texto("Conectando con Gemini para la explicación de código")
+            self.audio_service.read_text("Conectando con Gemini para la explicación de código")
             time.sleep(3)
             try:
                 configuracion = types.GenerateContentConfig(max_output_tokens=80, temperature=0.2)
@@ -119,7 +119,7 @@ class AIManager:
                     config=configuracion
                 )
                 callback_estado("Estado: Explicación rápida por Gemini", "#2FA572")
-                self.audio_service.leer_texto(respuesta.text.strip())
+                self.audio_service.read_text(respuesta.text.strip())
                 return 
             except Exception as e_gemini:
                 print(f"Fallo en Gemini: {e_gemini}")
@@ -131,7 +131,7 @@ class AIManager:
             else:
                 callback_estado("Estado: Sin internet. Iniciando IA local...", "#D4AC0D")
         try:
-            self.audio_service.leer_texto("Usando IA local, puede tardar en responder")
+            self.audio_service.read_text("Usando IA local, puede tardar en responder")
             self.encender_ollama()
             
             instrucciones_sistema = (
@@ -163,7 +163,7 @@ class AIManager:
                 explicacion = explicacion.split("```")[0].strip()
                 
             callback_estado("Estado: Explicación por IA Local", "#2FA572")
-            self.audio_service.leer_texto(explicacion, sin_internet)
+            self.audio_service.read_text(explicacion, sin_internet)
             return 
             
         except Exception as e_ollama:
@@ -171,5 +171,5 @@ class AIManager:
 
         self.apagar_ollama()
         callback_estado("Estado: IAs no disponibles. Leyendo literalmente.", "#E67E22")
-        self.audio_service.leer_texto("IAs no disponibles. Modo sin conexión. ")
+        self.audio_service.read_text("IAs no disponibles. Modo sin conexión. ")
         self.audio_service.leer_codigo_literal(ruta_codigo)

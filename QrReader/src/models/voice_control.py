@@ -7,10 +7,10 @@ from dataclasses import dataclass
 from utils.constants import EventType, VoiceCommand
 
 @dataclass
-class EventoInteraccion:
-    tipo: EventType
-    texto: str = ""
-    es_afirmativo: bool = False
+class InteractionEvent:
+    type: EventType
+    text: str = ""
+    afirmative: bool = False
 
 class VoiceCommandManager:
 
@@ -32,7 +32,7 @@ class VoiceCommandManager:
         self.model = None
         threading.Thread(target=self._load_model, daemon=True).start()
 
-    def detener(self):
+    def stop(self):
         self.corriendo = False
         self.discard_dictation_record()
 
@@ -45,7 +45,7 @@ class VoiceCommandManager:
             cpu_threads=4
         )
         print("Motor de voz listo.")
-        self.audio_service.leer_texto("El control por voz está listo.")
+        self.audio_service.read_text("El control por voz está listo.")
 
     def _process_audio(self):
         try:
@@ -57,13 +57,13 @@ class VoiceCommandManager:
             
             print(f"[Voz detectada]: {texto_limpio}")
             
-            evento_voz = EventoInteraccion(tipo=EventType.VOICE, texto=texto_limpio)
+            evento_voz = InteractionEvent(type=EventType.VOICE, text=texto_limpio)
             self.inject_event(evento_voz)
             
         except Exception as e:
             print(f"Error procesando voz: {e}")
             if self.modo_dictado:
-                self.evento_actual = EventoInteraccion(tipo=EventType.VOICE, texto="")
+                self.evento_actual = InteractionEvent(type=EventType.VOICE, text="")
 
     def _analizar_intencion(self, texto):
         if not texto: return
@@ -85,19 +85,19 @@ class VoiceCommandManager:
         elif "repasar" in texto or "modificar" in texto or "variables" in texto:
             self.callback_command(VoiceCommand.REVIEW)
         else:
-            self.audio_service.leer_texto("Comando no reconocido.")
+            self.audio_service.read_text("Comando no reconocido.")
 
     @staticmethod
-    def _interpretar_confirmacion(evento: EventoInteraccion):
-        if evento.tipo == EventType.SKIP:
+    def _interpretar_confirmacion(event: InteractionEvent):
+        if event.type == EventType.SKIP:
             return "omitir"
-        if evento.tipo == EventType.TAP:
-            return "confirmar" if evento.es_afirmativo else "repetir"
+        if event.type == EventType.TAP:
+            return "confirmar" if event.afirmative else "repetir"
             
-        valor = evento.texto.lower()
-        if "pasar" in valor or "omitir" in valor:
+        value = event.text.lower()
+        if "pasar" in value or "omitir" in value:
             return "omitir"
-        if "sí" in valor or "si" in valor or "correcto" in valor:
+        if "sí" in value or "si" in value or "correcto" in value:
             return "confirmar"
         return "repetir"
 
@@ -167,17 +167,17 @@ class VoiceCommandManager:
             except Exception: pass
             self.stream = None
             
-        self.audio_service.leer_texto("Procesando.")
+        self.audio_service.read_text("Procesando.")
         threading.Thread(target=self._process_audio, daemon=True).start()
 
-    def inject_event(self, evento: EventoInteraccion):
+    def inject_event(self, event: InteractionEvent):
         if self.modo_dictado:
-            self.evento_actual = evento
+            self.evento_actual = event
         else:
-            if evento.tipo == EventType.VOICE and evento.texto:
-                self._analizar_intencion(evento.texto)
+            if event.type == EventType.VOICE and event.text:
+                self._analizar_intencion(event.text)
 
-    def escuchar_dictado_sincrono(self) -> EventoInteraccion:
+    def listen_dict_sync(self) -> InteractionEvent:
         if self.callback_freeze_ui: 
             QTimer.singleShot(0, lambda: self.callback_freeze_ui(True))
             
@@ -191,7 +191,7 @@ class VoiceCommandManager:
                 time.sleep(0.05)
 
             if not self.corriendo:
-                return EventoInteraccion(tipo=EventType.SKIP)
+                return InteractionEvent(type=EventType.SKIP)
                 
             return self.evento_actual
             
@@ -200,20 +200,20 @@ class VoiceCommandManager:
             if self.callback_freeze_ui: 
                 QTimer.singleShot(0, lambda: self.callback_freeze_ui(False))
 
-    def bucle_confirmacion_voz(self, pregunta, valor_por_defecto="desconocido", es_pregunta_abierta=True):
+    def voice_confirmation_loop(self, pregunta, valor_por_defecto="desconocido", open_question=True):
         ultimo_texto = ""
 
         while True:
-            self.audio_service.leer_texto(pregunta)
-            respuesta: EventoInteraccion = self.escuchar_dictado_sincrono()
+            self.audio_service.read_text(pregunta)
+            respuesta: InteractionEvent = self.listen_dict_sync()
 
             if respuesta.tipo == EventType.SKIP:
-                self.audio_service.leer_texto("Saltando paso. Usando valor por defecto.")
+                self.audio_service.read_text("Saltando paso. Usando valor por defecto.")
                 return valor_por_defecto
 
-            if es_pregunta_abierta:
+            if open_question:
                 if respuesta.tipo == EventType.TAP:
-                    self.audio_service.leer_texto("Por favor, dígame la respuesta hablando, no uses los toques rápidos.")
+                    self.audio_service.read_text("Por favor, dígame la respuesta hablando, no uses los toques rápidos.")
                     continue
                 if not respuesta.texto:
                     continue
@@ -229,14 +229,14 @@ class VoiceCommandManager:
                     return respuesta.texto
                 ultimo_texto = respuesta.texto
 
-            self.audio_service.leer_texto(f"He entendido {ultimo_texto}. ¿Es correcto?")
-            confirmacion: EventoInteraccion = self.escuchar_dictado_sincrono()
+            self.audio_service.read_text(f"He entendido {ultimo_texto}. ¿Es correcto?")
+            confirmacion: InteractionEvent = self.listen_dict_sync()
             intencion = self._interpretar_confirmacion(confirmacion)
 
             if intencion == "confirmar":
                 return ultimo_texto
             elif intencion == "omitir":
-                self.audio_service.leer_texto("Omitiendo validación.")
+                self.audio_service.read_text("Omitiendo validación.")
                 return ultimo_texto
             else:
-                self.audio_service.leer_texto("De acuerdo, vamos a repetirlo.")
+                self.audio_service.read_text("De acuerdo, vamos a repetirlo.")

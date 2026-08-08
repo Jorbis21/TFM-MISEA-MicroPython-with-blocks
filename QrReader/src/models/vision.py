@@ -164,7 +164,7 @@ class VisionEngine:
                 
         return matriz
         
-    def comprobar_desbordamiento(self):
+    def check_overflow(self):
         if self.frame_actual is None: return None
         alto_frame, ancho_frame, _ = self.frame_actual.shape
         elementos = list(self.elementos_detectados)
@@ -226,7 +226,7 @@ class VisionEngine:
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
     
-    def takePhoto(self, frame, ruta_destino):
+    def take_photo(self, frame, ruta_destino):
         cv2.imwrite(ruta_destino, frame)
 
     def getPhoto(self, ruta_origen):

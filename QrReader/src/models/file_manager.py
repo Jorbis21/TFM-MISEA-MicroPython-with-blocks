@@ -6,28 +6,28 @@ class FileManager:
         self.state_dir = state_dir
         self.code_dir = code_dir
 
-    def guardar_estado(self, super_matriz, historial):
+    def save_state(self, super_matrix, history):
         try:
             st = {
-                "matriz": super_matriz,
-                "historial": historial
+                "matrix": super_matrix,
+                "history": history
             }
             with open(self.state_dir, "w", encoding="utf-8") as f:
                 json.dump(st, f, ensure_ascii=False, indent=4)
         except Exception as e:
             print(f"Error guardando estado: {e}")
 
-    def cargar_estado(self):
+    def load_state(self):
         if os.path.exists(self.state_dir):
             try:
                 with open(self.state_dir, "r", encoding="utf-8") as f:
                     st = json.load(f)
-                    return st.get("matriz", []), st.get("historial", [])
+                    return st.get("matrix", []), st.get("history", [])
             except Exception as e:
                 print(f"Error cargando estado: {e}")
         return [], []
 
-    def guardar_codigo_editado(self, nuevo_codigo, bloque_pitches):
+    def save_edited_code(self, nuevo_codigo, bloque_pitches):
         lineas_editadas = nuevo_codigo.split('\n')
         idx_insert = 0
         for i, linea in enumerate(lineas_editadas):
@@ -45,7 +45,7 @@ class FileManager:
         except Exception as e:
             return False, str(e)
 
-    def subir(self):
+    def upload(self):
         print(f"Iniciando el flasheo en la micro:bit con el archivo: {self.code_dir}")
         try:
             subprocess.run([sys.executable, "-m", "uflash", self.code_dir], check=True, capture_output=True, text=True)

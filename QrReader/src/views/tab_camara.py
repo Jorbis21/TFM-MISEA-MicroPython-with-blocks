@@ -8,7 +8,6 @@ from utils.constants import TTSMode
 from controllers.camera_worker import CameraWorker
 
 class TabCamara(QWidget):
-    # YA NO RECIBE AI_MANAGER NI AUDIO_SERVICE. MANTIENE VISION SOLO PARA EL WORKER.
     def __init__(self, workspace_dir, assets_dir, camera_ctrl):
         super().__init__()
         self.workspace_dir = workspace_dir
@@ -30,7 +29,7 @@ class TabCamara(QWidget):
         self.frame_actual_bgr = None
 
         
-        self.controlador.hilo_camara.nuevo_frame.connect(self.actualizar_frame)
+        self.controlador.camera_thr.nuevo_frame.connect(self.actualizar_frame)
 
         self._setup_ui()
         self.leer_codigo_generado()
@@ -66,9 +65,9 @@ class TabCamara(QWidget):
         layout_botones.addWidget(self.btn_leer)
 
         self.modos_tts = [
-            {"texto": "Voz: PC", "valor": TTSMode.PC.value},
-            {"texto": "Voz: Placa", "valor": TTSMode.BOARD.value},
-            {"texto": "Voz: Apagada", "valor": TTSMode.SHUTDONW.value}
+            {"text": "Voz: PC", "value": TTSMode.PC.value},
+            {"text": "Voz: Placa", "value": TTSMode.BOARD.value},
+            {"text": "Voz: Apagada", "value": TTSMode.SHUTDONW.value}
         ]
         self.idx_tts = 0
         self.btn_tts = QPushButton(self.modos_tts[self.idx_tts]["texto"])
@@ -186,7 +185,7 @@ class TabCamara(QWidget):
         self.clics = 0
         self.ultima_tecla = None
         # AQUÍ LA VISTA DELEGA EN EL CONTROLADOR LA PETICIÓN DE LECTURA DE INTERFAZ
-        self.controlador.audio_service.leer_texto(text)
+        self.controlador.audio_service.read_text(text)
     
     def _procesar_doble_clic(self, func):
         func()
@@ -230,34 +229,34 @@ class TabCamara(QWidget):
     # --- ACCIONES PURIFICADAS QUE SOLO DELEGAN ---
     def action_capture(self):
         if self.frame_actual_bgr is None: return
-        self.controlador.procesar_captura_completa(self.frame_actual_bgr, self.ruta_img, self.leer_codigo_generado)
+        self.controlador.process_whole_frame(self.frame_actual_bgr, self.ruta_img, self.leer_codigo_generado)
 
     def action_var_review(self):
-        self.controlador.repasar_variables(self.leer_codigo_generado)
+        self.controlador.var_review(self.leer_codigo_generado)
 
     def action_send(self):
-        self.controlador.enviar_a_microbit()
+        self.controlador.send_to_microbit()
 
     def action_ia_explain(self):
         def actualizar_estado(texto, color_hex=None):
             self.status_label.setText(texto)
-        self.controlador.explicar_codigo_ia(actualizar_estado)
+        self.controlador.ia_explain_code(actualizar_estado)
 
     def action_change_tts(self):
-        self.idx_tts, texto_boton = self.controlador.alternar_tts(self.modos_tts, self.idx_tts)
+        self.idx_tts, texto_boton = self.controlador.change_tts(self.modos_tts, self.idx_tts)
         self.btn_tts.setText(texto_boton)
 
     def action_read_qrs(self):
-        self.controlador.procesar_qrs_pantalla(self.frame_actual_bgr)
+        self.controlador.read_qrs(self.frame_actual_bgr)
 
     def leer_codigo_generado(self):
         self.caja_texto.clear()
-        codigo_mostrar, estado, self.bloque_pitches, hay_error = self.controlador.obtener_codigo_vista()
+        codigo_mostrar, estado, self.bloque_pitches, hay_error = self.controlador.get_view_code()
         self.caja_texto.setPlainText(codigo_mostrar)
         self.status_label.setText(estado)
         
         if hay_error:
-            self.controlador.audio_service.leer_texto("Atención. Hay un error de sintaxis en el archivo.")
+            self.controlador.audio_service.read_text("Atención. Hay un error de sintaxis en el archivo.")
 
     def accion_editar_codigo(self):
         if not self.modo_edicion:
@@ -270,7 +269,7 @@ class TabCamara(QWidget):
             self.status_label.setText("Estado: MODO EDICIÓN ACTIVO")
         else:
             nuevo_codigo = self.caja_texto.toPlainText()
-            exito, error = self.controlador.guardar_codigo_manual(nuevo_codigo, self.bloque_pitches)
+            exito, error = self.controlador.save_manual_code(nuevo_codigo, self.bloque_pitches)
             
             if exito:
                 self.modo_edicion = False
@@ -286,7 +285,7 @@ class TabCamara(QWidget):
     def accion_atajo_guardar(self):
         if self.modo_edicion:
             nuevo_codigo = self.caja_texto.toPlainText()
-            exito, _ = self.controlador.guardar_codigo_manual(nuevo_codigo, self.bloque_pitches)
+            exito, _ = self.controlador.save_manual_code(nuevo_codigo, self.bloque_pitches)
             if exito:
                 self.modo_edicion = False
                 self.btn_editar.setIcon(QIcon(os.path.join(self.icons_dir, "edit.png")))
@@ -297,12 +296,12 @@ class TabCamara(QWidget):
     # --- CONTROL DE HARDWARE (MANTENIDO EN LA VISTA SOLO COMO BOTONES) ---
     def accion_rotar_camara(self):
         self.rotar_camara = not self.rotar_camara
-        self.controlador.set_rotacion_camara(self.rotar_camara)
+        self.controlador.set_rotation_camera(self.rotar_camara)
 
     def accion_apagar_camara(self):
         self.apagar_camara = not self.apagar_camara
         if self.apagar_camara:
-            self.controlador.pausar_camara_hardware()
+            self.controlador.pause_camera_hardware()
             
             # Limpiamos la imagen y ponemos el fondo completamente negro
             self.video_label.clear()
@@ -313,21 +312,21 @@ class TabCamara(QWidget):
             # Quitamos el fondo negro al encender
             self.video_label.setStyleSheet("")
             idx = self.combo_camaras.currentData()
-            self.controlador.iniciar_camara_hardware(idx, self.rotar_camara)
+            self.controlador.start_camera_hardware(idx, self.rotar_camara)
             self.status_label.setText("Estado: Cámara Activa")
 
     def accion_cambiar_camara(self, index):
         if not self.apagar_camara:
-            self.controlador.pausar_camara_hardware()
+            self.controlador.pause_camera_hardware()
             self.video_label.clear() 
             id_real = self.combo_camaras.itemData(index)
-            self.controlador.iniciar_camara_hardware(id_real, self.rotar_camara)
+            self.controlador.start_camera_hardware(id_real, self.rotar_camara)
 
     def cleanup(self):
-        self.controlador.liberar_recursos_camara()
+        self.controlador.free_camera_resources()
 
     def pausar_camara(self):
-        self.controlador.pausar_camara_hardware()
+        self.controlador.pause_camera_hardware()
         self.video_label.clear()
         self.video_label.setStyleSheet("background-color: black;")
 
@@ -336,4 +335,4 @@ class TabCamara(QWidget):
             # Nos aseguramos de limpiar el fondo negro al reanudar
             self.video_label.setStyleSheet("")
             idx = self.combo_camaras.currentData()
-            self.controlador.iniciar_camara_hardware(idx, self.rotar_camara)
+            self.controlador.start_camera_hardware(idx, self.rotar_camara)

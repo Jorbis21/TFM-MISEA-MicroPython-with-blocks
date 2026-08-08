@@ -4,422 +4,454 @@ from controllers.camera_worker import CameraWorker
 
 class CameraController:
     
-    def __init__(self, traductor, gestor_archivos, audio_service, ruta_codigo, vision_engine, ai_manager, workspace_dir, voice_manager):
-        self.traductor = traductor
-        self.gestor_archivos = gestor_archivos
-        self.ruta_codigo = ruta_codigo
-        self.audio_service = audio_service
-        self.vision = vision_engine
-        self.ai_manager = ai_manager
+    def __init__(self, workspace_dir, code_dir, traducer, file_manager, audio_service, vision, ai_manager, voice_manager):
         self.workspace_dir = workspace_dir
+        self.code_dir = code_dir
+        self.traducer = traducer
+        self.file_manager = file_manager
+        self.audio_service = audio_service
+        self.vision = vision
+        self.ai_manager = ai_manager
         self.voice_manager = voice_manager
 
-        self.hilo_camara = CameraWorker(self.vision)
+        self.camera_thr = CameraWorker(self.vision)
 
-        self.super_matriz, self.traductor.historial_interacciones = self.gestor_archivos.cargar_estado()
-        self.cola_ampliaciones = []
-        self.nexos_pendientes = []
-        self.direccion_actual = "desconocida"
-        self.estoy_ampliando = False
+        self.super_matrix, self.interaction_history = self.file_manager.load_state()
+        self.extensions_queue = []
+        self.pending_links = []
+        self.actual_dir = "unknown"
+        self.expanding = False
 
-    def guardar_estado(self):
-        """Guarda el estado del programa y las interacciones hechas"""
-        self.gestor_archivos.guardar_estado(self.super_matriz, self.traductor.historial_interacciones)
+    """Acciones de los botones"""
+    """Buttons actions"""
+
+    def save_state(self):
+        """Guarda el estado del programa y las interacciones"""
+        """Save the state of the program and his interactions"""
+        self.file_manager.save_state(self.super_matrix, self.interaction_history)
         
-    def repasar_variables(self, callback_actualizacion_ui):
-        if not self.super_matriz:
-            self.audio_service.leer_texto_interrumpiendo("Primero debes capturar un programa para poder modificar sus variables.")
+    def var_review(self, callback_act_ui):
+        """Hace el bucle de revision de variables"""
+        """It does the variable revision loop"""
+        if not self.super_matrix:
+            self.audio_service.read_text_interrupting("Primero debes capturar un programa para poder modificar sus variables.")
             return
             
-        self.audio_service.leer_texto_interrumpiendo("Iniciando el modo de repaso de variables.")
-        necesidades = self.traductor.analizar_matriz(self.super_matriz)
-        respuestas = self._ejecutar_interaccion_variables(necesidades, modo_repaso=True)
-        self.traductor.generar_codigo(self.super_matriz, self.ruta_codigo, respuestas)
-        self.guardar_estado()
-        self.audio_service.leer_texto("Variables modificadas. El código nuevo ya está generado.")
-        callback_actualizacion_ui()
+        self.audio_service.read_text_interrupting("Iniciando el modo de repaso de variables.")
+        variables = self.traducer.analize_matrix(self.super_matrix)
+        answers = self._run_var_interaction(variables, review_mode=True)
+        self.traducer.generate_code(self.super_matrix, self.code_dir, answers)
+        self.save_state()
+        self.audio_service.read_text("Variables modificadas. El código nuevo ya está generado.")
+        callback_act_ui()
 
-    def obtener_codigo_vista(self):
+    def get_view_code(self):
+        """Obtiene el codigo modificado en la vista"""
+        """Gets the modified code from the view"""
         try:
-            with open(self.ruta_codigo, "r", encoding="utf-8") as file:
-                codigo = file.read()
+            with open(self.code_dir, "r", encoding="utf-8") as file:
+                code = file.read()
         except FileNotFoundError:
             return "# Archivo no generado de momento.", "Estado: Esperando captura...", [], False
 
-        lineas = codigo.split('\n')
-        linea_corte_fin = -1
-        linea_corte_ini = -1
-        for i, linea in enumerate(lineas):
-            if "# --- Sonido de inicialización ---" in linea: linea_corte_ini = i
-            if "# --- Programa Principal ---" in linea: 
-                linea_corte_fin = i
+        lines = code.split('\n')
+        line_cut_fin = -1
+        line_cut_ini = -1
+        for i, line in enumerate(lines):
+            if "# --- Sonido de inicialización ---" in line: line_cut_ini = i
+            if "# --- Programa Principal ---" in line: 
+                line_cut_fin = i
                 break
 
-        bloque_pitches = []
-        if linea_corte_ini != -1 and linea_corte_fin != -1:
-            lineas_visibles = []
-            for i, linea in enumerate(lineas):
-                if i < linea_corte_ini: lineas_visibles.append(linea)
-                elif i >= linea_corte_ini and i <= linea_corte_fin: bloque_pitches.append(linea)
-                else: lineas_visibles.append(linea)
-            codigo_mostrar = "\n".join(lineas_visibles)
+        pitches_block = []
+        if line_cut_ini != -1 and line_cut_fin != -1:
+            visible_lines = []
+            for i, line in enumerate(lines):
+                if i < line_cut_ini: visible_lines.append(line)
+                elif i >= line_cut_ini and i <= line_cut_fin: pitches_block.append(line)
+                else: visible_lines.append(line)
+            show_code = "\n".join(visible_lines)
         else:
-            codigo_mostrar = codigo
+            show_code = code
 
-        estado = "Estado: Código sin errores"
-        hay_error = False
-        codigo_a_compilar = codigo_mostrar.replace('\xa0', ' ').replace('\t', '    ') + '\n'
+        state = "Estado: Código sin errores"
+        error = False
+        code_to_compile = show_code.replace('\xa0', ' ').replace('\t', '    ') + '\n'
 
         try:
-            compile(codigo_a_compilar, '<string>', 'exec')
+            compile(code_to_compile, '<string>', 'exec')
         except SyntaxError as e:
-            estado = f"Error de Sintaxis en línea {e.lineno}"
-            hay_error = True
+            state = f"Error de Sintaxis en línea {e.lineno}"
+            error = True
 
-        return codigo_mostrar, estado, bloque_pitches, hay_error
+        return show_code, state, pitches_block, error
 
-    def procesar_qrs_pantalla(self, frame_bgr):
-        """Absorbe la lógica de visión desde la Vista."""
+    def read_qrs(self, frame_bgr):
+        """Lee los qrs que aparecen en la camara"""
+        """It reads the QR's that appears on the camera"""
         if frame_bgr is None:
-            self.audio_service.leer_texto("La cámara no está activa.")
+            self.audio_service.read_text("La cámara no está activa.")
             return
             
-        ruta_temp = os.path.join(self.workspace_dir, "outputs", "temp_leer.jpg")
-        self.vision.takePhoto(frame_bgr, ruta_temp)
-        matriz_ordenada = self.vision.get_command_matrix()
+        temp_dir = os.path.join(self.workspace_dir, "outputs", "temp_read.jpg")
+        self.vision.take_photo(frame_bgr, temp_dir)
+        ordered_matrix = self.vision.get_command_matrix()
         
-        textos_a_leer = []
-        for fila in matriz_ordenada:
-            for bloque in fila:
-                if bloque.strip() != "":
-                    clave_busqueda = str(bloque).strip().lower()
-                    info_bloque = self.traductor.tabla_simbolos.get(clave_busqueda, {})
-                    pronunciacion = info_bloque.get("pronunciacion", str(bloque))
-                    textos_a_leer.append(pronunciacion)
+        text_to_read = []
+        for row in ordered_matrix:
+            for block in row:
+                if block.strip() != "":
+                    key = str(block).strip().lower()
+                    info = self.traducer.symbols_table.get(key, {})
+                    pronunciation = info.get("pronunciation", str(block))
+                    text_to_read.append(pronunciation)
                     
-        if textos_a_leer:
-            self.audio_service.leer_qrs_pantalla(textos_a_leer)
+        if text_to_read:
+            self.audio_service.read_qrs(text_to_read)
         else:
-            self.audio_service.leer_texto("No detecto ningún bloque en la pantalla.")
+            self.audio_service.read_text("No detecto ningún bloque en la pantalla.")
 
-    def guardar_codigo_manual(self, nuevo_codigo, bloque_pitches):
-        codigo_limpio = nuevo_codigo.replace('\xa0', ' ').replace('\t', '    ')
-        return self.gestor_archivos.guardar_codigo_editado(codigo_limpio, bloque_pitches)
+    def save_manual_code(self, new_code, pitches_block):
+        """Guarda el codigo modificado manualmente"""
+        """Save the code modified manually"""
+        clean_code = new_code.replace('\xa0', ' ').replace('\t', '    ')
+        return self.file_manager.save_edited_code(clean_code, pitches_block)
 
-    def enviar_a_microbit(self):
-        self.audio_service.leer_texto("Subiendo el programa a la placa Micro:bit.")
-        exito, msg = self.gestor_archivos.subir() 
-        if not exito:
-            self.audio_service.leer_texto_interrumpiendo(msg)
+    def send_to_microbit(self):
+        """Envia el codigo generado a la placa microbit"""
+        """Sends the generated code to the Microbit board"""
+        self.audio_service.read_text("Subiendo el programa a la placa Micro:bit.")
+        exit, msg = self.file_manager.upload() 
+        if not exit:
+            self.audio_service.read_text_interrupting(msg)
 
-    def explicar_codigo_ia(self, callback_estado):
-        """No necesita recibir AI_Manager, ya lo tiene."""
-        threading.Thread(target=lambda: self.ai_manager.explicar_codigo(self.ruta_codigo, callback_estado), daemon=True).start()
+    def ia_explain_code(self, callback_state):
+        """Arranca un hilo para que la IA explique el codigo"""
+        """Starts a thread for the IA to explain the code"""
+        threading.Thread(target=lambda: self.ai_manager.explain_code(self.code_dir, callback_state), daemon=True).start()
 
-    def alternar_tts(self, modos_tts, idx_actual):
-        siguiente_idx = (idx_actual + 1) % len(modos_tts)
-        modo = modos_tts[siguiente_idx]
+    def change_tts(self, tts_modes, actual_idx):
+        """Cambia el modo de tts usado para las variables de la placa"""
+        """Change the TTS mode used for the variables on the board"""
+        next_idx = (actual_idx + 1) % len(tts_modes)
+        mode = tts_modes[next_idx]
         
-        if self.traductor is not None:
-            self.traductor.set_modo_tts(modo["valor"])
+        if self.traducer is not None:
+            self.traducer.set_mode_tts(mode["value"])
             
-        if modo["valor"] == TTSMode.PC.value:
-            self.audio_service.leer_texto("Modo de voz por ordenador activado.")
-        elif modo["valor"] == TTSMode.BOARD.value:
-            self.audio_service.leer_texto("Modo de voz en la placa activado.")
-        elif modo["valor"] == TTSMode.SHUTDONW.value:
-            self.audio_service.leer_texto("Voz de ejecución desactivada.")
+        if mode["value"] == TTSMode.PC.value:
+            self.audio_service.read_text("Modo de voz por ordenador activado.")
+        elif mode["value"] == TTSMode.BOARD.value:
+            self.audio_service.read_text("Modo de voz en la placa activado.")
+        elif mode["value"] == TTSMode.SHUTDONW.value:
+            self.audio_service.read_text("Voz de ejecución desactivada.")
             
-        return siguiente_idx, modo["texto"]
+        return next_idx, mode["texto"]
 
-    def iniciar_camara_hardware(self, idx, rotar=False):
-        self.hilo_camara.rotar = rotar
-        self.hilo_camara.iniciar_hardware(idx)
+    def start_camera_hardware(self, idx, rotate=False):
+        """Inicia el hardware de la camara"""
+        """Starts camera hardware"""
+        self.camera_thr.rotate = rotate
+        self.camera_thr.start_hardware(idx)
 
-    def pausar_camara_hardware(self):
-        self.hilo_camara.pausar_hardware()
+    def pause_camera_hardware(self):
+        """Pausa el hardware de la camara"""
+        """Pauses camera hardware"""
+        self.camera_thr.pause_hardware()
 
-    def set_rotacion_camara(self, rotar):
-        self.hilo_camara.rotar = rotar
-        if rotar:
-            self.audio_service.leer_texto_interrumpiendo("Cámara en modo vertical.")
+    def set_rotation_camera(self, rotate):
+        """Modifica la rotacion de la camara"""
+        """Changes the camera rotation"""
+        self.camera_thr.rotate = rotate
+        if rotate:
+            self.audio_service.read_text_interrupting("Cámara en modo vertical.")
         else:
-            self.audio_service.leer_texto_interrumpiendo("Cámara en modo horizontal.")
+            self.audio_service.read_text_interrupting("Cámara en modo horizontal.")
 
-    def liberar_recursos_camara(self):
-        self.hilo_camara.liberar_todo()
+    def free_camera_resources(self):
+        """Libera los recursos de la camara"""
+        """Frees all the camera resources"""
+        self.camera_thr.free_all()
 
- # --- LÓGICA DE INTERACCIÓN DE VOZ ---
-    def _ejecutar_interaccion_variables(self, necesidades, modo_repaso):
-        respuestas = []
-        memoria_simulada = []
-        historial = self.traductor.historial_interacciones if modo_repaso else []
-        indice_repaso = 0
+    def process_whole_frame(self, frame_bgr, img_dir, callback_act_ui):
+        """Procesa el frame con los bloques para generar el codigo"""
+        """Process the frame with the blocks to generate the code"""
+        self.audio_service.read_text("Capturando.")
+        self.vision.take_photo(frame_bgr, img_dir)
+        spatial_matrix = self.vision.get_command_matrix()
+        overflow = self.vision.check_overflow()
         
-        for nec in necesidades:
-            tipo = nec["tipo"]
-            contexto = nec["contexto"]
+        if self.expanding:
+            self.super_matrix = self._fuse_spatial_matrix(
+                self.super_matrix, spatial_matrix, self.pending_links, self.actual_dir
+            )
+        else:
+            self.super_matrix = spatial_matrix
+            self.extensions_queue = []
             
-            if "var_" in contexto and memoria_simulada:
-                contexto = re.sub(r'var_\d+', memoria_simulada[-1], contexto)
-            
-            respuesta_cruda = self._interactuar_voz(tipo, contexto, memoria_simulada, modo_repaso, historial, indice_repaso)
-            
-            es_var = (tipo != "asignacion_val")
-            res_limpia = self.traductor._normalizar_texto(respuesta_cruda, es_variable=es_var)
-            
-            if not modo_repaso:
-                historial.append(res_limpia)
-            else:
-                if indice_repaso < len(historial):
-                    historial[indice_repaso] = res_limpia
-                indice_repaso += 1
-                
-            respuestas.append(res_limpia)
-            
-            if tipo == "declaracion_var":
-                memoria_simulada.append(res_limpia)
-                
-        if not modo_repaso:
-            self.traductor.historial_interacciones = historial
-        return respuestas
+        if overflow:
+            if overflow.get("right"): self.extensions_queue.append(("side", overflow["right"]))
+            if overflow.get("down"): self.extensions_queue.append(("bottom", overflow["down"]))
 
-    def _interactuar_voz(self, tipo_bloque, contexto, memoria_variables, modo_repaso, historial, indice_repaso):
-        intro = f"Para {contexto}. " if contexto else ""
-        if not self.voice_manager: return "0" if tipo_bloque == "asignacion_val" else "var"
+        self._process_next_extension(callback_act_ui)
+
+    """Interacciones con las variables por voz"""
+    """Interactions with the voice variables"""
+
+    def _run_var_interaction(self, variables, review_mode):
+        """Inicia y prepara el bucle de instanciacion y modificacion de variables"""
+        """Starts and prepares the instantiation and modification of variables loop"""
+        answers = []
+        sim_memory = []
+        history = self.interaction_history if review_mode else []
+        review_index = 0
         
-        if modo_repaso and indice_repaso < len(historial):
-            valor_anterior = historial[indice_repaso]
-            if tipo_bloque == "asignacion_val":
-                self.audio_service.leer_texto(f"{intro}El valor actual es {valor_anterior}. ¿Quieres modificarlo?")
+        for var in variables:
+            type = var["type"]
+            context = var["context"]
+            
+            if "var_" in context and sim_memory:
+                context = re.sub(r'var_\d+', lambda m: sim_memory[-1], context)
+            
+            raw_answer = self._voice_interact(type, context, sim_memory, review_mode, history, review_index)
+            
+            is_var = (type != "assign_val")
+            clean_ans = self.traducer.normalize_text(raw_answer, is_variable=is_var)
+            
+            if not review_mode:
+                history.append(clean_ans)
             else:
-                self.audio_service.leer_texto(f"{intro}El nombre actual es {valor_anterior}. ¿Quieres modificarlo?")
+                if review_index < len(history):
+                    history[review_index] = clean_ans
+                review_index += 1
                 
-            evento = self.voice_manager.escuchar_dictado_sincrono()
-            quiere_modificar = (
-                (evento.tipo == EventType.TAP and evento.es_afirmativo) or 
-                (evento.tipo == EventType.VOICE and ("sí" in evento.texto or "si" in evento.texto))
-            )
+            answers.append(clean_ans)
             
-            if quiere_modificar:
-                pregunta = "Dime el nuevo valor" if tipo_bloque == "asignacion_val" else "Dime el nuevo nombre"
-                return self.voice_manager.bucle_confirmacion_voz(pregunta, "0" if tipo_bloque == "asignacion_val" else "var")
-            return valor_anterior
+            if type == "declare_var":
+                sim_memory.append(clean_ans)
+                
+        if not review_mode:
+            self.interaction_history = history
+        return answers
 
-        if tipo_bloque == "asignacion_val": return self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el valor", "0")
-        if tipo_bloque == "declaracion_var": return self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable", "var")
-        if not memoria_variables: return self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre de la variable", "var")
+    def _voice_interact(self, block_type, context, var_memory, review_mode, history, review_index):
+        """Hace las interacciones con el usuario para obtener los nombres y valores de las variables"""
+        """Makes the interactions with the user to obtain the names and the values of the variables"""
+        intro = f"Para {context}. " if context else ""
+        if not self.voice_manager: return "0" if block_type == "assign_val" else "var"
+        
+        if review_mode and review_index < len(history):
+            past_value = history[review_index]
+            if block_type == "assign_val":
+                self.audio_service.read_text(f"{intro}El valor actual es {past_value}. ¿Quieres modificarlo?")
+            else:
+                self.audio_service.read_text(f"{intro}El nombre actual es {past_value}. ¿Quieres modificarlo?")
+                
+            event = self.voice_manager.listen_dict_sync()
+            modify = self._is_affirmative(event)
             
-        ultima_var = memoria_variables[-1]
-        self.audio_service.leer_texto(f"{intro}¿Quieres usar la última variable declarada, llamada {ultima_var}?")
-        resp1 = self.voice_manager.escuchar_dictado_sincrono()
-        usar_ultima = (
-            (resp1.tipo == EventType.TAP and resp1.es_afirmativo) or 
-            (resp1.tipo == EventType.VOICE and any(p in resp1.texto for p in ["sí", "si", "claro", "correcto"]))
-        )
-        if usar_ultima: return ultima_var
+            if modify:
+                question = "Dime el nuevo valor" if block_type == "assign_val" else "Dime el nuevo nombre"
+                return self.voice_manager.voice_confirmation_loop(question, "0" if block_type == "assign_val" else "var")
+            return past_value
 
-        if len(memoria_variables) > 1:
-            self.audio_service.leer_texto("¿Quieres usar otra de las variables anteriores?")
-            resp2 = self.voice_manager.escuchar_dictado_sincrono()
-            usar_otra = (
-                (resp2.tipo == EventType.TAP and resp2.es_afirmativo) or 
-                (resp2.tipo == EventType.VOICE and any(p in resp2.texto for p in ["sí", "si", "claro", "correcto"]))
-            )
-            if usar_otra:
+        if block_type == "assign_val": return self.voice_manager.voice_confirmation_loop(f"{intro}Dime el valor", "0")
+        if block_type == "declare_var": return self.voice_manager.voice_confirmation_loop(f"{intro}Dime el nombre de la variable", "var")
+        if not var_memory: return self.voice_manager.voice_confirmation_loop(f"{intro}Dime el nombre de la variable", "var")
+            
+        last_var = var_memory[-1]
+        self.audio_service.read_text(f"{intro}¿Quieres usar la última variable declarada, llamada {last_var}?")
+        ans1 = self.voice_manager.listen_dict_sync()
+        use_last = self._is_affirmative(ans1, ["claro", "correcto"])
+
+        if use_last: return last_var
+
+        if len(var_memory) > 1:
+            self.audio_service.read_text("¿Quieres usar otra de las variables anteriores?")
+            ans2 = self.voice_manager.listen_dict_sync()
+            use_other = self._is_affirmative(ans2, ["claro", "correcto"])
+
+            if use_other:
                 while True:
-                    self.audio_service.leer_texto("Dime el nombre de la variable para buscarla.")
-                    busqueda = self.voice_manager.escuchar_dictado_sincrono()
-                    if busqueda.tipo == EventType.TAP:
-                        self.audio_service.leer_texto("Por favor, dime el nombre hablando.")
+                    self.audio_service.read_text("Dime el nombre de la variable para buscarla.")
+                    search = self.voice_manager.listen_dict_sync()
+                    if search.type == EventType.TAP:
+                        self.audio_service.read_text("Por favor, dime el nombre hablando.")
                         continue
-                    texto_busqueda = self.traductor._normalizar_texto(busqueda.texto, es_variable=True)
-                    if "pasar" in texto_busqueda or "omitir" in texto_busqueda: return "var"
-                    if texto_busqueda in memoria_variables: return texto_busqueda
-                    self.audio_service.leer_texto("No he encontrado esa variable. Volvamos a intentarlo.")
+                    search_text = self.traducer.normalize_text(search.text, is_variable=True)
+                    if "pasar" in search_text or "omitir" in search_text: return "var"
+                    if search_text in var_memory: return search_text
+                    self.audio_service.read_text("No he encontrado esa variable. Volvamos a intentarlo.")
 
-        return self.voice_manager.bucle_confirmacion_voz(f"{intro}Dime el nombre", "var")
+        return self.voice_manager.voice_confirmation_loop(f"{intro}Dime el nombre", "var")
 
-    # --- FLUJO PRINCIPAL DE CÁMARA (MVC PURO) ---
+    def _is_affirmative(self, event, extra_words=None):
+        """Determina si un evento representa una respuesta afirmativa"""
+        """Determines if an event is an affirmative response"""
+        words = ["sí", "si"] + (extra_words or [])
+        return (
+            (event.type == EventType.TAP and event.afirmative) or
+            (event.type == EventType.VOICE and any(w in event.text for w in words)))
+    
+    """Funciones para la ampliacion de codigo"""
+    """Functions to extend the code"""
 
-    def _fusionar_matrices_espaciales(matriz_base, matriz_nueva, nexos_esperados, direccion="desconocida"):
-        """
-        Toma dos matrices de bloques detectados por visión artificial y las fusiona 
-        basándose en los nexos y la dirección de desbordamiento.
-        """
-        genericos = ["valor_variable", "numero", "texto", "verdadero", "falso", "imagen"]
-        nexos_fuertes = [n for n in nexos_esperados if str(n).strip().lower() not in genericos]
-        anclajes = nexos_fuertes if nexos_fuertes else nexos_esperados
+    def _fuse_spatial_matrix(base_matrix, new_matrix, expected_nexus, dir="unknown"):
+        """Toma dos matrices de bloques y las fusiona por los nexos y la dirección de desbordamiento"""
+        """Takes two blocks matrices and fuse them together by the links and the overflow direction"""
+        generics = ["valor_variable", "numero", "texto", "verdadero", "falso", "imagen"]
+        strong_nexus = [n for n in expected_nexus if str(n).strip().lower() not in generics]
+        anchors = strong_nexus if strong_nexus else expected_nexus
         
-        nueva_super_matriz = [fila.copy() for fila in matriz_base]
+        new_super_matrix = [row.copy() for row in base_matrix]
         
-        if direccion == "lateral":
-            filas_mapeadas_en_nueva = set()
+        if dir == "side":
+            mapped_rows_in_new = set()
             offset_c_global = 0 
             
-            for nexo in anclajes:
-                nexo_str = str(nexo).strip().lower()
-                r_base, c_base, r_nueva, c_nueva = -1, -1, -1, -1
+            for nexus in anchors:
+                nexus_str = str(nexus).strip().lower()
+                r_base, c_base, r_new, c_new = -1, -1, -1, -1
                 
-                for r in range(len(nueva_super_matriz)):
-                    for c in range(len(nueva_super_matriz[r])):
-                        if str(nueva_super_matriz[r][c]).strip().lower() == nexo_str:
+                for r in range(len(new_super_matrix)):
+                    for c in range(len(new_super_matrix[r])):
+                        if str(new_super_matrix[r][c]).strip().lower() == nexus_str:
                             r_base, c_base = r, c
                             break
                     if r_base != -1: break
                 
-                for r in range(len(matriz_nueva)):
-                    for c in range(len(matriz_nueva[r])):
-                        if str(matriz_nueva[r][c]).strip().lower() == nexo_str:
-                            r_nueva, c_nueva = r, c
+                for r in range(len(new_matrix)):
+                    for c in range(len(new_matrix[r])):
+                        if str(new_matrix[r][c]).strip().lower() == nexus_str:
+                            r_new, c_new = r, c
                             break
-                    if r_nueva != -1: break
+                    if r_new != -1: break
                 
-                if r_base != -1 and r_nueva != -1:
-                    filas_mapeadas_en_nueva.add(r_nueva)
-                    offset_c_global = c_base - c_nueva
+                if r_base != -1 and r_new != -1:
+                    mapped_rows_in_new.add(r_new)
+                    offset_c_global = c_base - c_new
                     
-                    for c in range(c_nueva + 1, len(matriz_nueva[r_nueva])):
-                        val = matriz_nueva[r_nueva][c]
+                    for c in range(c_new + 1, len(new_matrix[r_new])):
+                        val = new_matrix[r_new][c]
                         target_c = c + offset_c_global
-                        while len(nueva_super_matriz[r_base]) <= target_c:
-                            nueva_super_matriz[r_base].append("")
+                        while len(new_super_matrix[r_base]) <= target_c:
+                            new_super_matrix[r_base].append("")
                         if val != "":
-                            nueva_super_matriz[r_base][target_c] = val
+                            new_super_matrix[r_base][target_c] = val
                             
-            if filas_mapeadas_en_nueva:
-                max_r_mapeada = max(filas_mapeadas_en_nueva)
-                for r in range(max_r_mapeada + 1, len(matriz_nueva)):
-                    nueva_fila = []
-                    for c in range(len(matriz_nueva[r])):
-                        val = matriz_nueva[r][c]
+            if mapped_rows_in_new:
+                max_mapped_r = max(mapped_rows_in_new)
+                for r in range(max_mapped_r + 1, len(new_matrix)):
+                    new_row = []
+                    for c in range(len(new_matrix[r])):
+                        val = new_matrix[r][c]
                         target_c = c + offset_c_global
                         if target_c >= 0:
-                            while len(nueva_fila) <= target_c:
-                                nueva_fila.append("")
+                            while len(new_row) <= target_c:
+                                new_row.append("")
                             if val != "":
-                                nueva_fila[target_c] = val
-                    nueva_super_matriz.append(nueva_fila)
+                                new_row[target_c] = val
+                    new_super_matrix.append(new_row)
             else:
-                for r in range(len(matriz_nueva)):
-                    nueva_super_matriz.append(matriz_nueva[r])
+                for r in range(len(new_matrix)):
+                    new_super_matrix.append(new_matrix[r])
                     
-        elif direccion == "inferior":
-            ancla_base_r, c_base = -1, -1
-            ancla_nueva_r, c_nueva = -1, -1
-            nexo_usado = None
+        elif dir == "bottom":
+            base_anchor_r, c_base = -1, -1
+            new_anchor_r, c_new = -1, -1
+            used_nexus = None
             
-            for nexo in anclajes:
-                nexo_str = str(nexo).strip().lower()
-                for r in range(len(nueva_super_matriz)-1, -1, -1):
-                    for c in range(len(nueva_super_matriz[r])):
-                        if str(nueva_super_matriz[r][c]).strip().lower() == nexo_str:
-                            ancla_base_r, c_base = r, c
+            for nexus in anchors:
+                nexus_str = str(nexus).strip().lower()
+                for r in range(len(new_super_matrix)-1, -1, -1):
+                    for c in range(len(new_super_matrix[r])):
+                        if str(new_super_matrix[r][c]).strip().lower() == nexus_str:
+                            base_anchor_r, c_base = r, c
                             break
-                    if ancla_base_r != -1: break
+                    if base_anchor_r != -1: break
                 
-                for r in range(len(matriz_nueva)):
-                    for c in range(len(matriz_nueva[r])):
-                        if str(matriz_nueva[r][c]).strip().lower() == nexo_str:
-                            ancla_nueva_r, c_nueva = r, c
+                for r in range(len(new_matrix)):
+                    for c in range(len(new_matrix[r])):
+                        if str(new_matrix[r][c]).strip().lower() == nexus_str:
+                            new_anchor_r, c_new = r, c
                             break
-                    if ancla_nueva_r != -1: break
+                    if new_anchor_r != -1: break
                 
-                if ancla_base_r != -1 and ancla_nueva_r != -1:
-                    nexo_usado = nexo
+                if base_anchor_r != -1 and new_anchor_r != -1:
+                    used_nexus = nexus
                     break
             
-            if nexo_usado:
-                offset_c = c_base - c_nueva
+            if used_nexus:
+                offset_c = c_base - c_new
                 
-                for c in range(c_nueva + 1, len(matriz_nueva[ancla_nueva_r])):
-                    val = matriz_nueva[ancla_nueva_r][c]
+                for c in range(c_new + 1, len(new_matrix[new_anchor_r])):
+                    val = new_matrix[new_anchor_r][c]
                     target_c = c + offset_c
-                    while len(nueva_super_matriz[ancla_base_r]) <= target_c:
-                        nueva_super_matriz[ancla_base_r].append("")
+                    while len(new_super_matrix[base_anchor_r]) <= target_c:
+                        new_super_matrix[base_anchor_r].append("")
                     if val != "":
-                        nueva_super_matriz[ancla_base_r][target_c] = val
+                        new_super_matrix[base_anchor_r][target_c] = val
                 
-                for r in range(ancla_nueva_r + 1, len(matriz_nueva)):
-                    nueva_fila = []
-                    for c in range(len(matriz_nueva[r])):
-                        val = matriz_nueva[r][c]
+                for r in range(new_anchor_r + 1, len(new_matrix)):
+                    new_row = []
+                    for c in range(len(new_matrix[r])):
+                        val = new_matrix[r][c]
                         target_c = c + offset_c
                         if target_c >= 0:
-                            while len(nueva_fila) <= target_c:
-                                nueva_fila.append("")
+                            while len(new_row) <= target_c:
+                                new_row.append("")
                             if val != "":
-                                nueva_fila[target_c] = val
-                    nueva_super_matriz.append(nueva_fila)
+                                new_row[target_c] = val
+                    new_super_matrix.append(new_row)
             else:
-                for r in range(len(matriz_nueva)):
-                    nueva_super_matriz.append(matriz_nueva[r])
+                for r in range(len(new_matrix)):
+                    new_super_matrix.append(new_matrix[r])
         else:
-            for r in range(len(matriz_nueva)):
-                nueva_super_matriz.append(matriz_nueva[r])
+            for r in range(len(new_matrix)):
+                new_super_matrix.append(new_matrix[r])
                 
-        return nueva_super_matriz
-    def procesar_captura_completa(self, frame_bgr, ruta_img, callback_actualizacion_ui):
-        """Absorbe la lógica que antes estaba en la Vista."""
-        self.audio_service.leer_texto("Capturando.")
-        self.vision.takePhoto(frame_bgr, ruta_img)
-        matriz_espacial = self.vision.get_command_matrix()
-        desbordamiento = self.vision.comprobar_desbordamiento()
-        
-        # Flujo antiguo de procesar_captura
-        if self.estoy_ampliando:
-            self.super_matriz = self._fusionar_matrices_espaciales(
-                self.super_matriz, matriz_espacial, self.nexos_pendientes, self.direccion_actual
-            )
-        else:
-            self.super_matriz = matriz_espacial
-            self.cola_ampliaciones = []
-            
-        if desbordamiento:
-            if desbordamiento.get("derecha"): self.cola_ampliaciones.append(("lateral", desbordamiento["derecha"]))
-            if desbordamiento.get("abajo"): self.cola_ampliaciones.append(("inferior", [desbordamiento["abajo"]]))
+        return new_super_matrix
 
-        self._procesar_siguiente_ampliacion(callback_actualizacion_ui)
-
-    def _procesar_siguiente_ampliacion(self, callback_actualizacion_ui):
-        if not self.cola_ampliaciones:
-            self.estoy_ampliando = False
-            necesidades = self.traductor.analizar_matriz(self.super_matriz)
-            respuestas = self._ejecutar_interaccion_variables(necesidades, modo_repaso=False)
-            self.traductor.generar_codigo(self.super_matriz, self.ruta_codigo, respuestas) 
-            self.guardar_estado()
-            self.audio_service.leer_texto("El código nuevo ya está generado.")
-            callback_actualizacion_ui()
+    def _process_next_extension(self, callback_act_ui):
+        """Procesa la siguiente extension en caso de haberla, si no, genera el codigo"""
+        """Process the next extension in case it exists, if not, it generates the code"""
+        if not self.extensions_queue:
+            self._finalize_and_generate(callback_act_ui)
             return
 
-        direccion, nexos = self.cola_ampliaciones.pop(0)
-        self.direccion_actual = direccion
-        self.nexos_pendientes = nexos
+        dir, links = self.extensions_queue.pop(0)
+        self.actual_dir = dir
+        self.pending_links = links
 
-        nombres_pronunciar = []
-        for n in nexos:
-            pronunciacion = self.traductor.tabla_simbolos.get(n.lower(), {}).get("pronunciacion", n)
-            if pronunciacion not in nombres_pronunciar: nombres_pronunciar.append(pronunciacion)
+        names_pronunciation = []
+        for n in links:
+            pronunciation = self.traducer.tabla_simbolos.get(n.lower(), {}).get("pronunciation", n)
+            if pronunciation not in names_pronunciation: names_pronunciation.append(pronunciation)
                 
-        nombres_str = ", y ".join(nombres_pronunciar)
+        names_str = ", y ".join(names_pronunciation)
 
         if self.voice_manager is not None:
-            respuesta = self.voice_manager.bucle_confirmacion_voz(
-                f"El bloque {nombres_str} toca el borde {direccion}. ¿Quieres ampliar el programa haciendo otra foto?",
-                es_pregunta_abierta=False
+            answer = self.voice_manager.voice_confirmation_loop(
+                f"El bloque {names_str} toca el borde {dir}. ¿Quieres ampliar el programa haciendo otra foto?",
+                open_question=False
             )
-            if "sí" in respuesta or "si" in respuesta:
-                self.estoy_ampliando = True
-                self.audio_service.leer_texto(f"De acuerdo. Pon el bloque {nombres_str} en la nueva foto para usarlo de referencia. Pulsa capturar cuando estés listo.")
+            if "sí" in answer or "si" in answer:
+                self.expanding = True
+                self.audio_service.read_text(f"De acuerdo. Pon el bloque {names_str} en la nueva foto para usarlo de referencia. Pulsa capturar cuando estés listo.")
                 return 
             else:
-                self.audio_service.leer_texto("De acuerdo, cancelando el resto de ampliaciones y procesando el programa.")
-                self.cola_ampliaciones.clear()
+                self.audio_service.read_text("De acuerdo, cancelando el resto de ampliaciones y procesando el programa.")
+                self.extensions_queue.clear()
                 
-        self.estoy_ampliando = False
-        necesidades = self.traductor.analizar_matriz(self.super_matriz)
-        respuestas = self._ejecutar_interaccion_variables(necesidades, modo_repaso=False)
-        self.traductor.generar_codigo(self.super_matriz, self.ruta_codigo, respuestas) 
-        self.guardar_estado()
-        self.audio_service.leer_texto("El código nuevo ya está generado.")
-        callback_actualizacion_ui()
+        self._finalize_and_generate(callback_act_ui)
+
+    def _finalize_and_generate(self, callback_act_ui):
+        """Finaliza y genera el codigo"""
+        """Finalize and generate the code"""
+        self.expanding = False
+        variables = self.traducer.analize_matrix(self.super_matrix)
+        answers = self._run_var_interaction(variables, review_mode=False)
+        self.traducer.generate_code(self.super_matrix, self.code_dir, answers) 
+        self.save_state()
+        self.audio_service.read_text("El código nuevo ya está generado.")
+        callback_act_ui()

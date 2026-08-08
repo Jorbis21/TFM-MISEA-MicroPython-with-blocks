@@ -5,11 +5,11 @@ class CameraWorker(QThread):
     # Señal que transporta el frame BGR, el RGB para PyQt y los textos detectados
     nuevo_frame = pyqtSignal(object, object, list) 
 
-    def __init__(self, vision_engine, parent=None):
+    def __init__(self, vision, parent=None):
         super().__init__(parent)
-        self.vision = vision_engine
+        self.vision = vision
         self.corriendo = False
-        self.rotar = False
+        self.rotate = False
         self.camara_activa = False
 
     '''Detecta las cámaras en el equipo para poder seleccionarlas'''
@@ -26,20 +26,20 @@ class CameraWorker(QThread):
         return camaras_activas
 
     '''Enciende la cámara y arranca el hilo'''
-    def iniciar_hardware(self, cam_idx):
+    def start_hardware(self, cam_idx):
         self.vision.iniciar_camara(cam_idx)
         self.camara_activa = True
         self.corriendo = True
         self.start()
 
     '''Apaga la cámara temporalmente'''
-    def pausar_hardware(self):
+    def pause_hardware(self):
         self.stop()
         self.vision.liberar_camara()
         self.camara_activa = False
 
     '''Apaga la cámara y libera todos los recursos'''
-    def liberar_todo(self):
+    def free_all(self):
         self.stop()
         self.vision.free()
         self.camara_activa = False
@@ -50,7 +50,7 @@ class CameraWorker(QThread):
         
         while self.corriendo and self.camara_activa:
             # 1. Tarea ligera: Leer el frame de la webcam y dibujarle los cuadrados (30 FPS)
-            frame_bgr, frame_rgb, textos = self.vision.obtener_frame_marcado(self.rotar)
+            frame_bgr, frame_rgb, textos = self.vision.obtener_frame_marcado(self.rotate)
             
             if frame_rgb is not None:
                 self.nuevo_frame.emit(frame_bgr, frame_rgb, textos)

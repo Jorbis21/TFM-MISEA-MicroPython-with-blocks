@@ -19,7 +19,7 @@ class BuscadorFrasesVoz(ast.NodeVisitor):
     def visit_Call(self, node):
         # 1. Llamadas directas a funciones de voz con texto literal
         if isinstance(node.func, ast.Attribute):
-            if node.func.attr in ['leer_texto', 'leer_texto_interrumpiendo', 'bucle_confirmacion_voz']:
+            if node.func.attr in ['read_text', 'read_text_interrupting', 'voice_confirmation_loop']:
                 if node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
                     self.frases.add(node.args[0].value)
         

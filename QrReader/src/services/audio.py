@@ -31,7 +31,7 @@ class AudioService:
             self.hilo_worker = threading.Thread(target=self._bucle_reproduccion, daemon=True)
             self.hilo_worker.start()
 
-    def detener(self):
+    def stop(self):
         """Detiene el hilo trabajador y limpia los recursos."""
         self.corriendo = False
         # Metemos un elemento vacío (None) para desbloquear la cola si está vacía y esperando
@@ -109,12 +109,12 @@ class AudioService:
 
     # --- MÉTODOS PÚBLICOS DE INSERCIÓN EN COLA ---
 
-    def leer_texto(self, texto, sin_internet=False):
+    def read_text(self, texto, sin_internet=False):
         if not self.corriendo: 
             return
         self.cola_tts.put((texto, sin_internet))
 
-    def leer_texto_interrumpiendo(self, texto, sin_internet=False):
+    def read_text_interrupting(self, texto, sin_internet=False):
         if not self.corriendo: 
             return
             
@@ -145,20 +145,20 @@ class AudioService:
                 
             codigo_filtrado = "\n".join(lineas_visibles)
             codigo_limpio = codigo_filtrado.replace("*", "todo").replace("(", " paréntesis ").replace(")", "").replace(":", " dos puntos.")
-            self.leer_texto(f"El programa actual es el siguiente... {codigo_limpio}", sin_internet)
+            self.read_text(f"El programa actual es el siguiente... {codigo_limpio}", sin_internet)
             
         except FileNotFoundError:
-            self.leer_texto("Aún no se ha generado ningún código.", sin_internet)
+            self.read_text("Aún no se ha generado ningún código.", sin_internet)
 
-    def leer_qrs_pantalla(self, textos_qr_actuales):
+    def read_qrs(self, textos_qr_actuales):
         qrs_a_leer = list(textos_qr_actuales)
         
         if not qrs_a_leer:
-            self.leer_texto("No detecto ningún bloque en la mesa.")
+            self.read_text("No detecto ningún bloque en la mesa.")
         else:
             frases_posicionadas = []
             for indice, bloque in enumerate(qrs_a_leer):
                 frases_posicionadas.append(f"posición {indice + 1}, {bloque}")
                 
             texto_unido = ". ".join(frases_posicionadas).replace("_", " ")
-            self.leer_texto(f"Detectados {len(qrs_a_leer)} bloques. Leyendo de arriba a abajo... {texto_unido}.")
+            self.read_text(f"Detectados {len(qrs_a_leer)} bloques. Leyendo de arriba a abajo... {texto_unido}.")

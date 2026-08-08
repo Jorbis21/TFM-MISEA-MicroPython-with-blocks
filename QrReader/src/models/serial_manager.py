@@ -31,7 +31,7 @@ class SerialMonitor:
         print("[Serial] Demonio de escucha iniciado en segundo plano.")
 
     '''Para el bucle'''
-    def detener(self):
+    def stop(self):
         self.is_running = False
         if self.thread:
             self.thread.join(timeout=2)
@@ -68,7 +68,7 @@ class SerialMonitor:
                         texto_a_leer = linea.replace("TTS:", "").strip()
                         print(f"[Serial] Petición de lectura interceptada: {texto_a_leer}")
                         
-                        self.audio_service.leer_texto(texto_a_leer)
+                        self.audio_service.read_text(texto_a_leer)
                         
                         time.sleep(0.1) 
                         self.serial_port.write(b'\r\n')

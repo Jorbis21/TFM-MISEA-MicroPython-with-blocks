@@ -37,7 +37,7 @@ def main():
     voice_manager = VoiceCommandManager(None, workspace_dir, audio_service)
     vision_engine = VisionEngine()
     json_manager = JsonManager(config_dir)
-    traductor = MicrobitCompiler(config_dir, json_manager)
+    traducer = MicrobitCompiler(config_dir, json_manager)
     
     ai_manager = AIManager(api_key, audio_service) 
     serial_monitor = SerialMonitor(audio_service)
@@ -49,7 +49,7 @@ def main():
 
     main_controller = AppController(
         workspace_dir, assets_dir, code_dir, audio_service, vision_engine, 
-        json_manager, traductor, ai_manager, serial_monitor, voice_manager, file_manager
+        json_manager, traducer, ai_manager, serial_monitor, voice_manager, file_manager
     )
     voice_manager.callback_freeze_ui = main_controller.window.freeze_ui
     

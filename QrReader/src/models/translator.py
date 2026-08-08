@@ -2,21 +2,18 @@ class MicrobitCompiler:
     def __init__(self, config_dir, json_manager):
         self.config_dir = config_dir
         self.json_manager = json_manager
-        self.tabla_simbolos = self.json_manager.construir_tabla_simbolos()
+        self.symbols_table = self.json_manager.construir_tabla_simbolos()
         
         self.memoria_variables = []  
         self.contador_var = 0        
         self.modo_tts = "pc"  
-        
-        self.historial_interacciones = []
-        
-        # Nuevas variables para la evaluación de dos pasadas (MVC Puro)
+
         self.modo_analisis = False
         self.necesidades_variables = []
         self.respuestas_precalculadas = []
 
-    def set_modo_tts(self, modo):
-        self.modo_tts = modo    
+    def set_mode_tts(self, mode):
+        self.modo_tts = mode
 
     def _es_valor_numerico(self, token):
         try:
@@ -25,15 +22,15 @@ class MicrobitCompiler:
         except ValueError:
             return False
         
-    def _normalizar_texto(self, texto, es_variable=False):
-        if not texto: return ""
-        texto = texto.strip().lower()
+    def normalize_text(self, text, is_variable=False):
+        if not text: return ""
+        text = text.strip().lower()
         reemplazos = {'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ü': 'u'}
         for original, nuevo in reemplazos.items():
-            texto = texto.replace(original, nuevo)
-        if es_variable:
-            texto = texto.replace(" ", "_")
-        return texto
+            text = text.replace(original, nuevo)
+        if is_variable:
+            text = text.replace(" ", "_")
+        return text
 
     def _aplicar_tipado(self, texto):
         texto = texto.strip().lower()
@@ -91,12 +88,12 @@ class MicrobitCompiler:
         except ValueError:
             pass
             
-        texto_limpio = self._normalizar_texto(texto, es_variable=False)
+        texto_limpio = self.normalize_text(texto, is_variable=False)
         return f'"{texto_limpio}"', texto_limpio
 
     # --- LÓGICA DE VARIABLES (MVC PURO - 2 PASADAS) ---
 
-    def analizar_matriz(self, matriz_comandos):
+    def analize_matrix(self, matriz_comandos):
         """Pasada 1: Recorre la matriz lógicamente para listar qué interacciones necesita."""
         self.modo_analisis = True
         self.necesidades_variables = []
@@ -106,7 +103,7 @@ class MicrobitCompiler:
 
     def _resolver_variable(self, tipo_bloque, contexto=""):
         if self.modo_analisis:
-            self.necesidades_variables.append({"tipo": tipo_bloque, "contexto": contexto})
+            self.necesidades_variables.append({"type": tipo_bloque, "context": contexto})
             self.contador_var += 1
             return f"var_{self.contador_var}" 
         else:
@@ -116,8 +113,8 @@ class MicrobitCompiler:
             return f"var_{self.contador_var}"
 
     def _manejar_declaracion(self, tokens):
-        nombre = self._resolver_variable("declaracion_var", "declarar una variable nueva")
-        valor_texto = self._resolver_variable("asignacion_val", f"el valor para {nombre}")
+        nombre = self._resolver_variable("declare_var", "declarar una variable nueva")
+        valor_texto = self._resolver_variable("assign_val", f"el valor para {nombre}")
         
         codigo_valor, valor_real = self._aplicar_tipado(valor_texto)
         self.memoria_variables.append({nombre: valor_real})
@@ -125,7 +122,7 @@ class MicrobitCompiler:
         return f"{nombre} = {codigo_valor}"
 
     def _manejar_asignacion(self, tokens, contexto=""):
-        valor_texto = self._resolver_variable("asignacion_val", contexto)
+        valor_texto = self._resolver_variable("assign_val", contexto)
         codigo_valor, _ = self._aplicar_tipado(valor_texto)
         return codigo_valor
 
@@ -134,7 +131,7 @@ class MicrobitCompiler:
 
     # --- MOTOR PRINCIPAL ---
 
-    def generar_codigo(self, matriz_comandos, ruta_salida, respuestas=None):
+    def generate_code(self, matriz_comandos, ruta_salida, respuestas=None):
         """Pasada 2: Genera el archivo usando las respuestas precalculadas."""
         if respuestas is not None:
             self.respuestas_precalculadas = respuestas.copy()
@@ -205,7 +202,7 @@ class MicrobitCompiler:
         if self._es_valor_numerico(primer_bloque):
             info = {"codigo": str(primer_bloque), "tipo": "valor"}
         else:
-            info = self.tabla_simbolos.get(primer_bloque, {})
+            info = self.symbols_table.get(primer_bloque, {})
         
         if not info:
             return f"# ERROR: El bloque '{primer_bloque}' es desconocido o no está en el diccionario."
@@ -213,8 +210,8 @@ class MicrobitCompiler:
         tipo = info.get("tipo", "")
         codigo_base = info.get("codigo", str(primer_bloque))
         
-        if tipo == "declaracion_var": return self._manejar_declaracion(tokens)
-        elif tipo == "asignacion_val": return self._manejar_asignacion(tokens, contexto="una orden general")
+        if tipo == "declare_var": return self._manejar_declaracion(tokens)
+        elif tipo == "assign_val": return self._manejar_asignacion(tokens, contexto="una orden general")
         elif tipo == "referencia_var": return self._manejar_referencia(tokens, contexto="una orden general")
 
         if tipo == "control_metodo":
@@ -330,16 +327,16 @@ class MicrobitCompiler:
         val = tokens.pop(0)
         if self._es_valor_numerico(val): resultado = str(val)
         else:
-            info = self.tabla_simbolos.get(val, {})
+            info = self.symbols_table.get(val, {})
             tipo_val = info.get("tipo", "")
             
             if tipo_val == "referencia_var": resultado = self._manejar_referencia(tokens, contexto)
-            elif tipo_val == "asignacion_val": resultado = self._manejar_asignacion(tokens, contexto)
+            elif tipo_val == "assign_val": resultado = self._manejar_asignacion(tokens, contexto)
             else: resultado = info.get("codigo", val)
             
         while tokens:
             if self._es_valor_numerico(tokens[0]): break
-            sig_info = self.tabla_simbolos.get(tokens[0], {})
+            sig_info = self.symbols_table.get(tokens[0], {})
             tipo_sig = sig_info.get("tipo")
             
             if tipo_sig == "operador_logico":
