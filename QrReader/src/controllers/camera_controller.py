@@ -121,8 +121,8 @@ class CameraController:
         """Envia el codigo generado a la placa microbit"""
         """Sends the generated code to the Microbit board"""
         self.audio_service.read_text("Subiendo el programa a la placa Micro:bit.")
-        exit, msg = self.file_manager.upload() 
-        if not exit:
+        success, msg = self.file_manager.upload() 
+        if not success:
             self.audio_service.read_text_interrupting(msg)
 
     def ia_explain_code(self, callback_state):

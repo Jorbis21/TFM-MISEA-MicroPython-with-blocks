@@ -55,11 +55,11 @@ QPushButton:hover {
 }
 
 /* --- BOTONES ESPECÍFICOS Y DE CÁMARA --- */
-QPushButton#btn_capturar { background-color: #ffd101; color: white; }
-QPushButton#btn_enviar { background-color: #0077c9; color: white; }
-QPushButton#btn_ia { background-color: #01963a; color: white; }
-QPushButton#btn_leer { background-color: #c9262f; color: white; }
-QPushButton#btn_tts { background-color: #ffffff; color: black; }
+QPushButton#capture_btn { background-color: #ffd101; color: white; }
+QPushButton#send_btn { background-color: #0077c9; color: white; }
+QPushButton#ia_btn { background-color: #01963a; color: white; }
+QPushButton#read_btn { background-color: #c9262f; color: white; }
+QPushButton#tts_btn { background-color: #ffffff; color: black; }
 
 
 /* Efecto cristal para los botones flotantes de la cámara */
