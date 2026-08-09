@@ -16,7 +16,7 @@ class VisionEngine:
         
         # ELIMINADO: threading.Lock(), self.corriendo y self.hilo_vision
 
-    def actualizar_procesamiento(self):
+    def update_process(self):
         """Método síncrono que procesa los QRs del frame actual."""
         if self.frame_actual is not None:
             self.elementos_detectados = self.getProcessedFrame(self.frame_actual)
@@ -91,7 +91,7 @@ class VisionEngine:
         elementos_detectados.sort(key=lambda obj: (obj["top"] // 50, obj["left"]))
         return elementos_detectados
 
-    def obtener_frame_marcado(self, rotar_camara):
+    def get_marked_frame(self, rotar_camara):
         """Lee la cámara, guarda el frame, le dibuja los rectángulos y lo devuelve."""
         ret, frame = self.cap.read()
         if not ret:
@@ -214,11 +214,11 @@ class VisionEngine:
             
         return None
 
-    def liberar_camara(self):
+    def free_camera(self):
         if self.cap is not None and self.cap.isOpened():
             self.cap.release()
 
-    def iniciar_camara(self, camera_index=None):
+    def start_camera(self, camera_index=None):
         if camera_index is not None:
             self.camera_index = camera_index
             

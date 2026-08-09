@@ -7,7 +7,7 @@ class QRManager:
     """Motor encargado de la generación de imágenes QR y compilación de PDFs."""
     
     @staticmethod
-    def generar_pdf_impresion(elementos, tamano_mm, ruta_pdf_final, workspace_dir):
+    def generate_pdf(elementos, tamano_mm, ruta_pdf_final, workspace_dir):
         """
         Genera los QRs y los empaqueta en un PDF.
         Devuelve la ruta absoluta del PDF generado.

@@ -6,19 +6,20 @@ class QRController:
         self.json_manager = json_manager
         self.workspace_dir = workspace_dir
 
-    '''Obtiene todos los simbolos del json para poderlos seleccionar en la pestaña de QR'''
-    def obtener_simbolos(self):
-        return sorted(self.json_manager.construir_tabla_simbolos().keys())
+    def get_symbols(self):
+        """Obtiene todos los simbolos del json para poderlos seleccionar"""
+        """Gets all the symbols from de json to be able to select"""
+        return sorted(self.json_manager.build_symbols_table().keys())
 
-    '''Genera el pdf con los elementos seleccionados'''
-    def generar_pdf(self, elementos, tamano_mm, ruta_destino, callback_estado):
-        def _tarea():
+    def generate_pdf(self, elems, size_mm, dest_dir, callback_state):
+        """Genera el pdf con los elementos seleccionados"""
+        """Generates the pdf with the selected elems"""
+        def _task():
             try:
-                # Pasamos la ruta_destino al Manager
-                ruta_pdf = QRManager.generar_pdf_impresion(elementos, tamano_mm, ruta_destino, self.workspace_dir)
-                callback_estado(f"¡Éxito! PDF guardado en: {ruta_pdf}")
+                pdf_dir = QRManager.generate_pdf(elems, size_mm, dest_dir, self.workspace_dir)
+                callback_state(f"¡Éxito! PDF guardado en: {pdf_dir}")
             except Exception as e:
-                callback_estado(f"Error al generar PDF: {e}")
+                callback_state(f"Error al generar PDF: {e}")
                 
-        callback_estado("Generando imágenes y PDF...")
-        threading.Thread(target=_tarea, daemon=True).start()
+        callback_state("Generando imágenes y PDF...")
+        threading.Thread(target=_task, daemon=True).start()

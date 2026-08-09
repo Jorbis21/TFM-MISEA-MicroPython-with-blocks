@@ -173,6 +173,11 @@ class CameraController:
         """Frees all the camera resources"""
         self.camera_thr.free_all()
 
+    def detect_cameras(self):
+        """Detecta las camaras conectadas al ordenador"""
+        """Detects the connected cameras to the computer"""
+        self.camera_thr.detect_cameras()
+
     def process_whole_frame(self, frame_bgr, img_dir, callback_act_ui):
         """Procesa el frame con los bloques para generar el codigo"""
         """Process the frame with the blocks to generate the code"""

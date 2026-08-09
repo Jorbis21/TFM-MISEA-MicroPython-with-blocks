@@ -7,7 +7,7 @@ class JsonManager:
     def __init__(self, config_dir):
         self.ruta_json = os.path.join(config_dir, "bloques.json")
 
-    def obtener_todos_los_bloques(self):
+    def get_all_the_blocks(self):
         bloques = []
         if os.path.exists(self.ruta_json):
             with open(self.ruta_json, 'r', encoding='utf-8') as f:
@@ -19,7 +19,7 @@ class JsonManager:
                 })
         return bloques
 
-    def guardar_bloque(self, nombre_antiguo, nombre_nuevo, info_bloque):
+    def save_block(self, nombre_antiguo, nombre_nuevo, info_bloque):
         try:
             with open(self.ruta_json, 'r', encoding='utf-8') as f:
                 datos = json.load(f)
@@ -35,7 +35,7 @@ class JsonManager:
         with open(self.ruta_json, 'w', encoding='utf-8') as f:
             json.dump(datos, f, indent=4, ensure_ascii=False)
 
-    def eliminar_bloque(self, clave):
+    def delete_block(self, clave):
         try:
             with open(self.ruta_json, 'r', encoding='utf-8') as f:
                 datos = json.load(f)
@@ -48,7 +48,7 @@ class JsonManager:
         except Exception as e:
             raise Exception(f"Fallo al eliminar en disco: {e}")
 
-    def construir_tabla_simbolos(self):
+    def build_symbols_table(self):
         try:
             with open(self.ruta_json, 'r', encoding='utf-8') as f:
                 return json.load(f)

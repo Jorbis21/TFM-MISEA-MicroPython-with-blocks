@@ -2,7 +2,7 @@ class MicrobitCompiler:
     def __init__(self, config_dir, json_manager):
         self.config_dir = config_dir
         self.json_manager = json_manager
-        self.symbols_table = self.json_manager.construir_tabla_simbolos()
+        self.symbols_table = self.json_manager.build_symbols_table()
         
         self.memoria_variables = []  
         self.contador_var = 0        

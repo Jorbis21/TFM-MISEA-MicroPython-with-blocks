@@ -63,7 +63,7 @@ QPushButton#btn_tts { background-color: #ffffff; color: black; }
 
 
 /* Efecto cristal para los botones flotantes de la cámara */
-QPushButton#btn_overlay, QComboBox#combo_camaras {
+QPushButton#overlay_btn, QComboBox#combo_cameras {
     background-color: rgba(30, 30, 30, 180);
     color: white;
     border: 1px solid rgba(255, 255, 255, 50);
@@ -71,7 +71,7 @@ QPushButton#btn_overlay, QComboBox#combo_camaras {
     padding: 6px 12px;
     font-weight: bold;
 }
-QPushButton#btn_overlay:hover, QComboBox#combo_camaras:hover {
+QPushButton#overlay_btn:hover, QComboBox#combo_cameras:hover {
     background-color: rgba(60, 60, 60, 220);
     border: 1px solid rgba(255, 255, 255, 100);
 }

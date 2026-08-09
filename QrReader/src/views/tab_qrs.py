@@ -126,7 +126,7 @@ class TabQRs(QWidget):
         self.entradas_qr.clear()
 
         # Usamos el controlador para consultar
-        bloques = self.qr_ctrl.obtener_simbolos()
+        bloques = self.qr_ctrl.get_symbols()
         self.tabla.setRowCount(len(bloques))
 
         for fila, bloque in enumerate(bloques):
@@ -223,4 +223,4 @@ class TabQRs(QWidget):
             self.lbl_estado_qr.setText(msg)
 
         # Delegamos al controlador pasándole la ruta que eligió el usuario
-        self.qr_ctrl.generar_pdf(elementos_a_generar, tamano_mm, ruta_destino, actualizar_estado)
+        self.qr_ctrl.generate_pdf(elementos_a_generar, tamano_mm, ruta_destino, actualizar_estado)

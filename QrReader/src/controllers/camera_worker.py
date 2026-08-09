@@ -2,68 +2,74 @@ import cv2, os, time
 from PyQt6.QtCore import QThread, pyqtSignal
 
 class CameraWorker(QThread):
-    # Señal que transporta el frame BGR, el RGB para PyQt y los textos detectados
-    nuevo_frame = pyqtSignal(object, object, list) 
+
+    """Señal que envia los frames"""
+    """Signal that sends the new frames"""
+    new_frame = pyqtSignal(object, object, list) 
 
     def __init__(self, vision, parent=None):
         super().__init__(parent)
         self.vision = vision
-        self.corriendo = False
+        self.running = False
         self.rotate = False
-        self.camara_activa = False
+        self.active_camera = False
 
-    '''Detecta las cámaras en el equipo para poder seleccionarlas'''
     @staticmethod
-    def detectar_camaras():
-        camaras_activas = []
+    def detect_cameras():
+        """Detecta las camaras conectadas al ordenador"""
+        """Detects the connected cameras to the computer"""
+        active_cameras = []
         for i in range(3):
             cap = cv2.VideoCapture(i, cv2.CAP_DSHOW if os.name == 'nt' else cv2.CAP_ANY)
             if cap is not None and cap.isOpened():
-                camaras_activas.append(i)
+                active_cameras.append(i)
                 cap.release()
-        if not camaras_activas:
-            camaras_activas = [0]
-        return camaras_activas
+        if not active_cameras:
+            active_cameras = [0]
+        return active_cameras
 
-    '''Enciende la cámara y arranca el hilo'''
     def start_hardware(self, cam_idx):
-        self.vision.iniciar_camara(cam_idx)
-        self.camara_activa = True
-        self.corriendo = True
+        """Enciende la camara"""
+        """Starts the camera"""
+        self.vision.start_camera(cam_idx)
+        self.active_camera = True
+        self.running = True
         self.start()
 
-    '''Apaga la cámara temporalmente'''
     def pause_hardware(self):
+        """Pausa la camara temporalmente"""
+        """Pauses the camera"""
         self.stop()
-        self.vision.liberar_camara()
-        self.camara_activa = False
+        self.vision.free_camera()
+        self.active_camera = False
 
-    '''Apaga la cámara y libera todos los recursos'''
     def free_all(self):
+        """Apaga la camara y libera los recursos"""
+        """Shutdowns the camera and free the resources"""
         self.stop()
         self.vision.free()
-        self.camara_activa = False
+        self.active_camera = False
 
-    '''Bucle principal del hilo'''
     def run(self):
-        ultimo_procesamiento = time.time()
+        """Bucle principal del hilo de la camara"""
+        """Main loop of the camera thread"""
+        last_process = time.time()
         
-        while self.corriendo and self.camara_activa:
-            # 1. Tarea ligera: Leer el frame de la webcam y dibujarle los cuadrados (30 FPS)
-            frame_bgr, frame_rgb, textos = self.vision.obtener_frame_marcado(self.rotate)
+        while self.running and self.active_camera:
+            frame_bgr, frame_rgb, texts = self.vision.get_marked_frame(self.rotate)
             
             if frame_rgb is not None:
-                self.nuevo_frame.emit(frame_bgr, frame_rgb, textos)
+                self.new_frame.emit(frame_bgr, frame_rgb, texts)
             
-            # 2. Tarea pesada: Procesar QRs solo cada 0.15 segundos para no saturar la CPU
-            tiempo_actual = time.time()
-            if tiempo_actual - ultimo_procesamiento > 0.15:
-                self.vision.actualizar_procesamiento()
-                ultimo_procesamiento = tiempo_actual
+            actual_time = time.time()
+            if actual_time - last_process > 0.15:
+                self.vision.update_process()
+                last_process = actual_time
                 
             time.sleep(0.015) 
 
-    '''Pausa la ejecución del hilo de la cámara'''
     def stop(self):
-        self.corriendo = False
+        """Pausa la ejecucion del hilo"""
+        """Pauses the ejecution of the thread"""
+        self.running = False
         self.wait()

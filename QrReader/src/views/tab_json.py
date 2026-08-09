@@ -142,7 +142,7 @@ class TabJSON(QWidget):
         exitos = 0
         for clave in claves_a_borrar:
             try:
-                self.json_ctrl.eliminar_bloque(clave)
+                self.json_ctrl.delete_block(clave)
                 if self.editando_actualmente and self.llave_original == clave:
                     self._reset_formulario()
                 exitos += 1
@@ -156,7 +156,7 @@ class TabJSON(QWidget):
     def _cargar_lista(self):
         self.tabla.blockSignals(True) 
         self.tabla.setRowCount(0)
-        bloques = self.json_ctrl.obtener_bloques()
+        bloques = self.json_ctrl.get_blocks()
         self.tabla.setRowCount(len(bloques))
 
         for fila, bloque in enumerate(bloques):
@@ -237,7 +237,7 @@ class TabJSON(QWidget):
         nombre_antiguo = self.llave_original if self.editando_actualmente else None
         
         try:
-            self.json_ctrl.guardar_bloque(nombre_antiguo, nombre, nuevo_nodo)
+            self.json_ctrl.save_block(nombre_antiguo, nombre, nuevo_nodo)
             self.lbl_estado.setText(f"¡Bloque '{nombre}' guardado con éxito!")
             self._reset_formulario()
             self._cargar_lista()
@@ -246,7 +246,7 @@ class TabJSON(QWidget):
 
     def accion_eliminar(self, clave):
         try:
-            self.json_ctrl.eliminar_bloque(clave)
+            self.json_ctrl.delete_block(clave)
             self._cargar_lista()
             if self.editando_actualmente and self.llave_original == clave:
                 self._reset_formulario()

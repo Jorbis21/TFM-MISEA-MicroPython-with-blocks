@@ -5,36 +5,37 @@ from PyQt6.QtGui import (QImage, QPixmap, QIcon)
 from PyQt6.QtCore import Qt, QTimer, QSize
 from views.highlighter import PythonHighlighter
 from utils.constants import TTSMode
-from controllers.camera_worker import CameraWorker
 
 class TabCamara(QWidget):
+
     def __init__(self, workspace_dir, assets_dir, camera_ctrl):
         super().__init__()
         self.workspace_dir = workspace_dir
         self.icons_dir = os.path.join(assets_dir, "icons")
-        self.ruta_img = os.path.join(self.workspace_dir, "inputs", "program.jpg")
+        self.img_dir = os.path.join(self.workspace_dir, "inputs", "program.jpg")
         
-        self.controlador = camera_ctrl
+        self.ctrl = camera_ctrl
 
-        self.modo_edicion = False
-        self.rotar_camara = False
-        self.apagar_camara = False
-        self.modo_alto_contraste = True
-        self.clics = 0
-        self.ultima_tecla = None
-        self.timer_clic = None
+        self.edit_mode = False
+        self.rotate_camera = False
+        self.shutdown_camera = False
+        self.highcontrast_mode = True
+        self.clicks = 0
+        self.last_key = None
+        self.click_timer = None
         
-        self.textos_qr_actuales = []
-        self.bloque_pitches = []
+        self.actual_qr_texts = []
+        self.pitches_block = []
         self.frame_actual_bgr = None
 
         
-        self.controlador.camera_thr.nuevo_frame.connect(self.actualizar_frame)
+        self.ctrl.camera_thr.new_frame.connect(self.update_frame)
 
         self._setup_ui()
-        self.leer_codigo_generado()
-        self.reanudar_camara()
+        self.read_generated_code()
+        self.resume_camera()
 
+    """"""""""""""""""""""""
     def _setup_ui(self):
         layout_principal = QHBoxLayout(self)
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -96,15 +97,15 @@ class TabCamara(QWidget):
         layout_h_texto = QHBoxLayout()
         layout_h_texto.addStretch() 
         
-        self.btn_editar = QPushButton()
-        self.btn_editar.setObjectName("btn_editar")
-        self.btn_editar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.edit_btn = QPushButton()
+        self.edit_btn.setObjectName("edit_btn")
+        self.edit_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         ruta_icono_editar = os.path.join(self.icons_dir, "edit_cont.png")
-        self.btn_editar.setIcon(QIcon(ruta_icono_editar))
-        self.btn_editar.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_editar.clicked.connect(self.accion_editar_codigo)
+        self.edit_btn.setIcon(QIcon(ruta_icono_editar))
+        self.edit_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.edit_btn.clicked.connect(self.action_edit_code)
         
-        layout_h_texto.addWidget(self.btn_editar)
+        layout_h_texto.addWidget(self.edit_btn)
         layout_overlay_texto.addLayout(layout_h_texto)
 
         self.status_label = QLabel("Estado: Cámara Activa")
@@ -126,38 +127,38 @@ class TabCamara(QWidget):
         layout_botones_camara.setSpacing(10)
         layout_botones_camara.addStretch()
 
-        self.btn_rotar = QPushButton()
-        self.btn_rotar.setObjectName("btn_overlay")
-        self.btn_apagar = QPushButton()
-        self.btn_apagar.setObjectName("btn_overlay")
+        self.rotate_btn = QPushButton()
+        self.rotate_btn.setObjectName("overlay_btn")
+        self.shutdown_btn = QPushButton()
+        self.shutdown_btn.setObjectName("overlay_btn")
 
-        self.btn_rotar.setIcon(QIcon(os.path.join(self.icons_dir, "sync_cont.png")))
-        self.btn_apagar.setIcon(QIcon(os.path.join(self.icons_dir, "on-off-button_cont.png")))
+        self.rotate_btn.setIcon(QIcon(os.path.join(self.icons_dir, "sync_cont.png")))
+        self.shutdown_btn.setIcon(QIcon(os.path.join(self.icons_dir, "on-off-button_cont.png")))
 
         tamano_icono = QSize(24, 24)
-        self.btn_rotar.setIconSize(tamano_icono)
-        self.btn_apagar.setIconSize(tamano_icono)
+        self.rotate_btn.setIconSize(tamano_icono)
+        self.shutdown_btn.setIconSize(tamano_icono)
 
-        self.btn_apagar.clicked.connect(self.accion_apagar_camara)
-        self.btn_rotar.clicked.connect(self.accion_rotar_camara)
+        self.shutdown_btn.clicked.connect(self.accion_apagar_camara)
+        self.rotate_btn.clicked.connect(self.accion_rotar_camara)
 
-        self.combo_camaras = QComboBox()
-        self.combo_camaras.setObjectName("combo_camaras")
-        self.combo_camaras.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.combo_cameras = QComboBox()
+        self.combo_cameras.setObjectName("combo_cameras")
+        self.combo_cameras.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         
-        camaras_reales = CameraWorker.detectar_camaras() 
+        camaras_reales = self.ctrl.detect_cameras()
         for cam_id in camaras_reales:
             nombre = "Cámara Principal" if cam_id == 0 else f"Cámara Secundaria ({cam_id})"
-            self.combo_camaras.addItem(nombre, userData=cam_id)
+            self.combo_cameras.addItem(nombre, userData=cam_id)
             
         if len(camaras_reales) <= 1:
-            self.combo_camaras.hide()
+            self.combo_cameras.hide()
             
-        self.combo_camaras.currentIndexChanged.connect(self.accion_cambiar_camara)
+        self.combo_cameras.currentIndexChanged.connect(self.accion_cambiar_camara)
 
-        layout_botones_camara.addWidget(self.btn_rotar)
-        layout_botones_camara.addWidget(self.btn_apagar)
-        layout_botones_camara.addWidget(self.combo_camaras)
+        layout_botones_camara.addWidget(self.rotate_btn)
+        layout_botones_camara.addWidget(self.shutdown_btn)
+        layout_botones_camara.addWidget(self.combo_cameras)
         layout_botones_camara.addStretch()
 
         layout_overlay.addLayout(layout_botones_camara)
@@ -166,10 +167,10 @@ class TabCamara(QWidget):
         self.splitter.addWidget(self.video_label)
         self.splitter.setSizes([640, 640])
 
-    def actualizar_frame(self, frame_bgr, frame_rgb, textos):
+    def update_frame(self, frame_bgr, frame_rgb, textos):
         if frame_rgb is not None:
             self.frame_actual_bgr = frame_bgr
-            self.textos_qr_actuales = textos
+            self.actual_qr_texts = textos
             
             alto, ancho, canales = frame_rgb.shape
             bytes_por_linea = canales * ancho
@@ -182,38 +183,38 @@ class TabCamara(QWidget):
             ))
 
     def _procesar_clic_simple(self, text):
-        self.clics = 0
-        self.ultima_tecla = None
+        self.clicks = 0
+        self.last_key = None
         # AQUÍ LA VISTA DELEGA EN EL CONTROLADOR LA PETICIÓN DE LECTURA DE INTERFAZ
-        self.controlador.audio_service.read_text(text)
+        self.ctrl.audio_service.read_text(text)
     
     def _procesar_doble_clic(self, func):
         func()
 
-    def procesar_atajo_teclado(self, tecla_id, text, func):
-        if self.modo_edicion: return 
-        if self.ultima_tecla != tecla_id:
-            if self.timer_clic is not None and self.timer_clic.isActive(): 
-                self.timer_clic.stop()
-            self.clics = 0
-            self.ultima_tecla = tecla_id
+    def process_chortcut(self, tecla_id, text, func):
+        if self.edit_mode: return 
+        if self.last_key != tecla_id:
+            if self.click_timer is not None and self.click_timer.isActive(): 
+                self.click_timer.stop()
+            self.clicks = 0
+            self.last_key = tecla_id
             
-        self.clics += 1
-        if self.clics == 1:
-            self.timer_clic = QTimer()
-            self.timer_clic.setSingleShot(True)
-            self.timer_clic.timeout.connect(lambda: self._procesar_clic_simple(text))
-            self.timer_clic.start(400)
-        elif self.clics == 2:
-            if self.timer_clic is not None and self.timer_clic.isActive(): 
-                self.timer_clic.stop()
+        self.clicks += 1
+        if self.clicks == 1:
+            self.click_timer = QTimer()
+            self.click_timer.setSingleShot(True)
+            self.click_timer.timeout.connect(lambda: self._procesar_clic_simple(text))
+            self.click_timer.start(400)
+        elif self.clicks == 2:
+            if self.click_timer is not None and self.click_timer.isActive(): 
+                self.click_timer.stop()
             self._procesar_doble_clic(func)
-            self.clics = 0
-            self.ultima_tecla = None
+            self.clicks = 0
+            self.last_key = None
 
-    def actualizar_iconos(self, modo_alto_contraste):
-        self.modo_alto_contraste = modo_alto_contraste
-        if modo_alto_contraste:
+    def update_icons(self, highcontrast_mode):
+        self.highcontrast_mode = highcontrast_mode
+        if highcontrast_mode:
             ruta_editar = os.path.join(self.icons_dir, "edit_cont.png")
             ruta_rotar = os.path.join(self.icons_dir, "sync_cont.png")
             ruta_apagar = os.path.join(self.icons_dir, "on-off-button_cont.png")
@@ -222,86 +223,86 @@ class TabCamara(QWidget):
             ruta_rotar = os.path.join(self.icons_dir, "sync.png")
             ruta_apagar = os.path.join(self.icons_dir, "on-off-button.png")
             
-        self.btn_editar.setIcon(QIcon(ruta_editar))
-        self.btn_rotar.setIcon(QIcon(ruta_rotar))
-        self.btn_apagar.setIcon(QIcon(ruta_apagar))
+        self.edit_btn.setIcon(QIcon(ruta_editar))
+        self.rotate_btn.setIcon(QIcon(ruta_rotar))
+        self.shutdown_btn.setIcon(QIcon(ruta_apagar))
 
     # --- ACCIONES PURIFICADAS QUE SOLO DELEGAN ---
     def action_capture(self):
         if self.frame_actual_bgr is None: return
-        self.controlador.process_whole_frame(self.frame_actual_bgr, self.ruta_img, self.leer_codigo_generado)
+        self.ctrl.process_whole_frame(self.frame_actual_bgr, self.img_dir, self.read_generated_code)
 
     def action_var_review(self):
-        self.controlador.var_review(self.leer_codigo_generado)
+        self.ctrl.var_review(self.read_generated_code)
 
     def action_send(self):
-        self.controlador.send_to_microbit()
+        self.ctrl.send_to_microbit()
 
     def action_ia_explain(self):
         def actualizar_estado(texto, color_hex=None):
             self.status_label.setText(texto)
-        self.controlador.ia_explain_code(actualizar_estado)
+        self.ctrl.ia_explain_code(actualizar_estado)
 
     def action_change_tts(self):
-        self.idx_tts, texto_boton = self.controlador.change_tts(self.modos_tts, self.idx_tts)
+        self.idx_tts, texto_boton = self.ctrl.change_tts(self.modos_tts, self.idx_tts)
         self.btn_tts.setText(texto_boton)
 
     def action_read_qrs(self):
-        self.controlador.read_qrs(self.frame_actual_bgr)
+        self.ctrl.read_qrs(self.frame_actual_bgr)
 
-    def leer_codigo_generado(self):
+    def read_generated_code(self):
         self.caja_texto.clear()
-        codigo_mostrar, estado, self.bloque_pitches, hay_error = self.controlador.get_view_code()
+        codigo_mostrar, estado, self.pitches_block, hay_error = self.ctrl.get_view_code()
         self.caja_texto.setPlainText(codigo_mostrar)
         self.status_label.setText(estado)
         
         if hay_error:
-            self.controlador.audio_service.read_text("Atención. Hay un error de sintaxis en el archivo.")
+            self.ctrl.audio_service.read_text("Atención. Hay un error de sintaxis en el archivo.")
 
-    def accion_editar_codigo(self):
-        if not self.modo_edicion:
-            self.modo_edicion = True
-            if self.modo_alto_contraste:
-                self.btn_editar.setIcon(QIcon(os.path.join(self.icons_dir, "diskette_cont.png")))
+    def action_edit_code(self):
+        if not self.edit_mode:
+            self.edit_mode = True
+            if self.highcontrast_mode:
+                self.edit_btn.setIcon(QIcon(os.path.join(self.icons_dir, "diskette_cont.png")))
             else:
-                self.btn_editar.setIcon(QIcon(os.path.join(self.icons_dir, "diskette.png")))
+                self.edit_btn.setIcon(QIcon(os.path.join(self.icons_dir, "diskette.png")))
             self.caja_texto.setReadOnly(False)
             self.status_label.setText("Estado: MODO EDICIÓN ACTIVO")
         else:
             nuevo_codigo = self.caja_texto.toPlainText()
-            exito, error = self.controlador.save_manual_code(nuevo_codigo, self.bloque_pitches)
+            exito, error = self.ctrl.save_manual_code(nuevo_codigo, self.pitches_block)
             
             if exito:
-                self.modo_edicion = False
-                if self.modo_alto_contraste:
-                    self.btn_editar.setIcon(QIcon(os.path.join(self.icons_dir, "edit_cont.png")))
+                self.edit_mode = False
+                if self.highcontrast_mode:
+                    self.edit_btn.setIcon(QIcon(os.path.join(self.icons_dir, "edit_cont.png")))
                 else:
-                    self.btn_editar.setIcon(QIcon(os.path.join(self.icons_dir, "edit.png")))
+                    self.edit_btn.setIcon(QIcon(os.path.join(self.icons_dir, "edit.png")))
                 self.caja_texto.setReadOnly(True)
-                self.leer_codigo_generado()
+                self.read_generated_code()
             else:
                 self.status_label.setText(f"Error al guardar: {error}")
 
-    def accion_atajo_guardar(self):
-        if self.modo_edicion:
+    def action_save_shortcut(self):
+        if self.edit_mode:
             nuevo_codigo = self.caja_texto.toPlainText()
-            exito, _ = self.controlador.save_manual_code(nuevo_codigo, self.bloque_pitches)
+            exito, _ = self.ctrl.save_manual_code(nuevo_codigo, self.pitches_block)
             if exito:
-                self.modo_edicion = False
-                self.btn_editar.setIcon(QIcon(os.path.join(self.icons_dir, "edit.png")))
+                self.edit_mode = False
+                self.edit_btn.setIcon(QIcon(os.path.join(self.icons_dir, "edit.png")))
                 self.caja_texto.setReadOnly(True)
-                self.leer_codigo_generado()
+                self.read_generated_code()
                 self.status_label.setText("Estado: Guardado rápido completado")
 
     # --- CONTROL DE HARDWARE (MANTENIDO EN LA VISTA SOLO COMO BOTONES) ---
     def accion_rotar_camara(self):
-        self.rotar_camara = not self.rotar_camara
-        self.controlador.set_rotation_camera(self.rotar_camara)
+        self.rotate_camera = not self.rotate_camera
+        self.ctrl.set_rotation_camera(self.rotate_camera)
 
     def accion_apagar_camara(self):
-        self.apagar_camara = not self.apagar_camara
-        if self.apagar_camara:
-            self.controlador.pause_camera_hardware()
+        self.shutdown_camera = not self.shutdown_camera
+        if self.shutdown_camera:
+            self.ctrl.pause_camera_hardware()
             
             # Limpiamos la imagen y ponemos el fondo completamente negro
             self.video_label.clear()
@@ -311,28 +312,28 @@ class TabCamara(QWidget):
         else:
             # Quitamos el fondo negro al encender
             self.video_label.setStyleSheet("")
-            idx = self.combo_camaras.currentData()
-            self.controlador.start_camera_hardware(idx, self.rotar_camara)
+            idx = self.combo_cameras.currentData()
+            self.ctrl.start_camera_hardware(idx, self.rotate_camera)
             self.status_label.setText("Estado: Cámara Activa")
 
     def accion_cambiar_camara(self, index):
-        if not self.apagar_camara:
-            self.controlador.pause_camera_hardware()
+        if not self.shutdown_camera:
+            self.ctrl.pause_camera_hardware()
             self.video_label.clear() 
-            id_real = self.combo_camaras.itemData(index)
-            self.controlador.start_camera_hardware(id_real, self.rotar_camara)
+            id_real = self.combo_cameras.itemData(index)
+            self.ctrl.start_camera_hardware(id_real, self.rotate_camera)
 
     def cleanup(self):
-        self.controlador.free_camera_resources()
+        self.ctrl.free_camera_resources()
 
-    def pausar_camara(self):
-        self.controlador.pause_camera_hardware()
+    def pause_camera(self):
+        self.ctrl.pause_camera_hardware()
         self.video_label.clear()
         self.video_label.setStyleSheet("background-color: black;")
 
-    def reanudar_camara(self):
-        if not self.apagar_camara:
+    def resume_camera(self):
+        if not self.shutdown_camera:
             # Nos aseguramos de limpiar el fondo negro al reanudar
             self.video_label.setStyleSheet("")
-            idx = self.combo_camaras.currentData()
-            self.controlador.start_camera_hardware(idx, self.rotar_camara)
+            idx = self.combo_cameras.currentData()
+            self.ctrl.start_camera_hardware(idx, self.rotate_camera)
