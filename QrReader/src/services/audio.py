@@ -128,7 +128,7 @@ class AudioService:
             
         self.cola_tts.put((texto, sin_internet))
 
-    def leer_codigo_literal(self, ruta_codigo, sin_internet=False):
+    def read_literal_code(self, ruta_codigo, sin_internet=False):
         try:
             with open(ruta_codigo, "r", encoding="utf-8") as file:
                 codigo = file.read()

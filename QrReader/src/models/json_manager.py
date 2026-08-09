@@ -1,57 +1,63 @@
-import os
-import json
+import os, json
 
 class JsonManager:
-    """Motor encargado de gestionar las operaciones CRUD del diccionario bloques.json."""
     
     def __init__(self, config_dir):
-        self.ruta_json = os.path.join(config_dir, "bloques.json")
+        self.json_dir = os.path.join(config_dir, "blocks.json")
 
     def get_all_the_blocks(self):
-        bloques = []
-        if os.path.exists(self.ruta_json):
-            with open(self.ruta_json, 'r', encoding='utf-8') as f:
-                datos = json.load(f)
-            for clave, info in sorted(datos.items()):
-                bloques.append({
-                    "clave": clave,
+        """Obtiene todos los bloques del json"""
+        """Gets all the blocks from the json"""
+        blocks = []
+        if os.path.exists(self.json_dir):
+            with open(self.json_dir, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            for key, info in sorted(data.items()):
+                blocks.append({
+                    "key": key,
                     "info": info
                 })
-        return bloques
+        return blocks
 
-    def save_block(self, nombre_antiguo, nombre_nuevo, info_bloque):
+    def save_block(self, old_name, new_name, block_info):
+        """Guarda el bloque modificado"""
+        """Saves the modified block"""
         try:
-            with open(self.ruta_json, 'r', encoding='utf-8') as f:
-                datos = json.load(f)
+            with open(self.json_dir, 'r', encoding='utf-8') as f:
+                data = json.load(f)
         except Exception:
-            datos = {}
+            data = {}
             
-        if nombre_antiguo and nombre_antiguo != nombre_nuevo:
-            if nombre_antiguo in datos:
-                del datos[nombre_antiguo]
+        if old_name and old_name != new_name:
+            if old_name in data:
+                del data[old_name]
                 
-        datos[nombre_nuevo] = info_bloque
+        data[new_name] = block_info
         
-        with open(self.ruta_json, 'w', encoding='utf-8') as f:
-            json.dump(datos, f, indent=4, ensure_ascii=False)
+        with open(self.json_dir, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
 
-    def delete_block(self, clave):
+    def delete_block(self, key):
+        """Borra el bloque seleccionado"""
+        """Deletes the selected block"""
         try:
-            with open(self.ruta_json, 'r', encoding='utf-8') as f:
-                datos = json.load(f)
+            with open(self.json_dir, 'r', encoding='utf-8') as f:
+                data = json.load(f)
                 
-            if clave in datos:
-                del datos[clave]
+            if key in data:
+                del data[key]
                 
-            with open(self.ruta_json, 'w', encoding='utf-8') as f:
-                json.dump(datos, f, indent=4, ensure_ascii=False)
+            with open(self.json_dir, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
         except Exception as e:
             raise Exception(f"Fallo al eliminar en disco: {e}")
 
     def build_symbols_table(self):
+        """Lee todo el json"""
+        """Reads all the json"""
         try:
-            with open(self.ruta_json, 'r', encoding='utf-8') as f:
+            with open(self.json_dir, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except FileNotFoundError:
-            print(f"Advertencia: No se encontró {self.ruta_json}")
+            print(f"Advertencia: No se encontró {self.json_dir}")
             return {}

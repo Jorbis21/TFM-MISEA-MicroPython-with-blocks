@@ -4,11 +4,11 @@ from controllers.camera_worker import CameraWorker
 
 class CameraController:
     
-    def __init__(self, workspace_dir, code_dir, traducer, file_manager, audio_service, vision, ai_manager, voice_manager):
+    def __init__(self, workspace_dir, code_dir, traducer, code_manager, audio_service, vision, ai_manager, voice_manager):
         self.workspace_dir = workspace_dir
         self.code_dir = code_dir
         self.traducer = traducer
-        self.file_manager = file_manager
+        self.code_manager = code_manager
         self.audio_service = audio_service
         self.vision = vision
         self.ai_manager = ai_manager
@@ -16,7 +16,7 @@ class CameraController:
 
         self.camera_thr = CameraWorker(self.vision)
 
-        self.super_matrix, self.interaction_history = self.file_manager.load_state()
+        self.super_matrix, self.interaction_history = self.code_manager.load_state()
         self.extensions_queue = []
         self.pending_links = []
         self.actual_dir = "unknown"
@@ -28,7 +28,7 @@ class CameraController:
     def save_state(self):
         """Guarda el estado del programa y las interacciones"""
         """Save the state of the program and his interactions"""
-        self.file_manager.save_state(self.super_matrix, self.interaction_history)
+        self.code_manager.save_state(self.super_matrix, self.interaction_history)
         
     def var_review(self, callback_act_ui):
         """Hace el bucle de revision de variables"""
@@ -115,13 +115,13 @@ class CameraController:
         """Guarda el codigo modificado manualmente"""
         """Save the code modified manually"""
         clean_code = new_code.replace('\xa0', ' ').replace('\t', '    ')
-        return self.file_manager.save_edited_code(clean_code, pitches_block)
+        return self.code_manager.save_edited_code(clean_code, pitches_block)
 
     def send_to_microbit(self):
         """Envia el codigo generado a la placa microbit"""
         """Sends the generated code to the Microbit board"""
         self.audio_service.read_text("Subiendo el programa a la placa Micro:bit.")
-        success, msg = self.file_manager.upload() 
+        success, msg = self.code_manager.upload() 
         if not success:
             self.audio_service.read_text_interrupting(msg)
 

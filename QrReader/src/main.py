@@ -9,7 +9,7 @@ from models.json_manager import JsonManager
 from models.vision import VisionEngine
 from models.translator import MicrobitCompiler
 from models.voice_control import VoiceCommandManager
-from models.file_manager import FileManager
+from models.code_manager import CodeManager
 from controllers.app_controller import AppController
 
 
@@ -45,11 +45,11 @@ def main():
 
     state_dir = os.path.join(workspace_dir, "outputs", "program_state.json")
     code_dir = os.path.join(workspace_dir, "outputs", "MicroBit_Code.py")
-    file_manager = FileManager(state_dir, code_dir)
+    code_manager = CodeManager(state_dir, code_dir)
 
     main_controller = AppController(
         workspace_dir, assets_dir, code_dir, audio_service, vision_engine, 
-        json_manager, traducer, ai_manager, serial_monitor, voice_manager, file_manager
+        json_manager, traducer, ai_manager, serial_monitor, voice_manager, code_manager
     )
     voice_manager.callback_freeze_ui = main_controller.window.freeze_ui
     

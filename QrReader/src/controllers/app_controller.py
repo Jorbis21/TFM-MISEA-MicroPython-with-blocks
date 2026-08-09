@@ -11,7 +11,7 @@ from utils.constants import EventType, VoiceCommand
 
 class AppController:
 
-    def __init__(self, workspace_dir, assets_dir, code_dir, audio_service, vision, json_manager, traducer, ai_manager, serial_monitor, voice_manager, file_manager):
+    def __init__(self, workspace_dir, assets_dir, code_dir, audio_service, vision, json_manager, traducer, ai_manager, serial_monitor, voice_manager, code_manager):
         self.audio_service = audio_service
         self.ai_manager = ai_manager
         self.serial_monitor = serial_monitor
@@ -20,7 +20,7 @@ class AppController:
         self.window = AppCamara(
             workspace_dir, 
             assets_dir, 
-            CameraController(workspace_dir, code_dir, traducer, file_manager, 
+            CameraController(workspace_dir, code_dir, traducer, code_manager, 
             audio_service, vision, ai_manager,  voice_manager), 
             JsonController(json_manager, traducer), 
             QRController(json_manager, workspace_dir)
