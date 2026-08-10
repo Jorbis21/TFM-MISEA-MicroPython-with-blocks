@@ -82,7 +82,7 @@ class AIManager:
             
         return "\n".join(visible_lines)
 
-    def explain_code(self, code_dir, callback_state):
+    def explain_code(self, code, callback_state):
         """
             Metodo en cascada para explicar el codigo
             1. Explica el codigo con Gemini
@@ -95,12 +95,6 @@ class AIManager:
             2. If not possible the local AI explains it
             3. If it fails reads the code literally
         """
-        try:
-            with open(code_dir, "r", encoding="utf-8") as file:
-                code = file.read()
-        except FileNotFoundError:
-            self.audio_service.read_text("Aún no se ha generado ningún programa.")
-            return
 
         clean_code = self._clean_code(code)
         
@@ -178,4 +172,4 @@ class AIManager:
         self.shutdown_ollama()
         callback_state("Estado: IAs no disponibles. Leyendo literalmente.", "#E67E22")
         self.audio_service.read_text("IAs no disponibles. Modo sin conexión. ")
-        self.audio_service.read_literal_code(code_dir)
+        self.audio_service.read_literal_code(code)

@@ -32,7 +32,7 @@ def main():
     app = QApplication(sys.argv)
 
     audio_service = AudioService()
-    audio_service.iniciar()
+    audio_service.start()
 
     voice_manager = VoiceCommandManager(None, workspace_dir, audio_service)
     vision_engine = VisionEngine()

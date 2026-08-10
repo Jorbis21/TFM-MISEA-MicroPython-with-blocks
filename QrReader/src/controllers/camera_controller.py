@@ -48,10 +48,9 @@ class CameraController:
     def get_view_code(self):
         """Obtiene el codigo modificado en la vista"""
         """Gets the modified code from the view"""
-        try:
-            with open(self.code_dir, "r", encoding="utf-8") as file:
-                code = file.read()
-        except FileNotFoundError:
+        code = self.code_manager.read_code()
+
+        if code == None:
             return "# Archivo no generado de momento.", "Estado: Esperando captura...", [], False
 
         lines = code.split('\n')
@@ -128,7 +127,10 @@ class CameraController:
     def ia_explain_code(self, callback_state):
         """Arranca un hilo para que la IA explique el codigo"""
         """Starts a thread for the IA to explain the code"""
-        threading.Thread(target=lambda: self.ai_manager.explain_code(self.code_dir, callback_state), daemon=True).start()
+        code = self.code_manager.read_code()
+        if code == None:
+            self.audio_service.read_text("Aún no se ha generado ningún programa.")
+        threading.Thread(target=lambda: self.ai_manager.explain_code(code, callback_state), daemon=True).start()
 
     def change_tts(self, tts_modes, actual_idx):
         """Cambia el modo de tts usado para las variables de la placa"""

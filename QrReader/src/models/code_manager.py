@@ -51,6 +51,13 @@ class CodeManager:
         except Exception as e:
             return False, str(e)
 
+    def read_code(self):
+        try:
+            with open(self.code_dir, "w", encoding="utf-8") as f:
+                return f.read()
+        except FileNotFoundError:
+            return None
+
     def upload(self):
         """Metodo para cargar el codigo en la placa"""
         """Method to load the program on the board"""
