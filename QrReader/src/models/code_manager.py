@@ -53,7 +53,7 @@ class CodeManager:
 
     def read_code(self):
         try:
-            with open(self.code_dir, "w", encoding="utf-8") as f:
+            with open(self.code_dir, "r", encoding="utf-8") as f:
                 return f.read()
         except FileNotFoundError:
             return None

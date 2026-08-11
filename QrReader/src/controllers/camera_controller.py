@@ -148,7 +148,7 @@ class CameraController:
         elif mode["value"] == TTSMode.SHUTDONW.value:
             self.audio_service.read_text("Voz de ejecución desactivada.")
             
-        return next_idx, mode["texto"]
+        return next_idx, mode["text"]
 
     def start_camera_hardware(self, idx, rotate=False):
         """Inicia el hardware de la camara"""
@@ -178,7 +178,7 @@ class CameraController:
     def detect_cameras(self):
         """Detecta las camaras conectadas al ordenador"""
         """Detects the connected cameras to the computer"""
-        self.camera_thr.detect_cameras()
+        return self.camera_thr.detect_cameras()
 
     def process_whole_frame(self, frame_bgr, img_dir, callback_act_ui):
         """Procesa el frame con los bloques para generar el codigo"""

@@ -10,7 +10,7 @@ class VoiceCommand(Enum):
 
 class TTSMode(Enum):
     PC = "pc"
-    BOARD = "placa"
+    BOARD = "board"
     SHUTDONW = "apagado"
 
 class EventType(Enum):

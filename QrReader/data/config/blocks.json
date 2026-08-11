@@ -1226,7 +1226,7 @@
     },
     "variable": {
         "code": "var_",
-        "type": "referencia_var",
+        "type": "reference_var",
         "pronunciation": "variable"
     }
 }

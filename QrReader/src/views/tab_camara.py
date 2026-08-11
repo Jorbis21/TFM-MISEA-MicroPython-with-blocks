@@ -72,7 +72,7 @@ class TabCamara(QWidget):
             {"text": "Voz: Apagada", "value": TTSMode.SHUTDONW.value}
         ]
         self.idx_tts = 0
-        self.tts_btn = QPushButton(self.tts_modes[self.idx_tts]["texto"])
+        self.tts_btn = QPushButton(self.tts_modes[self.idx_tts]["text"])
         self.tts_btn.setObjectName("tts_btn")
         self.tts_btn.clicked.connect(self.action_change_tts)
         btns_layout.addWidget(self.tts_btn)
@@ -147,6 +147,7 @@ class TabCamara(QWidget):
         self.combo_cameras.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         
         real_cameras = self.ctrl.detect_cameras()
+
         for cam_id in real_cameras:
             name = "Cámara Principal" if cam_id == 0 else f"Cámara Secundaria ({cam_id})"
             self.combo_cameras.addItem(name, userData=cam_id)
@@ -154,7 +155,7 @@ class TabCamara(QWidget):
         if len(real_cameras) <= 1:
             self.combo_cameras.hide()
             
-        self.combo_cameras.currentIndexChanged.connect(self.accion_cambiar_camara)
+        self.combo_cameras.currentIndexChanged.connect(self.action_camera_change)
 
         layout_btns_camera.addWidget(self.rotate_btn)
         layout_btns_camera.addWidget(self.shutdown_btn)
@@ -168,12 +169,12 @@ class TabCamara(QWidget):
         self.splitter.setSizes([640, 640])
 
     def _process_simple_click(self, text):
-                """Procesa el click simple del teclado"""
-                """Process the simple click of the keyboard"""
-                self.clicks = 0
-                self.last_key = None
-                self.ctrl.audio_service.read_text(text)
-            
+        """Procesa el click simple del teclado"""
+        """Process the simple click of the keyboard"""
+        self.clicks = 0
+        self.last_key = None
+        self.ctrl.audio_service.read_text(text)
+    
     def _process_double_click(self, func):
         """Ejecuta la accion"""
         """Executes the action"""
@@ -343,7 +344,7 @@ class TabCamara(QWidget):
             self.ctrl.start_camera_hardware(idx, self.rotate_camera)
             self.status_label.setText("Estado: Cámara Activa")
 
-    def accion_cambiar_camara(self, index):
+    def action_camera_change(self, index):
         """Accion de cambiar la camara"""
         """Change camera action"""
         if not self.shutdown_camera:

@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import time
 from pyzbar.pyzbar import decode, ZBarSymbol
 
 class VisionEngine:
@@ -10,18 +9,19 @@ class VisionEngine:
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
         
-        self.frame_actual = None
-        self.elementos_detectados = []
-        self.historial_qrs = [] 
-        
-        # ELIMINADO: threading.Lock(), self.corriendo y self.hilo_vision
+        self.actual_frame = None
+        self.detected_elems = []
+        self.qrs_history = [] 
 
     def update_process(self):
-        """Método síncrono que procesa los QRs del frame actual."""
-        if self.frame_actual is not None:
-            self.elementos_detectados = self.getProcessedFrame(self.frame_actual)
+        """Método que procesa los QRs del frame actual"""
+        """Method that process the QRs of the actual frame"""
+        if self.actual_frame is not None:
+            self.detected_elems = self.getProcessedFrame(self.actual_frame)
 
     def getProcessedFrame(self, frame):
+        """Devuelve el frame procesado"""
+        """Returns the processed frame"""
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
@@ -30,195 +30,203 @@ class VisionEngine:
         thresh_adapt = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 51, 5)
         _, thresh_otsu = cv2.threshold(gray_clahe, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         
-        detecciones_brutas = decode(thresh_adapt, symbols=[ZBarSymbol.QRCODE]) + \
+        raw_detections = decode(thresh_adapt, symbols=[ZBarSymbol.QRCODE]) + \
                              decode(thresh_otsu, symbols=[ZBarSymbol.QRCODE]) + \
                              decode(gray_clahe, symbols=[ZBarSymbol.QRCODE])
 
-        qrs_frame_actual = []
-        centros_frame = []
+        qrs_actual_frame = []
+        frame_centers = []
 
-        for qr in detecciones_brutas:
+        for qr in raw_detections:
             cx = qr.rect.left + (qr.rect.width / 2)
             cy = qr.rect.top + (qr.rect.height / 2)
-            es_dup = any(abs(cx - c[0]) < 20 and abs(cy - c[1]) < 20 for c in centros_frame)
-            if not es_dup:
-                qrs_frame_actual.append(qr)
-                centros_frame.append((cx, cy))
+            is_dup = any(abs(cx - c[0]) < 20 and abs(cy - c[1]) < 20 for c in frame_centers)
+            if not is_dup:
+                qrs_actual_frame.append(qr)
+                frame_centers.append((cx, cy))
                 
-        for item in self.historial_qrs:
+        for item in self.qrs_history:
             item['ttl'] -= 1
             
-        for qr, (cx, cy) in zip(qrs_frame_actual, centros_frame):
-            encontrado = False
-            for item in self.historial_qrs:
-                if abs(item['centro'][0] - cx) < 60 and abs(item['centro'][1] - cy) < 60:
+        for qr, (cx, cy) in zip(qrs_actual_frame, frame_centers):
+            found = False
+            for item in self.qrs_history:
+                if abs(item['center'][0] - cx) < 60 and abs(item['center'][1] - cy) < 60:
                     item['qr_obj'] = qr
-                    item['centro'] = (cx, cy)
+                    item['center'] = (cx, cy)
                     item['rect'] = qr.rect
                     item['data'] = qr.data.decode('utf-8')
                     item['ttl'] = 10 
-                    encontrado = True
+                    found = True
                     break
             
-            if not encontrado:
-                self.historial_qrs.append({
+            if not found:
+                self.qrs_history.append({
                     'qr_obj': qr,
-                    'centro': (cx, cy),
+                    'center': (cx, cy),
                     'rect': qr.rect,
                     'data': qr.data.decode('utf-8'),
                     'ttl': 10
                 })
                 
-        self.historial_qrs = [item for item in self.historial_qrs if item['ttl'] > 0]
+        self.qrs_history = [item for item in self.qrs_history if item['ttl'] > 0]
         
-        elementos_detectados = []
-        for item in self.historial_qrs:
-            texto = item['data']
+        detected_elems = []
+        for item in self.qrs_history:
+            text = item['data']
             try:
-                float(texto)
-                tipo = "numero"
+                float(text)
+                type = "number"
             except ValueError:
-                tipo = "comando"
+                type = "command"
 
-            elementos_detectados.append({
-                "tipo": tipo,
-                "data": texto,
+            detected_elems.append({
+                "type": type,
+                "data": text,
                 "top": item['rect'].top,
                 "left": item['rect'].left,
                 "qr_obj": item['qr_obj']
             })
 
-        elementos_detectados.sort(key=lambda obj: (obj["top"] // 50, obj["left"]))
-        return elementos_detectados
+        detected_elems.sort(key=lambda obj: (obj["top"] // 50, obj["left"]))
+        return detected_elems
 
-    def get_marked_frame(self, rotar_camara):
-        """Lee la cámara, guarda el frame, le dibuja los rectángulos y lo devuelve."""
+    def get_marked_frame(self, rotate):
+        """Lee la cámara, guarda el frame, le dibuja los rectángulos y lo devuelve"""
+        """Reads the camera, saves the frame, paints the rectangles and returns it"""
         ret, frame = self.cap.read()
         if not ret:
             return None, None, []
         
-        if rotar_camara:
+        if rotate:
             frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
         
-        # Guardamos la copia limpia para el procesamiento pesado posterior
-        self.frame_actual = frame.copy()
-        elementos = list(self.elementos_detectados)
+        self.actual_frame = frame.copy()
+        elems = list(self.detected_elems)
 
-        for elem in elementos:
-            texto = elem["data"]
+        for elem in elems:
+            text = elem["data"]
             qr = elem["qr_obj"]
-            puntos = qr.polygon
+            dots = qr.polygon
             
-            color = (0, 255, 0) if elem["tipo"] == "numero" else (0, 255, 255)
-            prefijo = "Num: " if elem["tipo"] == "numero" else ""
+            color = (0, 255, 0) if elem["type"] == "number" else (0, 255, 255)
+            prefix = "Num: " if elem["type"] == "number" else ""
 
-            if len(puntos) == 4:
-                pts = np.array(puntos, dtype=np.int32).reshape((-1, 1, 2))
+            if len(dots) == 4:
+                pts = np.array(dots, dtype=np.int32).reshape((-1, 1, 2))
                 cv2.polylines(frame, [pts], True, color, 3)
             else:
                 rect = qr.rect
                 cv2.rectangle(frame, (rect.left, rect.top), (rect.left + rect.width, rect.top + rect.height), color, 3)
             
-            x_texto = qr.rect.left
-            y_texto = max(0, qr.rect.top - 10) 
-            cv2.putText(frame, f"{prefijo}{texto}", (x_texto, y_texto), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2, cv2.LINE_AA)
+            x_text = qr.rect.left
+            y_text = max(0, qr.rect.top - 10) 
+            cv2.putText(frame, f"{prefix}{text}", (x_text, y_text), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2, cv2.LINE_AA)
         
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        return frame, frame_rgb, [elem["data"] for elem in elementos]
+        return frame, frame_rgb, [elem["data"] for elem in elems]
     
     def get_command_matrix(self):
-        elementos = list(self.elementos_detectados)
-        elementos.sort(key=lambda obj: obj["top"])
+        """Devuelve la matriz de commandos"""
+        """Returns the command matrix"""
+        elems = list(self.detected_elems)
+        elems.sort(key=lambda obj: obj["top"])
         
-        filas = []
-        fila_actual = []
-        top_referencia = -1
+        rows = []
+        act_row = []
+        top_reference = -1
         
-        for elem in elementos:
-            if top_referencia == -1:
-                top_referencia = elem["top"]
-                fila_actual.append(elem)
-            elif abs(elem["top"] - top_referencia) < 50:
-                fila_actual.append(elem)
+        for elem in elems:
+            if top_reference == -1:
+                top_reference = elem["top"]
+                act_row.append(elem)
+            elif abs(elem["top"] - top_reference) < 50:
+                act_row.append(elem)
             else:
-                fila_actual.sort(key=lambda obj: obj["left"])
-                filas.append(fila_actual)
-                fila_actual = [elem]
-                top_referencia = elem["top"]
+                act_row.sort(key=lambda obj: obj["left"])
+                rows.append(act_row)
+                act_row = [elem]
+                top_reference = elem["top"]
                 
-        if fila_actual:
-            fila_actual.sort(key=lambda obj: obj["left"])
-            filas.append(fila_actual)
+        if act_row:
+            act_row.sort(key=lambda obj: obj["left"])
+            rows.append(act_row)
             
-        matriz = []
-        if filas:
-            min_left = min(f[0]["left"] for f in filas)
-            ancho_columna = 90 
+        matrix = []
+        if rows:
+            min_left = min(f[0]["left"] for f in rows)
+            column_width = 90 
             
-            for fila in filas:
-                num_indentaciones = max(0, int(round((fila[0]["left"] - min_left) / ancho_columna)))
-                fila_strings = [""] * num_indentaciones
-                for elem in fila:
-                    fila_strings.append(elem["data"])
-                matriz.append(fila_strings)
+            for row in rows:
+                num_indent = max(0, int(round((row[0]["left"] - min_left) / column_width)))
+                strings_row = [""] * num_indent
+                for elem in row:
+                    strings_row.append(elem["data"])
+                matrix.append(strings_row)
                 
-        return matriz
+        return matrix
         
     def check_overflow(self):
-        if self.frame_actual is None: return None
-        alto_frame, ancho_frame, _ = self.frame_actual.shape
-        elementos = list(self.elementos_detectados)
+        """Comprueba si hay desbordamiento"""
+        """Checks if there is overflow"""
+        if self.actual_frame is None: return None
+        frame_height, frame_width, _ = self.actual_frame.shape
+        elems = list(self.detected_elems)
             
-        if not elementos: return None
+        if not elems: return None
         
-        margen_derecho = ancho_frame - 150
-        margen_inferior = alto_frame - 150
+        right_margin = frame_width - 150
+        down_margin = frame_height - 150
         
-        elementos.sort(key=lambda obj: obj["top"])
-        filas = []
-        fila_actual = []
-        top_referencia = -1
+        elems.sort(key=lambda obj: obj["top"])
+        rows = []
+        act_row = []
+        top_reference = -1
         
-        for elem in elementos:
-            if top_referencia == -1:
-                top_referencia = elem["top"]
-                fila_actual.append(elem)
-            elif abs(elem["top"] - top_referencia) < 50:
-                fila_actual.append(elem)
+        for elem in elems:
+            if top_reference == -1:
+                top_reference = elem["top"]
+                act_row.append(elem)
+            elif abs(elem["top"] - top_reference) < 50:
+                act_row.append(elem)
             else:
-                fila_actual.sort(key=lambda obj: obj["left"])
-                filas.append(fila_actual)
-                fila_actual = [elem]
-                top_referencia = elem["top"]
+                act_row.sort(key=lambda obj: obj["left"])
+                rows.append(act_row)
+                act_row = [elem]
+                top_reference = elem["top"]
                 
-        if fila_actual:
-            fila_actual.sort(key=lambda obj: obj["left"])
-            filas.append(fila_actual)
+        if act_row:
+            act_row.sort(key=lambda obj: obj["left"])
+            rows.append(act_row)
 
-        nexos_derecha = []
-        nexo_abajo = None
+        right_links = []
+        down_link = None
         
-        for fila in filas:
-            ultimo_bloque = fila[-1]
-            if ultimo_bloque["left"] + ultimo_bloque["qr_obj"].rect.width > margen_derecho:
-                nexos_derecha.append(ultimo_bloque["data"])
+        for row in rows:
+            last_block = row[-1]
+            if last_block["left"] + last_block["qr_obj"].rect.width > right_margin:
+                right_links.append(last_block["data"])
                 
-        if filas:
-            ultima_fila = filas[-1]
-            primer_bloque = ultima_fila[0] 
-            if primer_bloque["top"] + primer_bloque["qr_obj"].rect.height > margen_inferior:
-                nexo_abajo = primer_bloque["data"]
+        if rows:
+            last_row = rows[-1]
+            first_block = last_row[0] 
+            if first_block["top"] + first_block["qr_obj"].rect.height > down_margin:
+                down_link = first_block["data"]
 
-        if nexos_derecha or nexo_abajo:
-            return {"derecha": nexos_derecha, "abajo": nexo_abajo}
+        if right_links or down_link:
+            return {"right": right_links, "down": down_link}
             
         return None
 
     def free_camera(self):
+        """Libera la camara"""
+        """Releases the camera"""
         if self.cap is not None and self.cap.isOpened():
             self.cap.release()
 
     def start_camera(self, camera_index=None):
+        """Enciende la camara"""
+        """Starts the camera"""
         if camera_index is not None:
             self.camera_index = camera_index
             
@@ -226,11 +234,17 @@ class VisionEngine:
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
     
-    def take_photo(self, frame, ruta_destino):
-        cv2.imwrite(ruta_destino, frame)
+    def take_photo(self, frame, dest_path):
+        """Hace una foto del frame y la guarda"""
+        """Makes a photo of the frame and saves it"""
+        cv2.imwrite(dest_path, frame)
 
-    def getPhoto(self, ruta_origen):
-        return cv2.imread(ruta_origen)
+    def getPhoto(self, origin_path):
+        """Coge el frame guardad"""
+        """Gets the saved frame"""
+        return cv2.imread(origin_path)
     
     def free(self):
+        """Libera la camara"""
+        """Releases the camera"""
         self.cap.release()

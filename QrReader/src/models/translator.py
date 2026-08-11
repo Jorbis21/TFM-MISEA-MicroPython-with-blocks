@@ -1,21 +1,26 @@
 class MicrobitCompiler:
+
     def __init__(self, config_dir, json_manager):
         self.config_dir = config_dir
         self.json_manager = json_manager
         self.symbols_table = self.json_manager.build_symbols_table()
         
-        self.memoria_variables = []  
-        self.contador_var = 0        
-        self.modo_tts = "pc"  
+        self.var_memory = []  
+        self.var_cont = 0        
+        self.tts_mode = "pc"  
 
-        self.modo_analisis = False
-        self.necesidades_variables = []
-        self.respuestas_precalculadas = []
+        self.analysis_mode = False
+        self.var_needs = []
+        self.presaved_answers = []
 
     def set_mode_tts(self, mode):
-        self.modo_tts = mode
+        """Cambia el modo de tts"""
+        """Change the tts mode"""
+        self.tts_mode = mode
 
-    def _es_valor_numerico(self, token):
+    def _is_num_value(self, token):
+        """Comprueba si un valor es numero"""
+        """Checks if a value is num"""
         try:
             float(token)
             return True
@@ -23,18 +28,22 @@ class MicrobitCompiler:
             return False
         
     def normalize_text(self, text, is_variable=False):
+        """Limpia el texto de tildes"""
+        """Cleans the text of accents"""
         if not text: return ""
         text = text.strip().lower()
-        reemplazos = {'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ü': 'u'}
-        for original, nuevo in reemplazos.items():
-            text = text.replace(original, nuevo)
+        replacements = {'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ü': 'u'}
+        for original, new in replacements.items():
+            text = text.replace(original, new)
         if is_variable:
             text = text.replace(" ", "_")
         return text
 
-    def _aplicar_tipado(self, texto):
-        texto = texto.strip().lower()
-        numeros_letras = {
+    def _apply_type(self, text):
+        """Limpia el texto de numeros en letras"""
+        """Cleans the text of numbers in text"""
+        text = text.strip().lower()
+        letters_nums = {
             "cero": "0", "uno": "1", "dos": "2", "tres": "3", "cuatro": "4",
             "cinco": "5", "seis": "6", "siete": "7", "ocho": "8", "nueve": "9",
             "diez": "10", "once": "11", "doce": "12", "trece": "13", "catorce": "14",
@@ -44,112 +53,120 @@ class MicrobitCompiler:
             "noventa": "90", "cien": "100"
         }
         
-        if texto.startswith("número ") or texto.startswith("numero "):
-            texto = texto.replace("número ", "", 1).replace("numero ", "", 1).strip()
+        if text.startswith("número ") or text.startswith("numero "):
+            text = text.replace("número ", "", 1).replace("numero ", "", 1).strip()
 
-        texto_multi = texto.replace(" coma ", " ").replace(",", " ").replace(" y ", " ")
-        palabras_multi = [p for p in texto_multi.split() if p]
-        palabras_multi = [str(numeros_letras.get(p, p)) for p in palabras_multi]
+        multi_text = text.replace(" coma ", " ").replace(",", " ").replace(" y ", " ")
+        multi_words = [p for p in multi_text.split() if p]
+        multi_words = [str(letters_nums.get(p, p)) for p in multi_words]
         
-        es_imagen = False
-        palabras_img = palabras_multi.copy()
+        is_image = False
+        img_words = multi_words.copy()
         
-        if palabras_img and palabras_img[0] == "imagen":
-            es_imagen = True
-            palabras_img.pop(0) 
+        if img_words and img_words[0] == "imagen":
+            is_image = True
+            img_words.pop(0) 
             
-        if palabras_img and all(p.isdigit() and len(p) == 1 for p in palabras_img):
-            if es_imagen or len(palabras_img) > 3:
-                digitos = "".join(palabras_img)
-                digitos = digitos.ljust(25, '0')[:25] 
-                img_form = f"{digitos[0:5]}:{digitos[5:10]}:{digitos[10:15]}:{digitos[15:20]}:{digitos[20:25]}"
+        if img_words and all(p.isdigit() and len(p) == 1 for p in img_words):
+            if is_image or len(img_words) > 3:
+                digits = "".join(img_words)
+                digits = digits.ljust(25, '0')[:25] 
+                img_form = f"{digits[0:5]}:{digits[5:10]}:{digits[10:15]}:{digits[15:20]}:{digits[20:25]}"
                 return f"Image('{img_form}')", img_form
 
-        if len(palabras_multi) == 3:
+        if len(multi_words) == 3:
             try:
-                valores = [int(p) for p in palabras_multi]
-                return f"{valores[0]}, {valores[1]}, {valores[2]}", valores
+                values = [int(p) for p in multi_words]
+                return f"{values[0]}, {values[1]}, {values[2]}", values
             except ValueError:
                 pass
             
-        if texto in numeros_letras:
-            texto = numeros_letras[texto]
+        if text in letters_nums:
+            text = letters_nums[text]
             
-        texto_parseado = texto.replace(" coma ", ".").replace(" con ", ".").replace(",", ".").replace(" .", ".").replace(". ", ".")
+        parsed_text = text.replace(" coma ", ".").replace(" con ", ".").replace(",", ".").replace(" .", ".").replace(". ", ".")
         
         try:
-            val = int(texto_parseado)
+            val = int(parsed_text)
             return str(val), val
         except ValueError:
             pass
         try:
-            val = float(texto_parseado)
+            val = float(parsed_text)
             return str(val), val
         except ValueError:
             pass
             
-        texto_limpio = self.normalize_text(texto, is_variable=False)
-        return f'"{texto_limpio}"', texto_limpio
+        clean_text = self.normalize_text(text, is_variable=False)
+        return f'"{clean_text}"', clean_text
 
-    # --- LÓGICA DE VARIABLES (MVC PURO - 2 PASADAS) ---
+    def analize_matrix(self, command_matrix):
+        """Recorre la matriz para listar qué interacciones necesita"""
+        """Iterate through the matrix to list which interactions are needed"""
+        self.analysis_mode = True
+        self.var_needs = []
+        self._run_internal_generation(command_matrix, None)
+        self.analysis_mode = False
+        return self.var_needs
 
-    def analize_matrix(self, matriz_comandos):
-        """Pasada 1: Recorre la matriz lógicamente para listar qué interacciones necesita."""
-        self.modo_analisis = True
-        self.necesidades_variables = []
-        self._ejecutar_generacion_interna(matriz_comandos, None) # Compila en el vacío
-        self.modo_analisis = False
-        return self.necesidades_variables
-
-    def _resolver_variable(self, tipo_bloque, contexto=""):
-        if self.modo_analisis:
-            self.necesidades_variables.append({"type": tipo_bloque, "context": contexto})
-            self.contador_var += 1
-            return f"var_{self.contador_var}" 
+    def _solve_variable(self, block_type, context=""):
+        """Resuelve la variable"""
+        """Resolves the variable"""
+        if self.analysis_mode:
+            self.var_needs.append({"type": block_type, "context": context})
+            self.var_cont += 1
+            return f"var_{self.var_cont}" 
         else:
-            if self.respuestas_precalculadas:
-                return self.respuestas_precalculadas.pop(0)
-            self.contador_var += 1
-            return f"var_{self.contador_var}"
+            if self.presaved_answers:
+                return self.presaved_answers.pop(0)
+            self.var_cont += 1
+            return f"var_{self.var_cont}"
 
-    def _manejar_declaracion(self, tokens):
-        nombre = self._resolver_variable("declare_var", "declarar una variable nueva")
-        valor_texto = self._resolver_variable("assign_val", f"el valor para {nombre}")
+    def _manage_declaration(self, tokens):
+        """Maneja la declaracion"""
+        """Manages the declaration"""
+        name = self._solve_variable("declare_var", "declarar una variable nueva")
+        text_value = self._solve_variable("assign_val", f"el valor para {name}")
         
-        codigo_valor, valor_real = self._aplicar_tipado(valor_texto)
-        self.memoria_variables.append({nombre: valor_real})
+        value_code, real_value = self._apply_type(text_value)
+        self.var_memory.append({name: real_value})
         tokens.clear() 
-        return f"{nombre} = {codigo_valor}"
+        return f"{name} = {value_code}"
 
-    def _manejar_asignacion(self, tokens, contexto=""):
-        valor_texto = self._resolver_variable("assign_val", contexto)
-        codigo_valor, _ = self._aplicar_tipado(valor_texto)
-        return codigo_valor
+    def _manage_asignation(self, tokens, context=""):
+        """Maneja la asignacion"""
+        """Manages the asignation"""
+        text_value = self._solve_variable("assign_val", context)
+        value_code, _ = self._apply_type(text_value)
+        return value_code
 
-    def _manejar_referencia(self, tokens, contexto=""):
-        return self._resolver_variable("referencia_var", contexto)
+    def _manage_reference(self, tokens, context=""):
+        """Maneja la referencia"""
+        """Manages the reference"""
+        return self._solve_variable("reference_var", context)
 
-    # --- MOTOR PRINCIPAL ---
-
-    def generate_code(self, matriz_comandos, ruta_salida, respuestas=None):
-        """Pasada 2: Genera el archivo usando las respuestas precalculadas."""
-        if respuestas is not None:
-            self.respuestas_precalculadas = respuestas.copy()
+    def generate_code(self, command_matrix, out_path, answers=None):
+        """Genera el archivo usando las respuestas"""
+        """Generates the file using the answers"""
+        if answers is not None:
+            self.presaved_answers = answers.copy()
             
-        codigo_final = self._ejecutar_generacion_interna(matriz_comandos, ruta_salida)
+        final_code = self._run_internal_generation(command_matrix, out_path)
         
-        if ruta_salida and not self.modo_analisis:
-            with open(ruta_salida, "w", encoding="utf-8") as file:
-                file.write("\n".join(codigo_final) + "\n")
+        if out_path and not self.analysis_mode:
+            with open(out_path, "w", encoding="utf-8") as file:
+                file.write("\n".join(final_code) + "\n")
             print("Código compilado con éxito.")
 
-    def _ejecutar_generacion_interna(self, matriz_comandos, ruta_salida):
-        self.memoria_variables = []
-        self.contador_var = 0
+    def _run_internal_generation(self, command_matrix, out_path):
+        """Corre la generacion de codigo interna"""
+        """Runs the internal code generation"""
+        self.var_memory = []
+        self.var_cont = 0
             
-        if not matriz_comandos: return []
+        if not command_matrix: return []
 
-        codigo_final = [
+        final_code = [
             "from microbit import *",
             "import speech",
             "import music",
@@ -162,214 +179,218 @@ class MicrobitCompiler:
             "# --- Programa Principal ---\n"
         ]
 
-        niveles_activos = [0] 
-        for fila in matriz_comandos:
-            num_tabs_fisicos = 0
-            for elem in fila:
-                if elem == "": num_tabs_fisicos += 1
+        active_levels = [0] 
+        for row in command_matrix:
+            fisical_tabs_num = 0
+            for elem in row:
+                if elem == "": fisical_tabs_num += 1
                 else: break
             
-            tokens = [e for e in fila if e != ""]
+            tokens = [e for e in row if e != ""]
             if not tokens: continue
 
-            while len(niveles_activos) > 1 and num_tabs_fisicos < niveles_activos[-1]:
-                niveles_activos.pop()
+            while len(active_levels) > 1 and fisical_tabs_num < active_levels[-1]:
+                active_levels.pop()
                 
-            if num_tabs_fisicos > niveles_activos[-1]:
-                niveles_activos.append(num_tabs_fisicos)
+            if fisical_tabs_num > active_levels[-1]:
+                active_levels.append(fisical_tabs_num)
                 
-            nivel_logico = len(niveles_activos) - 1
-            indentacion = "    " * nivel_logico  
+            logic_level = len(active_levels) - 1
+            indentation = "    " * logic_level  
             
-            linea_traducida = self.procesar_fila_tokens(tokens, indentacion)
-            codigo_final.append(indentacion + linea_traducida)
+            translated_row = self._process_token_rows(tokens, indentation)
+            final_code.append(indentation + translated_row)
 
-        return codigo_final
+        return final_code
 
-    def procesar_fila_tokens(self, tokens, indent=""):
+    def _process_token_rows(self, tokens, indent=""):
+        """Procesa la fila de tokens"""
+        """Process the tokens row"""
         if not tokens: return ""
-        pila_errores = []
+        error_stack = []
         
-        def comprobar_pila(bloque, expectativa, tokens_restantes):
-            pila_errores.append({"bloque": bloque, "espera": expectativa})
-            if not tokens_restantes:
-                fallo = pila_errores.pop()
-                return f"# ERROR: El bloque '{fallo['bloque']}' esperaba {fallo['espera']} a su derecha."
-            pila_errores.pop()
+        def check_row(block, expect, remain_tokens):
+            error_stack.append({"block": block, "expect": expect})
+            if not remain_tokens:
+                error = error_stack.pop()
+                return f"# ERROR: El bloque '{error['block']}' esperaba {error['expect']} a su derecha."
+            error_stack.pop()
             return None
 
-        primer_bloque = tokens.pop(0)
-        if self._es_valor_numerico(primer_bloque):
-            info = {"codigo": str(primer_bloque), "tipo": "valor"}
+        first_block = tokens.pop(0)
+        if self._is_num_value(first_block):
+            info = {"code": str(first_block), "type": "value"}
         else:
-            info = self.symbols_table.get(primer_bloque, {})
+            info = self.symbols_table.get(first_block, {})
         
         if not info:
-            return f"# ERROR: El bloque '{primer_bloque}' es desconocido o no está en el diccionario."
+            return f"# ERROR: El bloque '{first_block}' es desconocido o no está en el diccionario."
             
-        tipo = info.get("tipo", "")
-        codigo_base = info.get("codigo", str(primer_bloque))
+        type = info.get("type", "")
+        base_code = info.get("code", str(first_block))
         
-        if tipo == "declare_var": return self._manejar_declaracion(tokens)
-        elif tipo == "assign_val": return self._manejar_asignacion(tokens, contexto="una orden general")
-        elif tipo == "referencia_var": return self._manejar_referencia(tokens, contexto="una orden general")
+        if type == "declare_var": return self._manage_declaration(tokens)
+        elif type == "assign_val": return self._manage_asignation(tokens, context="una orden general")
+        elif type == "reference_var": return self._manage_reference(tokens, context="una orden general")
 
-        if tipo == "control_metodo":
-            error_pila = comprobar_pila(primer_bloque, "un sujeto o sensor", tokens)
-            if error_pila: return error_pila
-            sujeto = self._consumir_argumento_vc(tokens, contexto=f"el método de control de {primer_bloque}")
-            if "# ERROR" in sujeto: return sujeto
+        if type == "control_method":
+            stack_error = check_row(first_block, "un sujeto o sensor", tokens)
+            if stack_error: return stack_error
+            subject = self._consume_vc_arg(tokens, context=f"el método de control de {first_block}")
+            if "# ERROR" in subject: return subject
             
-            if ".is_pressed" in codigo_base or ".is_touched" in codigo_base:
-                if " and " in sujeto or " or " in sujeto:
-                    partes = sujeto.replace(" and ", " _AND_ ").replace(" or ", " _OR_ ").split()
-                    sujeto_final = []
-                    for parte in partes:
-                        if parte == "_AND_": sujeto_final.append("and")
-                        elif parte == "_OR_": sujeto_final.append("or")
+            if ".is_pressed" in base_code or ".is_touched" in base_code:
+                if " and " in subject or " or " in subject:
+                    parts = subject.replace(" and ", " _AND_ ").replace(" or ", " _OR_ ").split()
+                    final_subject = []
+                    for part in parts:
+                        if part == "_AND_": final_subject.append("and")
+                        elif part == "_OR_": final_subject.append("or")
                         else:
-                            if "pin" in parte or "logo" in parte: sujeto_final.append(f"{parte}.is_touched()")
-                            else: sujeto_final.append(f"{parte}.is_pressed()")
-                    return f"if {' '.join(sujeto_final)}:"
+                            if "pin" in part or "logo" in part: final_subject.append(f"{part}.is_touched()")
+                            else: final_subject.append(f"{part}.is_pressed()")
+                    return f"if {' '.join(final_subject)}:"
                 else:
-                    if "pin" in sujeto or "logo" in sujeto: return f"if {sujeto}.is_touched():"
-                    else: return f"if {sujeto}.is_pressed():"
-            if codigo_base.endswith(")"): return f"if {sujeto}{codigo_base}:"
-            else: return f"if {sujeto}{codigo_base}():"
+                    if "pin" in subject or "logo" in subject: return f"if {subject}.is_touched():"
+                    else: return f"if {subject}.is_pressed():"
+            if base_code.endswith(")"): return f"if {subject}{base_code}:"
+            else: return f"if {subject}{base_code}():"
 
-        elif tipo == "control_funcion":
-            error_pila = comprobar_pila(primer_bloque, "un argumento o condición", tokens)
-            if error_pila: return error_pila
-            arg = self._consumir_argumento_vc(tokens, contexto=f"la función {primer_bloque}")
+        elif type == "control_function":
+            stack_error = check_row(first_block, "un argumento o condición", tokens)
+            if stack_error: return stack_error
+            arg = self._consume_vc_arg(tokens, context=f"la función {first_block}")
             if "# ERROR" in arg: return arg
-            return f"if {codigo_base}({arg}):"
+            return f"if {base_code}({arg}):"
 
-        elif tipo == "metodo":
-            error_pila = comprobar_pila(primer_bloque, "un sujeto para aplicarse", tokens)
-            if error_pila: return error_pila
-            sujeto = self._consumir_argumento_vc(tokens, contexto=f"el sujeto de {primer_bloque}")
-            if "# ERROR" in sujeto: return sujeto
+        elif type == "method":
+            stack_error = check_row(first_block, "un sujeto para aplicarse", tokens)
+            if stack_error: return stack_error
+            subject = self._consume_vc_arg(tokens, context=f"el sujeto de {first_block}")
+            if "# ERROR" in subject: return subject
             
             num_args = info.get("args", 0)
-            args_extra = []
-            argumentos_satisfechos = 0
-            while argumentos_satisfechos < num_args:
-                error_arg = comprobar_pila(primer_bloque, f"el argumento número {argumentos_satisfechos+1}", tokens)
+            extra_args = []
+            satisfied_args = 0
+            while satisfied_args < num_args:
+                error_arg = check_row(first_block, f"el argumento número {satisfied_args+1}", tokens)
                 if error_arg: return error_arg
-                arg_ext = self._consumir_argumento_vc(tokens, contexto=f"el argumento de {primer_bloque}")
+                arg_ext = self._consume_vc_arg(tokens, context=f"el argumento de {first_block}")
                 if "# ERROR" in arg_ext: return arg_ext
-                args_extra.append(arg_ext)
-                argumentos_satisfechos += len(arg_ext.split(","))
+                extra_args.append(arg_ext)
+                satisfied_args += len(arg_ext.split(","))
             
-            if args_extra: res = f"{sujeto}{codigo_base}({', '.join(args_extra)})"
+            if extra_args: res = f"{subject}{base_code}({', '.join(extra_args)})"
             else:
-                if codigo_base.endswith(")"): res = f"{sujeto}{codigo_base}"
-                else: res = f"{sujeto}{codigo_base}()"
+                if base_code.endswith(")"): res = f"{subject}{base_code}"
+                else: res = f"{subject}{base_code}()"
                 
-            if sujeto == "display" and ("scroll" in codigo_base or "show" in codigo_base):
-                arg_var = args_extra[0] if args_extra else '""'
+            if subject == "display" and ("scroll" in base_code or "show" in base_code):
+                arg_var = extra_args[0] if extra_args else '""'
                 if "Image" in arg_var or ":" in arg_var: return res
-                if self.modo_tts == "pc": return f"print('TTS:' + str({arg_var}))\n{indent}{res}"
-                elif self.modo_tts == "placa": return f"speech.say(str({arg_var}))\n{indent}{res}"
+                if self.tts_mode == "pc": return f"print('TTS:' + str({arg_var}))\n{indent}{res}"
+                elif self.tts_mode == "board": return f"speech.say(str({arg_var}))\n{indent}{res}"
             return res
                 
-        elif tipo == "funcion":
+        elif type == "function":
             num_args = info.get("args", 1)
             args = []
             if num_args == 0:
-                if codigo_base.endswith(")"): res = codigo_base
-                else: res = f"{codigo_base}()"
+                if base_code.endswith(")"): res = base_code
+                else: res = f"{base_code}()"
             else:
-                argumentos_satisfechos = 0
-                while argumentos_satisfechos < num_args:
-                    error_arg = comprobar_pila(primer_bloque, f"el argumento número {argumentos_satisfechos+1}", tokens)
+                satisfied_args = 0
+                while satisfied_args < num_args:
+                    error_arg = check_row(first_block, f"el argumento número {satisfied_args+1}", tokens)
                     if error_arg: return error_arg
-                    arg_func = self._consumir_argumento_vc(tokens, contexto=f"el argumento de {primer_bloque}")
+                    arg_func = self._consume_vc_arg(tokens, context=f"el argumento de {first_block}")
                     if "# ERROR" in arg_func: return arg_func
                     args.append(arg_func)
-                    argumentos_satisfechos += len(arg_func.split(","))
-                res = f"{codigo_base}({', '.join(args)})"
+                    satisfied_args += len(arg_func.split(","))
+                res = f"{base_code}({', '.join(args)})"
 
-            if "display.scroll" in codigo_base or "display.show" in codigo_base:
+            if "display.scroll" in base_code or "display.show" in base_code:
                 arg_var = args[0] if args else '""'
                 if "Image" in arg_var or ":" in arg_var: return res
-                if self.modo_tts == "pc": return f"print('TTS:' + str({arg_var}))\n{indent}{res}"
-                elif self.modo_tts == "placa": return f"speech.say(str({arg_var}))\n{indent}{res}"
+                if self.tts_mode == "pc": return f"print('TTS:' + str({arg_var}))\n{indent}{res}"
+                elif self.tts_mode == "board": return f"speech.say(str({arg_var}))\n{indent}{res}"
             return res
             
-        elif tipo == "control":
-            condicion = ""
+        elif type == "control":
+            cond = ""
             if tokens:
-                condicion = self._consumir_argumento_vc(tokens, contexto=f"la condición de {primer_bloque}")
-                if "# ERROR" in condicion: return condicion
+                cond = self._consume_vc_arg(tokens, context=f"la condición de {first_block}")
+                if "# ERROR" in cond: return cond
             
-            codigo_limpio = codigo_base.replace(":", "").strip()
-            if condicion: return f"{codigo_limpio} {condicion}:"
-            else: return f"{codigo_limpio}:"
+            clean_code = base_code.replace(":", "").strip()
+            if cond: return f"{clean_code} {cond}:"
+            else: return f"{clean_code}:"
                 
         else:
-            tokens.insert(0, primer_bloque)
-            res = self._consumir_argumento_vc(tokens, contexto=f"el bloque junto a {primer_bloque}")
-            if not res: return f"# ERROR: El bloque '{primer_bloque}' está suelto."
+            tokens.insert(0, first_block)
+            res = self._consume_vc_arg(tokens, context=f"el bloque junto a {first_block}")
+            if not res: return f"# ERROR: El bloque '{first_block}' está suelto."
             return res
 
-    def _consumir_argumento_vc(self, tokens, contexto=""):
+    def _consume_vc_arg(self, tokens, context=""):
+        """Consume el argumento the tipo vc"""
+        """Consume the var and cond arguments"""
         if not tokens: return ""
-        pila_errores = []
-        def comprobar_pila(bloque, expectativa):
-            pila_errores.append({"bloque": bloque, "espera": expectativa})
+        error_stack = []
+        def check_stack(block, expect):
+            error_stack.append({"block": block, "expect": expect})
             if not tokens:
-                fallo = pila_errores.pop()
-                return f"\n# ERROR: Después de '{fallo['bloque']}', faltaba {fallo['espera']}."
-            pila_errores.pop()
+                error = error_stack.pop()
+                return f"\n# ERROR: Después de '{error['block']}', faltaba {error['expect']}."
+            error_stack.pop()
             return None
 
         val = tokens.pop(0)
-        if self._es_valor_numerico(val): resultado = str(val)
+        if self._is_num_value(val): result = str(val)
         else:
             info = self.symbols_table.get(val, {})
-            tipo_val = info.get("tipo", "")
+            type_val = info.get("type", "")
             
-            if tipo_val == "referencia_var": resultado = self._manejar_referencia(tokens, contexto)
-            elif tipo_val == "assign_val": resultado = self._manejar_asignacion(tokens, contexto)
-            else: resultado = info.get("codigo", val)
+            if type_val == "reference_var": result = self._manage_reference(tokens, context)
+            elif type_val == "assign_val": result = self._manage_asignation(tokens, context)
+            else: result = info.get("code", val)
             
         while tokens:
-            if self._es_valor_numerico(tokens[0]): break
-            sig_info = self.symbols_table.get(tokens[0], {})
-            tipo_sig = sig_info.get("tipo")
+            if self._is_num_value(tokens[0]): break
+            next_info = self.symbols_table.get(tokens[0], {})
+            next_type = next_info.get("type")
             
-            if tipo_sig == "operador_logico":
+            if next_type == "logic_operator":
                 op = tokens.pop(0)
-                resultado += sig_info.get("codigo", op)
-                error = comprobar_pila(op, "otra condición")
-                if error: return resultado + error
-                if tokens: resultado += self._consumir_argumento_vc(tokens, contexto)
+                result += next_info.get("code", op)
+                error = check_stack(op, "otra condición")
+                if error: return result + error
+                if tokens: result += self._consume_vc_arg(tokens, context)
                 break
                 
-            elif tipo_sig == "metodo":
-                metodo = tokens.pop(0)
-                codigo_metodo = sig_info.get("codigo", metodo)
+            elif next_type == "method":
+                method = tokens.pop(0)
+                method_code = next_info.get("code", method)
                 
-                if ".is_pressed" in codigo_metodo or ".is_touched" in codigo_metodo:
-                    if "pin" in resultado or "logo" in resultado: codigo_metodo = ".is_touched()"
-                    else: codigo_metodo = ".is_pressed()"
+                if ".is_pressed" in method_code or ".is_touched" in method_code:
+                    if "pin" in result or "logo" in result: method_code = ".is_touched()"
+                    else: method_code = ".is_pressed()"
 
-                num_args = sig_info.get("args", 0)
-                args_extra = []
-                argumentos_satisfechos = 0
-                while argumentos_satisfechos < num_args:
-                    error = comprobar_pila(metodo, f"argumento {argumentos_satisfechos+1}")
-                    if error: return resultado + error
-                    arg_func = self._consumir_argumento_vc(tokens, contexto=f"argumento de {metodo}")
-                    if "# ERROR" in arg_func: return resultado + arg_func
-                    args_extra.append(arg_func) 
-                    argumentos_satisfechos += len(arg_func.split(","))
+                num_args = next_info.get("args", 0)
+                extra_args = []
+                satisfied_args = 0
+                while satisfied_args < num_args:
+                    error = check_stack(method, f"argumento {satisfied_args+1}")
+                    if error: return result + error
+                    arg_func = self._consume_vc_arg(tokens, context=f"argumento de {method}")
+                    if "# ERROR" in arg_func: return result + arg_func
+                    extra_args.append(arg_func) 
+                    satisfied_args += len(arg_func.split(","))
                         
-                if args_extra: resultado += f"{codigo_metodo}({', '.join(args_extra)})"
+                if extra_args: result += f"{method_code}({', '.join(extra_args)})"
                 else:
-                    if codigo_metodo.endswith(")"): resultado += codigo_metodo
-                    else: resultado += f"{codigo_metodo}()"
+                    if method_code.endswith(")"): result += method_code
+                    else: result += f"{method_code}()"
             else:
                 break
-        return resultado
+        return result
