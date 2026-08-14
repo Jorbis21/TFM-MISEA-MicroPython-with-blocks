@@ -40,6 +40,18 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    # El repositorio real es TFM_MISEA, y QrReader es una subcarpeta suya -
+    # esto hace que TODOS los pasos "run" de más abajo se ejecuten como si
+    # ya estuvieras dentro de QrReader, sin tener que escribir "QrReader/"
+    # delante de cada ruta (QrReader.spec, requirements.txt, dist/...).
+    # The actual repository is TFM_MISEA, and QrReader is a subfolder of it -
+    # this makes every "run" step below execute as if you were already
+    # inside QrReader, without having to write "QrReader/" in front of every
+    # path (QrReader.spec, requirements.txt, dist/...).
+    defaults:
+      run:
+        working-directory: QrReader
+
     steps:
       - name: Descargar el código
         uses: actions/checkout@v4
