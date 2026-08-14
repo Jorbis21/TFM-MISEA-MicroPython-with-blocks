@@ -31,11 +31,18 @@ class AIManager:
             return False
 
     def _get_portable_ollama_exe(self):
-        """Ruta al ollama portable dentro de la propia carpeta de la app (carpeta 'ollama', junto al .exe), si existe"""
-        """Path to the portable ollama inside the app's own folder ('ollama' folder, next to the .exe), if it exists"""
-        exe_name = "ollama.exe" if os.name == 'nt' else "ollama"
-        candidate = os.path.join(get_data_dir(), "ollama", exe_name)
-        return candidate if os.path.exists(candidate) else None
+        """Ruta al ollama portable dentro de la propia carpeta de la app ('ollama'), si existe. La estructura interna del paquete oficial de Ollama difiere segun el sistema operativo -comprobado descargando los tres de verdad-: en Windows el ejecutable esta en la raiz, en Linux dentro de bin/, y el de Mac (una app de escritorio completa) se extrae ya aplanado en el paso de construccion. Se comprueban las rutas posibles en vez de asumir una sola."""
+        """Path to the portable ollama inside the app's own folder ('ollama'), if it exists. Ollama's official package internal structure differs by OS -confirmed by actually downloading all three-: on Windows the executable is at the root, on Linux it's inside bin/, and the Mac one (a full desktop app) gets extracted already flattened during the build step. Multiple possible paths are checked instead of assuming just one."""
+        base = os.path.join(get_data_dir(), "ollama")
+        candidates = [
+            os.path.join(base, "ollama.exe"),     # Windows
+            os.path.join(base, "bin", "ollama"),  # Linux (estructura real del .tar.zst oficial)
+            os.path.join(base, "ollama"),         # Mac (aplanado desde Contents/Resources/ollama en el build)
+        ]
+        for candidate in candidates:
+            if os.path.exists(candidate):
+                return candidate
+        return None
 
     def _start_ollama(self):
         """Metodo para encender la IA local"""

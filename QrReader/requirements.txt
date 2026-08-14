@@ -1,0 +1,16 @@
+PyQt6
+opencv-python
+pyzbar
+qrcode
+fpdf2
+pyserial
+python-dotenv
+faster-whisper
+soundfile
+sounddevice
+google-genai
+edge-tts
+pygame
+pyttsx3
+requests
+numpy

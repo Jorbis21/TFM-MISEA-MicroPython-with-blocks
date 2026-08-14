@@ -1,0 +1,159 @@
+name: Construir y publicar release
+
+# Se dispara al subir una etiqueta que empiece por "v" (v1.0.0, v1.1.0...):
+#   git tag v1.1.0
+#   git push --tags
+#
+# Por cada sistema operativo sube DOS archivos a la misma Release:
+#   - MicroPython_with_blocks-<so>.zip              -> la app + el motor de Ollama (sin CUDA)
+#   - MicroPython_with_blocks-<so>-phi3-model.zip   -> solo el modelo phi3 (2.2GB, aparte
+#                                       porque junto con el resto pasaria
+#                                       del limite de 2GB por archivo de
+#                                       GitHub Releases)
+#
+# Quien se lo descargue tiene que extraer los DOS zips dentro de la misma
+# carpeta: el segundo añade una carpeta ollama_models/ junto a MicroPython_with_blocks.exe,
+# que es donde el programa ya sabe buscarla.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            asset_core: MicroPython_with_blocks-windows.zip
+            asset_model: MicroPython_with_blocks-windows-phi3-model.zip
+          - os: ubuntu-latest
+            asset_core: MicroPython_with_blocks-linux.zip
+            asset_model: MicroPython_with_blocks-linux-phi3-model.zip
+          - os: macos-latest
+            asset_core: MicroPython_with_blocks-macos.zip
+            asset_model: MicroPython_with_blocks-macos-phi3-model.zip
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Dependencias del sistema (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y patchelf libzbar0 portaudio19-dev libgl1 libxkbcommon-x11-0 zstd
+
+      - name: Instalar dependencias de Python
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Construir MicroPython_with_blocks con PyInstaller
+        run: pyinstaller MicroPython_with_blocks.spec
+
+      # --- Ollama: descargar, quitar CUDA (no sirve en un PC de colegio y
+      # es la inmensa mayoría del peso: ~1.7GB de ~1.8GB en Windows,
+      # ~2GB de ~2.1GB en Linux, comprobado descargando los paquetes reales),
+      # y colocarlo dentro de dist/MicroPython_with_blocks/ollama/ ---
+
+      - name: Descargar y preparar Ollama (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/ollama/ollama/releases/latest/download/ollama-windows-amd64.zip" -OutFile ollama_pkg.zip
+          Expand-Archive -Path ollama_pkg.zip -DestinationPath ollama_extracted
+          Remove-Item -Recurse -Force ollama_extracted\lib\ollama\cuda_v12, ollama_extracted\lib\ollama\cuda_v13 -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path dist\MicroPython_with_blocks\ollama | Out-Null
+          Copy-Item -Recurse ollama_extracted\* dist\MicroPython_with_blocks\ollama\
+
+      - name: Descargar y preparar Ollama (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          curl -L -o ollama_pkg.tar.zst "https://github.com/ollama/ollama/releases/latest/download/ollama-linux-amd64.tar.zst"
+          mkdir -p ollama_extracted
+          tar --zstd -xf ollama_pkg.tar.zst -C ollama_extracted
+          rm -rf ollama_extracted/lib/ollama/cuda_v12 ollama_extracted/lib/ollama/cuda_v13
+          mkdir -p dist/MicroPython_with_blocks/ollama
+          cp -r ollama_extracted/* dist/MicroPython_with_blocks/ollama/
+          chmod +x dist/MicroPython_with_blocks/ollama/bin/ollama
+
+      - name: Descargar y preparar Ollama (Mac)
+        if: runner.os == 'macOS'
+        run: |
+          curl -L -o ollama_pkg.zip "https://github.com/ollama/ollama/releases/latest/download/Ollama-darwin.zip"
+          unzip -q ollama_pkg.zip -d ollama_extracted
+          mkdir -p dist/MicroPython_with_blocks/ollama
+          cp -r ollama_extracted/Ollama.app/Contents/Resources/* dist/MicroPython_with_blocks/ollama/
+          chmod +x dist/MicroPython_with_blocks/ollama/ollama
+          # Aquí no se quita nada: las librerías Metal sí interesa
+          # conservarlas, a diferencia de CUDA - se benefician la mayoría
+          # de Macs actuales, sobre todo los de chip Apple.
+
+      # --- Arrancar Ollama, descargar el modelo phi3, pararlo ---
+
+      - name: Descargar el modelo phi3 (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $env:OLLAMA_MODELS = "$PWD\ollama_models"
+          New-Item -ItemType Directory -Force -Path $env:OLLAMA_MODELS | Out-Null
+          $proc = Start-Process -FilePath "dist\MicroPython_with_blocks\ollama\ollama.exe" -ArgumentList "serve" -PassThru -WindowStyle Hidden
+          $ready = $false
+          for ($i = 0; $i -lt 30; $i++) {
+            try {
+              Invoke-WebRequest -Uri "http://localhost:11434" -TimeoutSec 2 -UseBasicParsing | Out-Null
+              $ready = $true
+              break
+            } catch { Start-Sleep -Seconds 1 }
+          }
+          if (-not $ready) { Write-Error "Ollama no arrancó a tiempo"; exit 1 }
+          & dist\MicroPython_with_blocks\ollama\ollama.exe pull phi3
+          Stop-Process -Id $proc.Id -Force
+
+      - name: Descargar el modelo phi3 (Linux/Mac)
+        if: runner.os != 'Windows'
+        run: |
+          export OLLAMA_MODELS="$PWD/ollama_models"
+          mkdir -p "$OLLAMA_MODELS"
+          OLLAMA_BIN="dist/MicroPython_with_blocks/ollama/ollama"
+          [ -f "dist/MicroPython_with_blocks/ollama/bin/ollama" ] && OLLAMA_BIN="dist/MicroPython_with_blocks/ollama/bin/ollama"
+          "$OLLAMA_BIN" serve &
+          OLLAMA_PID=$!
+          for i in $(seq 1 30); do
+            curl -s http://localhost:11434 > /dev/null 2>&1 && break
+            sleep 1
+          done
+          "$OLLAMA_BIN" pull phi3
+          kill $OLLAMA_PID
+
+      # --- Empaquetar: app+motor en un zip, el modelo en otro aparte ---
+
+      - name: Empaquetar (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Compress-Archive -Path dist\MicroPython_with_blocks -DestinationPath ${{ matrix.asset_core }}
+          Compress-Archive -Path ollama_models -DestinationPath ${{ matrix.asset_model }}
+
+      - name: Empaquetar (Linux/Mac)
+        if: runner.os != 'Windows'
+        run: |
+          chmod +x dist/MicroPython_with_blocks/MicroPython_with_blocks
+          cd dist && zip -r ../${{ matrix.asset_core }} MicroPython_with_blocks && cd ..
+          zip -r ${{ matrix.asset_model }} ollama_models
+
+      - name: Crear la release si hace falta, y subir los dos archivos
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" --title "MicroPython_with_blocks ${{ github.ref_name }}" --generate-notes || true
+          gh release upload "${{ github.ref_name }}" "${{ matrix.asset_core }}" "${{ matrix.asset_model }}" --clobber
