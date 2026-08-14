@@ -1,22 +1,27 @@
 import os, re, threading, time, numpy as np, soundfile as sf
 from faster_whisper import WhisperModel
-from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import QThread
 from dataclasses import dataclass
 
 from utils.constants import EventType, VoiceCommand
 from utils.strings import t
 from utils.language import get_language
+from utils.main_thread import pump_events_if_on_main_thread
 
 @dataclass
 class InteractionEvent:
+    """Resultado de una interacción por voz o táctil: qué tipo de evento fue, qué se dijo (si algo), y si fue una confirmación afirmativa"""
+    """Result of a voice or tap interaction: what kind of event it was, what was said (if anything), and whether it was an affirmative confirmation"""
     type: EventType
     text: str = ""
     afirmative: bool = False
 
 class VoiceCommandManager:
+    """Graba y transcribe audio con Whisper, reconoce comandos e intenciones a partir del texto, y gestiona el ciclo de grabación/dictado que usa el resto de la aplicación para interactuar por voz"""
+    """Records and transcribes audio with Whisper, recognizes commands and intentions from the text, and manages the recording/dictation cycle the rest of the application uses to interact by voice"""
 
     def __init__(self, callback_command, workspace_dir, audio_service, callback_freeze_ui=None):
+        """Guarda las referencias necesarias y arranca en un hilo aparte la carga del modelo de Whisper, que puede tardar unos segundos"""
+        """Stores the necessary references and starts loading the Whisper model on a separate thread, which can take a few seconds"""
         self.callback_command = callback_command
         self.callback_freeze_ui = callback_freeze_ui
         self.audio_service = audio_service
@@ -35,10 +40,14 @@ class VoiceCommandManager:
         threading.Thread(target=self._load_model, daemon=True).start()
 
     def stop(self):
+        """Detiene el gestor de voz y descarta cualquier grabación de dictado que estuviera en curso"""
+        """Stops the voice manager and discards any dictation recording in progress"""
         self.running = False
         self.discard_dictation_record()
 
     def _load_model(self):
+        """Carga el modelo de Whisper en segundo plano y avisa por voz cuando el control por voz ya está listo"""
+        """Loads the Whisper model in the background and announces by voice once voice control is ready"""
         print("Cargando motor de voz (Whisper Medium)...")
         self.model = WhisperModel(
             "medium", 
@@ -50,6 +59,8 @@ class VoiceCommandManager:
         self.audio_service.read_text(t("voice_ready"))
 
     def _process_audio(self):
+        """Guarda el audio grabado a disco, lo transcribe con Whisper en el idioma activo, limpia el texto resultante, y lo despacha como evento de interacción"""
+        """Saves the recorded audio to disk, transcribes it with Whisper in the active language, cleans up the resulting text, and dispatches it as an interaction event"""
         try:
             sf.write(self.temp_file, np.array(self.audio_data), self.samplerate)
             segments, info = self.model.transcribe(self.temp_file, language=get_language())
@@ -68,6 +79,8 @@ class VoiceCommandManager:
                 self.actual_event = InteractionEvent(type=EventType.VOICE, text="")
 
     def _analyze_intention(self, text):
+        """Busca en el texto transcrito alguna de las palabras clave de cada comando y dispara el correspondiente; si no reconoce ninguna, avisa de que no se ha entendido"""
+        """Looks in the transcribed text for any of each command's keywords and triggers the matching one; if none is recognized, announces that it wasn't understood"""
         if not text: return
 
         words = set(re.findall(r"[\wáéíóúñ]+", text.lower()))
@@ -89,6 +102,8 @@ class VoiceCommandManager:
 
     @staticmethod
     def _interpret_confirmation(event: InteractionEvent):
+        """Traduce un evento de interacción a una de tres respuestas neutras (confirm/retry/skip), sea cual sea el idioma o si vino por voz o por toque físico"""
+        """Translates an interaction event into one of three neutral responses (confirm/retry/skip), regardless of language or whether it came by voice or physical tap"""
         if event.type == EventType.SKIP:
             return "skip"
         if event.type == EventType.TAP:
@@ -102,6 +117,8 @@ class VoiceCommandManager:
         return "retry"
 
     def start_dictation_record(self):
+        """Empieza a grabar audio del micrófono en un hilo aparte, con un pitido corto de confirmación tras un breve retraso para no cortar el inicio de lo que diga el usuario"""
+        """Starts recording audio from the microphone on a separate thread, with a short confirmation beep after a brief delay so it doesn't cut off the start of what the user says"""
         if self.model is None or self.is_recording: return
         self.is_recording = True
         self.audio_data = []
@@ -110,6 +127,8 @@ class VoiceCommandManager:
         current_id = self.record_id
         
         def delayed_beep():
+            """Reproduce el pitido de confirmación de inicio, solo si la grabación sigue siendo la misma (no se ha cancelado ni empezado otra)"""
+            """Plays the start-confirmation beep, only if the recording is still the same one (hasn't been cancelled or a new one started)"""
             time.sleep(0.4) 
             if self.is_recording and self.record_id == current_id: 
                 try:
@@ -123,9 +142,13 @@ class VoiceCommandManager:
         threading.Thread(target=delayed_beep, daemon=True).start()
         
         def audio_callback(indata, frames, tiempo, status):
+            """Acumula cada bloque de audio que llega del micrófono mientras dura la grabación"""
+            """Accumulates each audio block coming from the microphone while the recording lasts"""
             self.audio_data.extend(indata.copy())
             
         def _start_hardware():
+            """Abre el flujo de audio del micrófono en segundo plano; si mientras tanto la grabación se canceló o empezó otra, cierra el flujo sin usarlo"""
+            """Opens the microphone audio stream in the background; if meanwhile the recording was cancelled or another one started, closes the stream without using it"""
             import sounddevice as sd
             try:
                 new_stream = sd.InputStream(samplerate=self.samplerate, channels=1, callback=audio_callback)
@@ -142,6 +165,8 @@ class VoiceCommandManager:
         threading.Thread(target=_start_hardware, daemon=True).start()
 
     def discard_dictation_record(self):
+        """Para la grabación en curso y descarta el audio capturado, sin transcribirlo"""
+        """Stops the recording in progress and discards the captured audio, without transcribing it"""
         if not self.is_recording: return
         self.is_recording = False
         if self.stream:
@@ -153,6 +178,8 @@ class VoiceCommandManager:
         self.audio_data = []
 
     def stop_dictation_and_process(self):
+        """Para la grabación y lanza la transcripción del audio capturado en un hilo aparte, avisando primero de que se está procesando"""
+        """Stops the recording and launches the transcription of the captured audio on a separate thread, first announcing that it's being processed"""
         if not self.is_recording: return
         self.is_recording = False
         if self.stream:
@@ -166,6 +193,8 @@ class VoiceCommandManager:
         threading.Thread(target=self._process_audio, daemon=True).start()
 
     def inject_event(self, event: InteractionEvent):
+        """Entrega un evento de interacción: si se está esperando un dictado, lo guarda para que listen_dict_sync lo recoja; si no, lo interpreta como un comando normal"""
+        """Delivers an interaction event: if a dictation is being awaited, stores it for listen_dict_sync to pick up; otherwise, interprets it as a normal command"""
         if self.dictation_mode:
             self.actual_event = event
         else:
@@ -173,6 +202,8 @@ class VoiceCommandManager:
                 self._analyze_intention(event.text)
 
     def listen_dict_sync(self) -> InteractionEvent:
+        """Bloquea hasta que llegue un evento de interacción (voz o toque), manteniendo la interfaz respondiendo mientras espera si se llama desde el hilo principal"""
+        """Blocks until an interaction event arrives (voice or tap), keeping the interface responsive while it waits if called from the main thread"""
         if self.callback_freeze_ui: 
             self.callback_freeze_ui(True)
             
@@ -181,8 +212,7 @@ class VoiceCommandManager:
         
         try:
             while self.actual_event is None and self.running:
-                if QThread.currentThread() == QApplication.instance().thread():
-                    QApplication.processEvents()
+                pump_events_if_on_main_thread()
                 time.sleep(0.05)
 
             if not self.running:

@@ -9,7 +9,12 @@ from views.widgets import AutoCleanSearch
 from utils.strings import t
 
 class TabJSON(QWidget):
+    """Pestaña de edición del diccionario de bloques: formulario para crear/editar un bloque, y tabla con todos los existentes, con búsqueda y borrado individual o múltiple"""
+    """Dictionary-editing tab: form to create/edit a block, and a table with all the existing ones, with search and individual or multiple deletion"""
+
     def __init__(self, json_ctrl, assets_dir):
+        """Monta el formulario y la tabla, y deja preparada la carga del diccionario la primera vez que se muestre esta pestaña"""
+        """Builds the form and the table, and prepares loading the dictionary the first time this tab is shown"""
         super().__init__()
         self.json_ctrl = json_ctrl
         self.icons_dir = os.path.join(assets_dir, "icons")

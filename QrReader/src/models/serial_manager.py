@@ -1,8 +1,12 @@
 import serial, serial.tools.list_ports, threading, time
 
 class SerialMonitor:
+    """Busca y mantiene la conexión serie con la Micro:bit en un hilo de fondo, leyendo los mensajes de tipo TTS: que la placa envía para que se lean en voz alta"""
+    """Finds and maintains the serial connection with the Micro:bit on a background thread, reading the TTS: messages the board sends to be read aloud"""
 
     def __init__(self, audio_service):
+        """Guarda el servicio de audio y deja el monitor listo, sin ningún puerto conectado ni el hilo arrancado todavía"""
+        """Stores the audio service and leaves the monitor ready, with no port connected and the thread not started yet"""
         self.audio_service = audio_service
         self.serial_port = None
         self.is_running = False

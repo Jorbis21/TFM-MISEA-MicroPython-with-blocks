@@ -8,8 +8,12 @@ from utils.constants import TTSMode
 from utils.strings import t
 
 class TabCamara(QWidget):
+    """Pestaña principal: muestra el vídeo de la cámara, los botones de acción (capturar, enviar, explicar, leer, voz, revisar), el editor de código, y gestiona los atajos de teclado y la navegación accesible de esta pantalla"""
+    """Main tab: shows the camera video, the action buttons (capture, send, explain, read, voice, review), the code editor, and manages this screen's keyboard shortcuts and accessible navigation"""
 
     def __init__(self, workspace_dir, assets_dir, camera_ctrl, program_builder, audio_service):
+        """Monta toda la interfaz de la pestaña, conecta las señales de la cámara, y deja listo el seguimiento del número de bloques detectados"""
+        """Builds the whole tab's interface, connects the camera's signals, and leaves the detected-block-count tracking ready"""
         super().__init__()
         self.workspace_dir = workspace_dir
         self.icons_dir = os.path.join(assets_dir, "icons")
@@ -32,12 +36,6 @@ class TabCamara(QWidget):
         self.pitches_block = []
         self.frame_actual_bgr = None
 
-        # Anuncio por voz del numero de bloques detectados, con estabilizacion:
-        # solo avisa cuando el numero deja de cambiar durante QR_COUNT_DEBOUNCE_MS,
-        # para no saturar al usuario mientras coloca varios bloques seguidos.
-        # Voice announcement of the number of detected blocks, debounced:
-        # only announces once the number stops changing for QR_COUNT_DEBOUNCE_MS,
-        # so the user isn't overwhelmed while placing several blocks in a row.
         self.QR_COUNT_DEBOUNCE_MS = 1500
         self._last_seen_qr_count = 0
         self._last_announced_qr_count = 0
@@ -318,11 +316,15 @@ class TabCamara(QWidget):
         self._ia_explaining = True
 
         def update_state(text, color=None):
+            """Actualiza la etiqueta de estado con el texto y color recibidos desde la explicación de la IA"""
+            """Updates the status label with the text and color received from the AI explanation"""
             self.status_label.setText(text)
             if color:
                 self.status_label.setStyleSheet(f"color: {color};")
 
         def on_finished():
+            """Marca que la explicación ha terminado, permitiendo que se pueda pedir otra"""
+            """Marks the explanation as finished, allowing another one to be requested"""
             self._ia_explaining = False
 
         self.program.ia_explain_code(update_state, on_finished)

@@ -34,8 +34,8 @@ QrReader/ollama_models/
 # Descomenta las dos líneas si prefieres NO versionarla (así el repo pesa
 # mucho menos, pero cada persona que clone el proyecto tendrá que generarla
 # ella misma antes de tener voz offline desde el primer arranque)
-QrReader/data/assets/audio_cache/es/
-QrReader/data/assets/audio_cache/en/
+#QrReader/data/assets/audio_cache/es/
+#QrReader/data/assets/audio_cache/en/
 
 # Bytecode y cachés de Python - sin prefijo: útil para cualquier proyecto
 # Python de este repositorio, no solo QrReader.

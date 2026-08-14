@@ -5,7 +5,12 @@ from pyzbar.pyzbar import decode, ZBarSymbol
 from utils.strings import t
 
 class VisionEngine:
+    """Gestiona la cámara y decodifica los QRs visibles en cada frame, manteniendo un histórico corto para estabilizar la lectura y detectar cuándo el programa se sale del encuadre"""
+    """Manages the camera and decodes the QRs visible in each frame, keeping a short history to stabilize the reading and detect when the program runs off the frame"""
+
     def __init__(self):
+        """Deja el motor listo sin cámara abierta todavía ni ningún elemento detectado"""
+        """Leaves the engine ready with no camera open yet and nothing detected"""
         self.camera_index = 0  
         self.cap = None
         
@@ -206,20 +211,6 @@ class VisionEngine:
         if not (right_links or down_link):
             return None
 
-        # "down" se envuelve en una lista (0 o 1 elementos) aunque solo pueda
-        # haber un bloque de anclaje por definicion - todo lo que consume
-        # esto despues (extensions_queue, _process_next_extension,
-        # _fuse_spatial_matrix) itera con "for n in links" asumiendo que es
-        # una lista, igual que "right". Un valor suelto en vez de una lista
-        # hacia que ese bucle iterase caracter a caracter sobre el texto del
-        # bloque en vez de sobre el bloque entero.
-        # "down" gets wrapped in a list (0 or 1 elements) even though there
-        # can only ever be one anchor block by definition - everything
-        # downstream that consumes this (extensions_queue,
-        # _process_next_extension, _fuse_spatial_matrix) iterates with
-        # "for n in links" assuming it's a list, same as "right". A bare
-        # value instead of a list made that loop iterate character by
-        # character over the block's text instead of over the block itself.
         return {"right": right_links, "down": [down_link] if down_link else []}
 
     def free_camera(self):

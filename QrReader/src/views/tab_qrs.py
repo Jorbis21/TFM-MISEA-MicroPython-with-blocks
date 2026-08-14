@@ -6,8 +6,12 @@ from views.widgets import AutoCleanSearch
 from utils.strings import t
 
 class TabQRs(QWidget):
+    """Pestaña de generación de QRs: tabla con la cantidad deseada de cada bloque, y botón para generar el PDF de impresión con el tamaño elegido"""
+    """QR-generation tab: table with the desired quantity of each block, and a button to generate the print-ready PDF at the chosen size"""
 
     def __init__(self, qr_ctrl):
+        """Deja la tabla preparada, sin cargar los bloques todavía (se cargan la primera vez que se muestra esta pestaña)"""
+        """Leaves the table ready, without loading the blocks yet (they get loaded the first time this tab is shown)"""
         super().__init__()
         self.qr_ctrl = qr_ctrl
         self.qr_entries = {}
@@ -203,9 +207,13 @@ class TabQRs(QWidget):
         self.generate_pdf_btn.setEnabled(False)
 
         def update_state(msg):
+            """Muestra el mensaje de progreso recibido desde la generación del PDF"""
+            """Shows the progress message received from the PDF generation"""
             self.lbl_state_qr.setText(msg)
 
         def on_finished():
+            """Reactiva el botón de generar, permitiendo lanzar otra generación"""
+            """Re-enables the generate button, allowing another generation to be started"""
             self.generate_pdf_btn.setEnabled(True)
 
         self.qr_ctrl.generate_pdf(elems_to_generate, size_mm, dest_dir, update_state, on_finished)

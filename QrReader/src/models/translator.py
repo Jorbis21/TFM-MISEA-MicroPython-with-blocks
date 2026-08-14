@@ -3,7 +3,12 @@ from utils.constants import TTSMode
 
 
 class MicrobitCompiler:
+    """Traduce la matriz de bloques detectados por la cámara a código MicroPython, en dos pasadas: una de análisis (para saber qué preguntar por voz) y otra de generación (con las respuestas ya dadas)"""
+    """Translates the block matrix detected by the camera into MicroPython code, in two passes: an analysis one (to know what to ask by voice) and a generation one (with the answers already given)"""
+
     def __init__(self, config_dir, json_manager):
+        """Construye la tabla de símbolos a partir del diccionario, y deja el compilador listo en modo generación (no análisis), sin variables ni respuestas precargadas"""
+        """Builds the symbols table from the dictionary, and leaves the compiler ready in generation mode (not analysis), with no variables or preloaded answers"""
         self.config_dir = config_dir
         self.json_manager = json_manager
         self.symbols_table = self.json_manager.build_symbols_table()
@@ -16,9 +21,13 @@ class MicrobitCompiler:
         self.presaved_answers = []
 
     def set_mode_tts(self, mode):
+        """Cambia el modo de lectura en voz alta de los valores mostrados, para las próximas generaciones de código"""
+        """Changes the voice-reading mode for the displayed values, for the next code generations"""
         self.tts_mode = mode
 
     def _is_num_value(self, token):
+        """Indica si el texto se puede interpretar como un número (entero o decimal)"""
+        """Indicates whether the text can be interpreted as a number (integer or decimal)"""
         try:
             float(token)
             return True
@@ -26,6 +35,8 @@ class MicrobitCompiler:
             return False
         
     def normalize_text(self, text, is_variable=False):
+        """Limpia un texto para usarlo en el código generado: quita espacios sobrantes, pasa a minúsculas, quita acentos, y si es para un nombre de variable, sustituye los espacios por guiones bajos"""
+        """Cleans up a text to use it in the generated code: strips extra spaces, lowercases it, removes accents, and if it's for a variable name, replaces spaces with underscores"""
         if not text: return ""
         text = text.strip().lower()
         replacements = {'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ü': 'u'}
@@ -36,6 +47,8 @@ class MicrobitCompiler:
         return text
 
     def _apply_type(self, text):
+        """Convierte un texto dicho o escrito por el usuario en el literal de Python que le corresponde: notas musicales, una imagen en formato Image(), una terna RGB, un número (entero o decimal, admitiendo palabras numéricas), o si nada de eso encaja, una cadena de texto. Devuelve una tupla (código, valor)"""
+        """Converts a text spoken or typed by the user into its corresponding Python literal: musical notes, an image in Image() format, an RGB triplet, a number (integer or decimal, accepting number words), or if none of that fits, a text string. Returns a tuple (code, value)"""
         text = text.strip().lower()
         letters_nums = t("number_words")
 
@@ -51,18 +64,6 @@ class MicrobitCompiler:
         multi_words = [p for p in multi_text.split() if p]
         multi_words = [str(letters_nums.get(p, p)) for p in multi_words]
 
-        # Notas musicales, en solfeo (do, re, mi...) o en notacion anglosajona
-        # (c, d, e...) - se admiten las dos indistintamente, incluso mezcladas
-        # en la misma secuencia, y se traducen siempre a la notacion que
-        # espera music.play(). Se exigen al menos 2 palabras reconocidas como
-        # notas para no confundir una palabra suelta (p.ej. "a") con una
-        # melodia de una sola nota.
-        # Musical notes, in solfege (do, re, mi...) or letter notation
-        # (c, d, e...) - both are accepted indistinctly, even mixed within
-        # the same sequence, and always get translated to the notation
-        # music.play() expects. At least 2 recognized note words are
-        # required, so a lone word (e.g. "a") isn't mistaken for a
-        # one-note melody.
         note_map = t("note_names")
         if len(multi_words) >= 2 and all(w in note_map for w in multi_words):
             notes = [note_map[w] for w in multi_words]
@@ -90,14 +91,6 @@ class MicrobitCompiler:
             except ValueError:
                 pass
 
-        # Sustituye cada palabra numérica por su dígito antes del parseo decimal,
-        # para que "tres coma cinco" / "three point five" den 3.5 en vez de
-        # quedarse como texto (esto no funcionaba ni en el original: solo
-        # sustituía si el texto ENTERO era una única palabra numérica).
-        # Substitutes each number word for its digit before decimal parsing,
-        # so "tres coma cinco" / "three point five" produce 3.5 instead of
-        # staying as text (this didn't work even in the original: it only
-        # substituted when the WHOLE text was a single number word).
         substituted_text = " ".join(str(letters_nums.get(p, p)) for p in text.split())
 
         parsed_text = substituted_text
@@ -119,17 +112,18 @@ class MicrobitCompiler:
         clean_text = self.normalize_text(text, is_variable=False)
         return f'"{clean_text}"', clean_text
 
-    # --- LÓGICA DE VARIABLES (MVC PURO - 2 PASADAS) ---
 
     def analize_matrix(self, command_matrix):
         """Pasada 1: Recorre la matriz lógicamente para listar qué interacciones necesita."""
         self.analysis_mode = True
         self.var_needs = []
-        self._run_internal_generation(command_matrix, None) # Compila en el vacío
+        self._run_internal_generation(command_matrix, None)
         self.analysis_mode = False
         return self.var_needs
 
     def _solve_variable(self, block_type, context=""):
+        """En modo análisis, apunta que hace falta preguntar esto por voz y devuelve un nombre provisional; en modo generación, consume la siguiente respuesta ya dada (o genera un nombre provisional si no quedan respuestas)"""
+        """In analysis mode, notes that this needs to be asked by voice and returns a provisional name; in generation mode, consumes the next already-given answer (or generates a provisional name if no answers remain)"""
         if self.analysis_mode:
             self.var_needs.append({"type": block_type, "context": context})
             self.var_cont += 1
@@ -141,18 +135,10 @@ class MicrobitCompiler:
             return f"var_{self.var_cont}"
 
     def _manage_declaration(self, tokens):
+        """Genera la línea de declaración de una variable nueva: pide su nombre, y si hay otro bloque a la derecha lo usa como valor inicial; si no hay ninguno, pregunta el valor por voz"""
+        """Generates a new variable's declaration line: asks for its name, and if there's another block to the right it's used as the initial value; if there isn't one, asks for the value by voice"""
         name = self._solve_variable("declare_var", t("context_declare_var"))
 
-        # Si hay un bloque a la derecha de "declarar variable" (una
-        # referencia a otra variable, un "value variable", un numero...) se
-        # usa ESE como valor inicial. Antes se preguntaba siempre un valor
-        # nuevo por voz y se descartaba (tokens.clear()) cualquier bloque que
-        # hubiera ahi, ignorandolo por completo.
-        # If there's a block to the right of "declarar variable" (a
-        # reference to another variable, a "value variable", a number...)
-        # THAT is used as the initial value. It used to always ask for a new
-        # value by voice and discard (tokens.clear()) whatever block was
-        # actually there, ignoring it completely.
         if tokens:
             value_code = self._consume_vc_arg(tokens, context=t("context_value_for", name=name))
             if "# ERROR" in value_code:
@@ -164,14 +150,17 @@ class MicrobitCompiler:
         return f"{name} = {value_code}"
 
     def _manage_asignation(self, tokens, context=""):
+        """Pregunta un valor por voz (bloque 'valor variable') y lo convierte en su literal de Python correspondiente"""
+        """Asks for a value by voice ('value variable' block) and converts it into its corresponding Python literal"""
         text_value = self._solve_variable("assign_val", context)
         value_code, _ = self._apply_type(text_value)
         return value_code
 
     def _manage_reference(self, tokens, context=""):
+        """Pregunta por voz a qué variable existente se refiere el bloque 'variable', y devuelve su nombre"""
+        """Asks by voice which existing variable the 'variable' block refers to, and returns its name"""
         return self._solve_variable("reference_var", context)
 
-    # --- MOTOR PRINCIPAL ---
 
     def generate_code(self, command_matrix, out_path, answers=None):
         """Pasada 2: Genera el archivo usando las answers precalculadas."""
@@ -186,6 +175,8 @@ class MicrobitCompiler:
             print("Código compilado con éxito.")
 
     def _run_internal_generation(self, command_matrix, out_path):
+        """Recorre la matriz fila por fila, calculando la indentación según el desplazamiento físico de cada una, y traduce cada fila a una línea de código; antepone la cabecera fija (imports y sonido de inicio)"""
+        """Walks the matrix row by row, computing the indentation from each row's physical offset, and translates each row into a line of code; prepends the fixed header (imports and startup sound)"""
         self.var_cont = 0
             
         if not command_matrix: return []
@@ -228,9 +219,13 @@ class MicrobitCompiler:
         return final_code
 
     def _process_token_rows(self, tokens, indent=""):
+        """Traduce una fila de bloques (ya sin las celdas vacías de indentación) a su línea de código MicroPython equivalente, según el tipo del primer bloque (control, función, operador lógico, variable...)"""
+        """Translates a row of blocks (already without the empty indentation cells) into its equivalent MicroPython code line, according to the type of the first block (control, function, logic operator, variable...)"""
         if not tokens: return ""
         
         def check_row(block, expect, remain_tokens):
+            """Comprueba que todavía queden bloques por consumir; si no, arma el mensaje de error de 'falta algo a la derecha de X'"""
+            """Checks that there are still blocks left to consume; if not, builds the 'missing something to the right of X' error message"""
             if not remain_tokens:
                 return t("err_expected_right", block=block, expect=expect)
             return None
@@ -351,8 +346,12 @@ class MicrobitCompiler:
             return res
 
     def _consume_vc_arg(self, tokens, context=""):
+        """Consume y resuelve el siguiente bloque como argumento de una función o método: un número literal, una referencia a variable, un valor pedido por voz, o el código base de cualquier otro bloque"""
+        """Consumes and resolves the next block as a function or method argument: a literal number, a variable reference, a value asked by voice, or any other block's base code"""
         if not tokens: return ""
         def check_stack(block, expect):
+            """Comprueba que todavía queden bloques por consumir; si no, arma el mensaje de error de 'falta algo detrás de X'"""
+            """Checks that there are still blocks left to consume; if not, builds the 'missing something after X' error message"""
             if not tokens:
                 return t("err_missing_after", block=block, expect=expect)
             return None

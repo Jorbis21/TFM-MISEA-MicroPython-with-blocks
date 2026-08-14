@@ -6,8 +6,12 @@ from utils.strings import t
 from utils.app_paths import get_data_dir
 
 class AIManager:
+    """Explica el código generado usando Gemini si hay conexión y clave configurada, o una IA local (Ollama) como alternativa sin internet, con lectura literal del código como último recurso"""
+    """Explains the generated code using Gemini if there's a connection and a configured key, or a local AI (Ollama) as an alternative without internet, with literal code reading as a last resort"""
 
     def __init__(self, api_key, audio_service):
+        """Guarda el servicio de audio y, si hay clave de Gemini, intenta crear el cliente; sin clave o si falla, se queda listo para usar solo la IA local"""
+        """Stores the audio service and, if there's a Gemini key, tries to create the client; without a key or if it fails, it's left ready to use only the local AI"""
         self.audio_service = audio_service
         self.ollama_process = None  
         if api_key:
@@ -52,14 +56,6 @@ class AIManager:
         except requests.ConnectionError:
             flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
 
-            # Prioridad: el ollama portable que viaja dentro de la carpeta de
-            # la app (carpeta "ollama", ver Instalar_IA_Local.bat). Si no
-            # existe, se prueba con un "ollama" instalado en el sistema, por
-            # si alguien lo tiene asi en vez de portable.
-            # Priority: the portable ollama that ships inside the app's own
-            # folder ("ollama" folder, see Instalar_IA_Local.bat). If it
-            # doesn't exist, falls back to a system-installed "ollama", in
-            # case someone has it that way instead of portable.
             portable_exe = self._get_portable_ollama_exe()
             ollama_cmd = portable_exe if portable_exe else "ollama"
 
@@ -84,25 +80,8 @@ class AIManager:
         """Lanza el cierre del proceso que sirve el modelo y del propio demonio de Ollama, sin esperar a que terminen"""
         """Fires off closing the process serving the model and the Ollama daemon itself, without waiting for them to finish"""
         def _fire_and_forget(cmd):
-            # subprocess.Popen (no .run) y sin esperar: un proceso con un
-            # modelo grande cargado en RAM puede tardar mas de lo que
-            # cualquier timeout razonable permitiria en morir del todo, ni
-            # siquiera con /F. Esperar aqui, aunque fuera con un limite,
-            # tiene un problema real: si el limite se agota, Python no se
-            # limita a dejar de esperar - MATA al propio taskkill a medias,
-            # dejando el proceso objetivo sin terminar de matar. En Windows,
-            # DETACHED_PROCESS desliga el taskkill de QrReader por completo,
-            # así que sigue vivo y termina su trabajo aunque QrReader ya se
-            # haya cerrado del todo.
-            # subprocess.Popen (not .run) and without waiting: a process with
-            # a large model loaded in RAM can take longer to fully die than
-            # any reasonable timeout would allow, even with /F. Waiting here,
-            # even with a limit, has a real problem: if the limit runs out,
-            # Python doesn't just stop waiting - it KILLS taskkill itself
-            # partway through, leaving the target process not fully killed.
-            # On Windows, DETACHED_PROCESS fully unlinks taskkill from
-            # QrReader, so it stays alive and finishes its job even after
-            # QrReader itself has completely closed.
+            """Lanza el comando de cierre como proceso independiente, sin esperar a que termine ni comprobar su resultado"""
+            """Launches the shutdown command as an independent process, without waiting for it to finish or checking its result"""
             try:
                 flags = (subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW) if os.name == 'nt' else 0
                 subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=flags)
@@ -110,38 +89,13 @@ class AIManager:
                 print(f"Aviso al lanzar el cierre de Ollama: {e}")
 
         if os.name == 'nt':  # Windows
-            # Comodin amplio en vez de un nombre exacto: el proceso que sirve
-            # el modelo ha tenido nombres distintos segun la version/build de
-            # Ollama - confirmado "llama-server.exe" en la practica (este es
-            # el que consume la RAM) y "ollama_llama_server.exe" en su propio
-            # repositorio de GitHub. "*llama*" (con comodin a los dos lados,
-            # no solo de prefijo) engancha los dos; las otras dos lineas son
-            # respaldo directo por si el filtro fallara. El comodin en /IM
-            # solo funciona junto con un filtro /FI, de ahi la sintaxis con
-            # /FI e /IM *.
-            # Broad wildcard instead of an exact name: the process serving
-            # the model has had different names depending on the Ollama
-            # version/build - confirmed "llama-server.exe" in practice (this
-            # is the one eating RAM) and "ollama_llama_server.exe" on their
-            # own GitHub repo. "*llama*" (wildcard on both sides, not just a
-            # prefix) catches both; the other two lines are a direct backup
-            # in case the filter fails. The wildcard on /IM only works
-            # together with a /FI filter, hence the syntax with /FI and /IM *.
             _fire_and_forget(["taskkill", "/F", "/FI", "IMAGENAME eq *llama*", "/IM", "*"])
             _fire_and_forget(["taskkill", "/F", "/IM", "llama-server.exe"])  # respaldo directo, por si el filtro fallara
             _fire_and_forget(["taskkill", "/F", "/IM", "ollama.exe"])  # respaldo directo, por si el filtro fallara
         else:  # Linux/Mac
             _fire_and_forget(["pkill", "-f", "llama"])
             _fire_and_forget(["pkill", "-f", "ollama"])
-
-        # Ya no se espera a self.ollama_process: los taskkill/pkill de arriba
-        # se encargan de matarlo igual, y ahora son independientes de este
-        # proceso - esperar aqui ya no aporta nada y solo reintroduciria el
-        # mismo problema de bloqueo.
-        # self.ollama_process is no longer waited on: the taskkill/pkill
-        # calls above kill it just the same, and are now independent of this
-        # process - waiting here wouldn't add anything and would only
-        # reintroduce the same blocking problem.
+            
         self.ollama_process = None
 
     def explain_code(self, code, callback_state):

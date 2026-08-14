@@ -6,30 +6,18 @@ import asyncio
 import hashlib
 import edge_tts
 
-# Misma ubicacion que el script original (2 niveles hasta la raiz del proyecto).
-# Same location as the original script (2 levels up to the project root).
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.abspath(os.path.join(_SCRIPT_DIR, '..', '..'))
 
-# Para poder hacer "from utils.strings import STRINGS" sin depender de con que
-# directorio de trabajo se lance el script.
-# So "from utils.strings import STRINGS" works regardless of the working
-# directory the script is launched from.
 SRC_DIR = os.path.join(BASE_DIR, 'src')
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
-from utils.strings import STRINGS  # noqa: E402
-from utils.language import _VOICES as VOICES  # noqa: E402
+from utils.strings import STRINGS
+from utils.language import _VOICES as VOICES
 
 CACHE_ROOT = os.path.join(BASE_DIR, 'data', 'assets', 'audio_cache')
 
-# Claves que no son frases pronunciables: vocabulario de reconocimiento por voz
-# (nunca se leen en alto, solo se escuchan) o fragmentos usados para construir
-# otras frases, no frases completas en si mismas.
-# Keys that aren't speakable phrases: voice-recognition vocabulary (never read
-# aloud, only listened for) or fragments used to build other phrases, not
-# complete phrases on their own.
 NON_SPEECH_KEYS = {
     "number_words", "number_prefix", "decimal_connectors",
     "junction_word", "image_word", "list_join_and",
@@ -57,6 +45,8 @@ def extract_static_phrases(lang_dict):
 
 
 async def cache_language(lang, voice):
+    """Genera y guarda en disco los mp3 de todas las frases estáticas de un idioma que todavía no estén en la caché, actualizando su índice"""
+    """Generates and saves to disk the mp3s of all a language's static phrases not already in the cache, updating its index"""
     dest_dir = os.path.join(CACHE_ROOT, lang)
     os.makedirs(dest_dir, exist_ok=True)
     index_file = os.path.join(dest_dir, 'index.json')
@@ -92,6 +82,8 @@ async def cache_language(lang, voice):
 
 
 async def cache_all_languages():
+    """Genera la caché de voz de todos los idiomas soportados, uno tras otro"""
+    """Generates the voice cache for every supported language, one after another"""
     for lang, voice in VOICES.items():
         await cache_language(lang, voice)
 

@@ -4,8 +4,12 @@ from utils.language import get_language, get_voice
 from utils.strings import t
 
 class AudioService:
+    """Gestiona toda la salida de voz de la aplicación: reproduce frases desde una caché pre-generada cuando existen, o las sintetiza al vuelo con Edge-TTS si no, en una cola procesada por un hilo aparte para no bloquear la interfaz"""
+    """Manages all of the application's voice output: plays phrases from a pre-generated cache when they exist, or synthesizes them on the fly with Edge-TTS if not, in a queue processed by a separate thread so the interface never blocks"""
 
     def __init__(self, assets_dir):
+        """Elige la voz y la carpeta de caché según el idioma activo, inicializa el mezclador de audio, y carga el índice de frases ya cacheadas si existe"""
+        """Chooses the voice and cache folder according to the active language, initializes the audio mixer, and loads the index of already-cached phrases if it exists"""
         self.VOICE = get_voice()
         
         pygame.mixer.init()

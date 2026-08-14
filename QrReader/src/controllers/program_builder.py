@@ -20,6 +20,8 @@ class ProgramBuilder:
     """
 
     def __init__(self, workspace_dir, code_dir, traducer, code_manager, audio_service, vision, ai_manager, voice_manager):
+        """Guarda las referencias a todos los modelos y servicios que necesita, y recupera el estado del programa guardado en la sesión anterior, si lo hay"""
+        """Stores the references to all the models and services it needs, and recovers the program state saved from the previous session, if any"""
         self.workspace_dir = workspace_dir
         self.code_dir = code_dir
         self.traducer = traducer
@@ -119,6 +121,8 @@ class ProgramBuilder:
         safe_callback = lambda *args: run_on_main_thread(callback_state, *args)
 
         def _task():
+            """Pide la explicación en el hilo en segundo plano y avisa cuando termina, tanto si sale bien como si falla"""
+            """Requests the explanation on the background thread and signals completion, whether it succeeds or fails"""
             try:
                 self.ai_manager.explain_code(code, safe_callback)
             finally:
@@ -424,13 +428,6 @@ class ProgramBuilder:
                 return
             else:
                 self.audio_service.read_text(t("ok_cancel_expand"))
-                # Ya no se vacia toda la cola: rechazar una direccion (p.ej.
-                # "a la derecha") no debe impedir que se pregunte tambien por
-                # la otra (p.ej. "por abajo") si tambien estaba pendiente.
-                # The whole queue no longer gets cleared: declining one
-                # direction (e.g. "to the right") shouldn't prevent also
-                # asking about the other (e.g. "downward") if it was also
-                # pending.
                 self._process_next_extension(callback_act_ui)
                 return
 

@@ -5,11 +5,9 @@ from fpdf import FPDF
 from PIL import Image, ImageDraw, ImageFont
 
 class QRManager:
+    """Genera imágenes QR para los bloques del diccionario y las empaqueta en un PDF listo para imprimir"""
+    """Generates QR images for the dictionary's blocks and packages them into a print-ready PDF"""
 
-    # Alternativas a "arial.ttf" (solo existe tal cual en Windows) para que la
-    # etiqueta bajo cada QR tenga un tamaño razonable en Linux/Mac tambien.
-    # Alternatives to "arial.ttf" (which only exists as-is on Windows) so the
-    # label under each QR has a reasonable size on Linux/Mac too.
     _FONT_CANDIDATES = [
         "arial.ttf",
         "/System/Library/Fonts/Helvetica.ttc",
@@ -19,6 +17,8 @@ class QRManager:
 
     @staticmethod
     def _load_font(size=16):
+        """Prueba cada fuente candidata en orden y devuelve la primera que exista en el sistema; si ninguna existe, usa la fuente por defecto de PIL"""
+        """Tries each candidate font in order and returns the first one that exists on the system; if none exist, uses PIL's default font"""
         for path in QRManager._FONT_CANDIDATES:
             try:
                 return ImageFont.truetype(path, size)
@@ -36,10 +36,7 @@ class QRManager:
             Generate the QR's, packs them in a PDF and
             return the absolute path of the PDF
         """
-        # Carpeta unica por llamada: evita que dos generaciones simultaneas
-        # (p. ej. un doble clic accidental) se pisen los ficheros temporales.
-        # Unique folder per call: prevents two simultaneous generations
-        # (e.g. an accidental double click) from stepping on each other's temp files.
+        
         qrcodes_dir = os.path.join(workspace_dir, "outputs", "qrcodes", "dinamicos", uuid.uuid4().hex)
         os.makedirs(qrcodes_dir, exist_ok=True)
 

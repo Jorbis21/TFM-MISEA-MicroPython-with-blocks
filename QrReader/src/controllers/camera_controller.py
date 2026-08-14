@@ -15,6 +15,8 @@ class CameraController:
     """
 
     def __init__(self, vision, audio_service):
+        """Guarda las referencias al modelo de visión y al servicio de audio, y crea el hilo de cámara asociado a ese modelo"""
+        """Stores the references to the vision model and the audio service, and creates the camera thread associated with that model"""
         self.vision = vision
         self.audio_service = audio_service
         self.camera_thr = CameraWorker(self.vision)

@@ -63,8 +63,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,  # sin ventana de consola, es una app grafica
-    # icon=os.path.join(PROJECT_ROOT, 'data', 'assets', 'icons', 'once.ico'),
-    # ^ descomenta esta linea cuando tengas el .ico (necesita ser .ico, no .png)
+    icon=os.path.join(PROJECT_ROOT, 'data', 'assets', 'icons', 'once.ico'),
 )
 
 coll = COLLECT(

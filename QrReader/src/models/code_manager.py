@@ -2,8 +2,12 @@ import json, os
 from utils.strings import t
 
 class CodeManager:
+    """Guarda y recupera el estado del programa (la matriz de bloques y su historial) y el código MicroPython generado, en disco"""
+    """Saves and recovers the program's state (the block matrix and its history) and the generated MicroPython code, on disk"""
 
     def __init__(self, state_dir, code_dir):
+        """Guarda las rutas de los dos archivos que gestiona: el del estado (json) y el del código generado (.py)"""
+        """Stores the paths of the two files it manages: the state one (json) and the generated code one (.py)"""
         self.state_dir = state_dir
         self.code_dir = code_dir
 
@@ -56,6 +60,8 @@ class CodeManager:
             return False, str(e)
 
     def read_code(self):
+        """Lee el código generado del disco; devuelve None si todavía no se ha generado ninguno"""
+        """Reads the generated code from disk; returns None if none has been generated yet"""
         try:
             with open(self.code_dir, "r", encoding="utf-8") as f:
                 return f.read()
@@ -112,25 +118,7 @@ class CodeManager:
         """Metodo para cargar el codigo en la placa"""
         """Method to load the program on the board"""
         print(f"Iniciando el flasheo en la micro:bit con el archivo: {self.code_dir}")
-
-        # Antes esto llamaba a "sys.executable -m uflash ..." con subprocess.
-        # En un .exe empaquetado con PyInstaller, sys.executable NO es un
-        # interprete de Python: es el propio .exe. Eso relanzaba la aplicacion
-        # entera como hijo de si misma (una segunda ventana), y el proceso
-        # original se quedaba congelado esperando a que ese hijo terminara.
-        # Llamando a la funcion de uflash directamente se evita el problema
-        # de raiz, y de paso PyInstaller detecta y empaqueta uflash solo, en
-        # vez de depender de un interprete de Python que no existe cuando
-        # esta empaquetado.
-        # This used to call "sys.executable -m uflash ..." via subprocess.
-        # In a PyInstaller-packaged .exe, sys.executable is NOT a Python
-        # interpreter: it's the .exe itself. That relaunched the whole
-        # application as a child of itself (a second window), and the
-        # original process would freeze waiting for that child to finish.
-        # Calling uflash's function directly avoids the problem at its root,
-        # and as a bonus PyInstaller detects and bundles uflash on its own,
-        # instead of depending on a Python interpreter that doesn't exist
-        # once packaged.
+        
         try:
             import uflash
         except ImportError as e:

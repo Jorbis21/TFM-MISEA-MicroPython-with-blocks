@@ -1,4 +1,5 @@
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal, QThread
+from PyQt6.QtWidgets import QApplication
 
 
 class _MainThreadDispatcher(QObject):
@@ -12,10 +13,14 @@ class _MainThreadDispatcher(QObject):
     _invoke = pyqtSignal(object, tuple, dict)
 
     def __init__(self):
+        """Crea el despachador y conecta su propia señal a su propio slot, dejando el mecanismo listo para usarse"""
+        """Creates the dispatcher and connects its own signal to its own slot, leaving the mechanism ready to use"""
         super().__init__()
         self._invoke.connect(self._run)
 
     def _run(self, func, args, kwargs):
+        """Ejecuta la función recibida; solo se llama desde el hilo principal, nunca directamente desde fuera"""
+        """Executes the received function; only ever called from the main thread, never directly from outside"""
         func(*args, **kwargs)
 
 
@@ -46,3 +51,16 @@ def run_on_main_thread(func, *args, **kwargs):
             "(debe llamarse en main.py justo después de crear QApplication)."
         )
     _dispatcher._invoke.emit(func, args, kwargs)
+
+
+def pump_events_if_on_main_thread():
+    """
+    Si la llamada se hace desde el hilo principal de Qt, procesa sus eventos
+    pendientes (pintado, entrada...) una vez; si se llama desde cualquier
+    otro hilo, no hace nada. Pensado para bucles de espera bloqueantes que
+    a veces se ejecutan en el hilo principal (p.ej. esperar una confirmación
+    de voz) y necesitan que la interfaz no se quede congelada mientras
+    esperan, sin que quien llama tenga que saber nada de PyQt6.
+    """
+    if QThread.currentThread() == QApplication.instance().thread():
+        QApplication.processEvents()

@@ -13,8 +13,12 @@ from utils.main_thread import run_on_main_thread
 from utils.strings import t
 
 class AppController:
+    """Controlador raíz de la aplicación: construye el resto de controladores y la ventana principal, y hace de intermediario entre los eventos globales (barra espaciadora, cierre de la app) y los sistemas que orquestan (voz, cámara, IA, serie)"""
+    """Root controller of the application: builds the rest of the controllers and the main window, and mediates between global events (spacebar, app closing) and the systems they orchestrate (voice, camera, AI, serial)"""
 
     def __init__(self, workspace_dir, assets_dir, code_dir, audio_service, vision, json_manager, traducer, ai_manager, serial_monitor, voice_manager, code_manager):
+        """Construye los controladores hijos y la ventana principal a partir de los modelos y servicios ya creados, y conecta las señales globales de la ventana"""
+        """Builds the child controllers and the main window from the already-created models and services, and connects the window's global signals"""
         self.audio_service = audio_service
         self.ai_manager = ai_manager
         self.serial_monitor = serial_monitor

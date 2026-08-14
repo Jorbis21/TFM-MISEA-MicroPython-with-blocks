@@ -3,15 +3,6 @@ import os, json
 _current_lang = "es"
 _settings_path = None
 
-# Fuente unica de verdad para la voz y el nombre visible de cada idioma.
-# audio.py y audio_cacher.py importan la voz de aqui; el combo del selector
-# de idioma importa los nombres. Para anadir un idioma nuevo: una entrada
-# aqui, otra en STRINGS (utils/strings.py), y ya aparece solo en el selector.
-# Single source of truth for each language's voice and display name.
-# audio.py and audio_cacher.py import the voice from here; the language
-# picker's combo box imports the names. To add a new language: one entry
-# here, another in STRINGS (utils/strings.py), and it shows up in the
-# picker automatically.
 _VOICES = {
     "es": "es-ES-ElviraNeural",
     "en": "en-US-AriaNeural",

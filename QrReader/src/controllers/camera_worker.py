@@ -8,6 +8,8 @@ class CameraWorker(QThread):
     new_frame = pyqtSignal(object, object, list) 
 
     def __init__(self, vision, parent=None):
+        """Guarda la referencia al modelo de visión y deja el hilo en reposo, sin arrancar la cámara todavía"""
+        """Stores the reference to the vision model and leaves the thread idle, without starting the camera yet"""
         super().__init__(parent)
         self.vision = vision
         self.running = False
@@ -72,13 +74,4 @@ class CameraWorker(QThread):
         """Pausa la ejecucion del hilo"""
         """Pauses the ejecution of the thread"""
         self.running = False
-        # Limite de tiempo: si la lectura de la camara (self.cap.read(), dentro
-        # de run()) tarda un poco en ese instante, un self.wait() sin limite
-        # bloquearia el hilo principal (esto se llama tanto al cerrar la
-        # ventana como al pausar la camara al cambiar de pestaña), y Windows
-        # marcaria la ventana como "no responde" hasta que el hilo terminase.
-        # Con limite, la interfaz ya no se congela en ese caso. Es un
-        # compromiso: si de verdad se agota el tiempo, quien llama a stop()
-        # sigue adelante (libera la camara) sin la garantia total de que el
-        # hilo ya ha terminado del todo - mejor eso que una interfaz colgada.
         self.wait(1000)

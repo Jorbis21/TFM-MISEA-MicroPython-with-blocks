@@ -2,8 +2,12 @@ import os, json
 from utils.language import get_language
 
 class JsonManager:
-    
+    """Gestiona el diccionario de bloques (lectura, guardado, borrado, y construcción de la tabla de símbolos que usa el traductor), eligiendo el archivo del idioma activo"""
+    """Manages the block dictionary (reading, saving, deleting, and building the symbols table the translator uses), choosing the active language's file"""
+
     def __init__(self, config_dir):
+        """Calcula la ruta al diccionario del idioma activo en el momento de crear el objeto (blocks_es.json o blocks_en.json)"""
+        """Computes the path to the active language's dictionary at the moment this object is created (blocks_es.json or blocks_en.json)"""
         self.json_dir = os.path.join(config_dir, f"blocks_{get_language()}.json")
 
     def _read_data(self):

@@ -2,8 +2,12 @@ from PyQt6.QtGui import QTextCharFormat, QColor, QSyntaxHighlighter
 from PyQt6.QtCore import QRegularExpression
 
 class PythonHighlighter(QSyntaxHighlighter):
+    """Resalta la sintaxis de Python en el editor de código de la pestaña de cámara: palabras clave, cadenas, comentarios y errores"""
+    """Highlights Python syntax in the camera tab's code editor: keywords, strings, comments and errors"""
 
     def __init__(self, parent=None):
+        """Configura las reglas de resaltado sobre el documento que se le pase"""
+        """Sets up the highlighting rules over the document it's given"""
         super().__init__(parent)
         self.style_rules = []
         self._configure_rules()

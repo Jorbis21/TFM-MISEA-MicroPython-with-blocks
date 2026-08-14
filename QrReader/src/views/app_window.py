@@ -12,6 +12,8 @@ from utils.strings import t
 from utils.language import get_language, set_language
 
 class AppCamara(QMainWindow):
+    """Ventana principal: monta las tres pestañas (cámara, generador de QRs, editor de diccionario), gestiona el tema de contraste, el idioma, los atajos de teclado y la navegación accesible por foco"""
+    """Main window: assembles the three tabs (camera, QR generator, dictionary editor), manages the contrast theme, the language, keyboard shortcuts and accessible focus navigation"""
 
     spacebar_pressed = pyqtSignal()
     spacebar_released = pyqtSignal()
@@ -19,6 +21,8 @@ class AppCamara(QMainWindow):
     window_closed = pyqtSignal()
 
     def __init__(self, workspace_dir, assets_dir, camera_ctrl, program_builder, audio_service, json_ctrl, qr_ctrl):
+        """Construye las tres pestañas y sus controladores asociados, carga el tema guardado, configura los atajos de teclado y deja la ventana lista para mostrarse"""
+        """Builds the three tabs and their associated controllers, loads the saved theme, sets up the keyboard shortcuts, and leaves the window ready to be shown"""
         super().__init__()
         
         self.setWindowTitle(t("window_title"))

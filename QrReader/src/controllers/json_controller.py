@@ -1,5 +1,10 @@
 class JsonController:
+    """Intermediario entre la pestaña de edición del diccionario y el modelo JsonManager: lee, guarda y borra bloques, refrescando la tabla de símbolos del traductor tras cada cambio"""
+    """Intermediary between the dictionary-editing tab and the JsonManager model: reads, saves and deletes blocks, refreshing the translator's symbols table after each change"""
+
     def __init__(self, json_manager, traducer):
+        """Guarda las referencias al modelo del diccionario y al traductor, cuya tabla de símbolos hay que mantener sincronizada"""
+        """Stores the references to the dictionary model and the translator, whose symbols table needs to be kept in sync"""
         self.json_manager = json_manager
         self.traducer = traducer
 

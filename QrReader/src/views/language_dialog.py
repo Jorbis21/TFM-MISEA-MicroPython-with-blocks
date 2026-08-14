@@ -26,6 +26,8 @@ class LanguageDialog(QDialog):
     """
 
     def __init__(self, allow_cancel=False):
+        """Monta el combo con los idiomas disponibles, preseleccionando el activo, y ajusta si la ventana se puede cerrar sin elegir según el contexto en que se abre"""
+        """Builds the combo box with the available languages, preselecting the active one, and adjusts whether the window can be closed without choosing depending on the context it's opened in"""
         super().__init__()
         self.setWindowTitle("Language")
         self.setFixedSize(340, 230)
@@ -54,15 +56,7 @@ class LanguageDialog(QDialog):
         if current in self._codes:
             self.combo.setCurrentIndex(self._codes.index(current))
         layout.addWidget(self.combo)
-
-        # Alto y estilo fijados a mano en vez de heredar el tema de contraste
-        # tal cual: en un dialogo pequeño, el padding que el tema aplica a un
-        # QPushButton normal puede dejar menos alto del que ocupa el texto, y
-        # se ve cortado por arriba y por abajo.
-        # Height and style set explicitly instead of inheriting the contrast
-        # theme as-is: in a small dialog, the padding the theme applies to a
-        # plain QPushButton can leave less height than the text needs, and it
-        # shows up clipped on top and bottom.
+        
         button_style = "font-size: 12pt; padding: 4px;"
 
         btns_layout = QHBoxLayout()
