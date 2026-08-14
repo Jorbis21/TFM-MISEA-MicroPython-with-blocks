@@ -40,8 +40,8 @@ QrReader/data/assets/audio_cache/en/
 # Bytecode y cachés de Python - sin prefijo: útil para cualquier proyecto
 # Python de este repositorio, no solo QrReader.
 __pycache__/
-QrReader/__pycache__/
-QrReader.old/__pycache__/
+*.py[cod]
+*$py.class
 QrReader/.vscode/
 QrReader.old/.vscode/
 *.pyc
