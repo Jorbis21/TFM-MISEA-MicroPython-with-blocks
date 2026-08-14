@@ -153,11 +153,19 @@ jobs:
           [ -f "dist/MicroPython_with_blocks/ollama/bin/ollama" ] && OLLAMA_BIN="dist/MicroPython_with_blocks/ollama/bin/ollama"
           "$OLLAMA_BIN" serve &
           OLLAMA_PID=$!
+          
+          # Esperar a que arranque el servidor local
           for i in $(seq 1 30); do
             curl -s http://localhost:11434 > /dev/null 2>&1 && break
             sleep 1
           done
-          "$OLLAMA_BIN" pull phi3
+          
+          # Descargar el modelo con hasta 3 reintentos en caso de error 503 (timeout)
+          for i in 1 2 3; do
+            "$OLLAMA_BIN" pull phi3 && break || echo "Fallo de red al descargar, reintentando ($i/3)..."
+            sleep 5
+          done
+          
           kill $OLLAMA_PID
 
       # --- Empaquetar: app+motor en un zip, el modelo en otro aparte ---
@@ -165,8 +173,9 @@ jobs:
       - name: Empaquetar (Windows)
         if: runner.os == 'Windows'
         run: |
-          Compress-Archive -Path dist\MicroPython_with_blocks -DestinationPath ${{ matrix.asset_core }}
-          Compress-Archive -Path ollama_models -DestinationPath ${{ matrix.asset_model }}
+          # Reemplazamos Compress-Archive por 7z para evitar el límite de 2GB
+          7z a "${{ matrix.asset_core }}" .\dist\MicroPython_with_blocks
+          7z a "${{ matrix.asset_model }}" .\ollama_models
 
       - name: Empaquetar (Linux/Mac)
         if: runner.os != 'Windows'
