@@ -8,8 +8,12 @@
 # Clave de Gemini y variantes - sin prefijo a propósito: ningún .env de
 # ningún proyecto de este repositorio debería subirse nunca.
 QrReader/.env
+QrReader/src/.env
 QrReader/.env.*
 !QrReader/.env.example
+
+QrReader/build.bat
+QrReader/QrReader.spec
 
 # Salida de PyInstaller: se regenera sola, no aporta nada versionada.
 # Se distribuye por GitHub Releases en vez de subirla al repositorio.
@@ -30,12 +34,16 @@ QrReader/ollama_models/
 # Descomenta las dos líneas si prefieres NO versionarla (así el repo pesa
 # mucho menos, pero cada persona que clone el proyecto tendrá que generarla
 # ella misma antes de tener voz offline desde el primer arranque)
-# QrReader/data/assets/audio_cache/es/
-# QrReader/data/assets/audio_cache/en/
+QrReader/data/assets/audio_cache/es/
+QrReader/data/assets/audio_cache/en/
 
 # Bytecode y cachés de Python - sin prefijo: útil para cualquier proyecto
 # Python de este repositorio, no solo QrReader.
 __pycache__/
+QrReader/__pycache__/
+QrReader.old/__pycache__/
+QrReader/.vscode/
+QrReader.old/.vscode/
 *.pyc
 *.pyo
 
