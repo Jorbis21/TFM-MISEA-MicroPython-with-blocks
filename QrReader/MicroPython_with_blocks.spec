@@ -11,7 +11,7 @@
 # OJO: el .env (con la clave de Gemini) NO esta en los "datas" de abajo, y es
 # a proposito - es una clave secreta, y no debe viajar embebida dentro de lo
 # que empaqueta PyInstaller (_internal/), compartida con cualquiera que copie
-# la carpeta. Tiene que copiarse a mano a dist/QrReader/.env despues de cada
+# la carpeta. Tiene que copiarse a mano a dist/MicroPython_with_blocks/.env despues de cada
 # build (build.bat ya lo hace por ti, tomandolo desde la raiz del proyecto).
 
 import os
@@ -57,7 +57,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='MicroPython with blocks',
+    name='MicroPython_with_blocks',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -74,5 +74,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='MicroPython with blocks',
+    name='MicroPython_with_blocks',
 )
