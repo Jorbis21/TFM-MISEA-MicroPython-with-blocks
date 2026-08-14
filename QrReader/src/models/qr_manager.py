@@ -1,10 +1,31 @@
 import os
+import uuid
 import qrcode
 from fpdf import FPDF
 from PIL import Image, ImageDraw, ImageFont
 
 class QRManager:
-    
+
+    # Alternativas a "arial.ttf" (solo existe tal cual en Windows) para que la
+    # etiqueta bajo cada QR tenga un tamaño razonable en Linux/Mac tambien.
+    # Alternatives to "arial.ttf" (which only exists as-is on Windows) so the
+    # label under each QR has a reasonable size on Linux/Mac too.
+    _FONT_CANDIDATES = [
+        "arial.ttf",
+        "/System/Library/Fonts/Helvetica.ttc",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+    ]
+
+    @staticmethod
+    def _load_font(size=16):
+        for path in QRManager._FONT_CANDIDATES:
+            try:
+                return ImageFont.truetype(path, size)
+            except IOError:
+                continue
+        return ImageFont.load_default()
+
     @staticmethod
     def generate_pdf(elems, size_mm, final_pdf_dir, workspace_dir):
         """
@@ -15,13 +36,14 @@ class QRManager:
             Generate the QR's, packs them in a PDF and
             return the absolute path of the PDF
         """
-        qrcodes_dir = os.path.join(workspace_dir, "outputs", "qrcodes", "dinamicos")
+        # Carpeta unica por llamada: evita que dos generaciones simultaneas
+        # (p. ej. un doble clic accidental) se pisen los ficheros temporales.
+        # Unique folder per call: prevents two simultaneous generations
+        # (e.g. an accidental double click) from stepping on each other's temp files.
+        qrcodes_dir = os.path.join(workspace_dir, "outputs", "qrcodes", "dinamicos", uuid.uuid4().hex)
         os.makedirs(qrcodes_dir, exist_ok=True)
 
-        try:
-            font = ImageFont.truetype("arial.ttf", 16)
-        except IOError:
-            font = ImageFont.load_default()
+        font = QRManager._load_font(16)
 
         images_list = []
 
@@ -82,5 +104,9 @@ class QRManager:
                     os.remove(img_path)
                 except OSError:
                     pass
+            try:
+                os.rmdir(qrcodes_dir)
+            except OSError:
+                pass
 
         return final_pdf_dir

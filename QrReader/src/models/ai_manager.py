@@ -1,6 +1,9 @@
 import os, time, socket, subprocess, requests
 from google import genai
 from google.genai import types
+from utils.code_text import strip_static_header, strip_tts_wrapper_lines
+from utils.strings import t
+from utils.app_paths import get_data_dir
 
 class AIManager:
 
@@ -17,15 +20,22 @@ class AIManager:
             print("Aviso: No se proporcionó API Key. Se usará IA local por defecto.")
             self.gemini_client = None
 
-    def _internet(self):
-        """Metodo para comprobar la conexion a internet"""
-        """Method to check internet connection"""
+    def _check_internet_and_stop_local_ai(self):
+        """Comprueba la conexion a internet; si la hay, apaga la IA local (ya no hace falta, se puede usar Gemini)"""
+        """Checks the internet connection; if there is one, shuts down the local AI (no longer needed, Gemini can be used)"""
         try:
             socket.create_connection(("8.8.8.8", 53), timeout=1.0)
             self.shutdown_ollama()
             return True
         except OSError:
             return False
+
+    def _get_portable_ollama_exe(self):
+        """Ruta al ollama portable dentro de la propia carpeta de la app (carpeta 'ollama', junto al .exe), si existe"""
+        """Path to the portable ollama inside the app's own folder ('ollama' folder, next to the .exe), if it exists"""
+        exe_name = "ollama.exe" if os.name == 'nt' else "ollama"
+        candidate = os.path.join(get_data_dir(), "ollama", exe_name)
+        return candidate if os.path.exists(candidate) else None
 
     def _start_ollama(self):
         """Metodo para encender la IA local"""
@@ -34,53 +44,98 @@ class AIManager:
             requests.get("http://localhost:11434/", timeout=1)
         except requests.ConnectionError:
             flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
-            
-            self.ollama_process = subprocess.Popen(
-                ["ollama", "serve"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                creationflags=flags
-            )
-            time.sleep(2.5)
+
+            # Prioridad: el ollama portable que viaja dentro de la carpeta de
+            # la app (carpeta "ollama", ver Instalar_IA_Local.bat). Si no
+            # existe, se prueba con un "ollama" instalado en el sistema, por
+            # si alguien lo tiene asi en vez de portable.
+            # Priority: the portable ollama that ships inside the app's own
+            # folder ("ollama" folder, see Instalar_IA_Local.bat). If it
+            # doesn't exist, falls back to a system-installed "ollama", in
+            # case someone has it that way instead of portable.
+            portable_exe = self._get_portable_ollama_exe()
+            ollama_cmd = portable_exe if portable_exe else "ollama"
+
+            env = os.environ.copy()
+            models_dir = os.path.join(get_data_dir(), "ollama_models")
+            os.makedirs(models_dir, exist_ok=True)
+            env["OLLAMA_MODELS"] = models_dir
+
+            try:
+                self.ollama_process = subprocess.Popen(
+                    [ollama_cmd, "serve"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    creationflags=flags,
+                    env=env,
+                )
+                time.sleep(2.5)
+            except FileNotFoundError:
+                print("Aviso: no se encuentra Ollama (ni portable en la carpeta 'ollama', ni instalado en el sistema).")
 
     def shutdown_ollama(self):
-        """Metodo para apagar la IA local"""
-        """Method to shutdown the local AI"""
-        try:
-            if os.name == 'nt':  # Windows
-                subprocess.run(
-                    ["taskkill", "/F", "/IM", "llama-server.exe"],
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-                )
-            else:  # Linux/Mac
-                subprocess.run(["pkill", "-f", "ollama"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                subprocess.run(["pkill", "-f", "llama-server"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            
-            if self.ollama_process:
-                self.ollama_process.wait(timeout=2)
-                
-        except Exception as e:
-            print(f"Aviso al cerrar Ollama: {e}")
-        finally:
-            self.ollama_process = None
+        """Lanza el cierre del proceso que sirve el modelo y del propio demonio de Ollama, sin esperar a que terminen"""
+        """Fires off closing the process serving the model and the Ollama daemon itself, without waiting for them to finish"""
+        def _fire_and_forget(cmd):
+            # subprocess.Popen (no .run) y sin esperar: un proceso con un
+            # modelo grande cargado en RAM puede tardar mas de lo que
+            # cualquier timeout razonable permitiria en morir del todo, ni
+            # siquiera con /F. Esperar aqui, aunque fuera con un limite,
+            # tiene un problema real: si el limite se agota, Python no se
+            # limita a dejar de esperar - MATA al propio taskkill a medias,
+            # dejando el proceso objetivo sin terminar de matar. En Windows,
+            # DETACHED_PROCESS desliga el taskkill de QrReader por completo,
+            # así que sigue vivo y termina su trabajo aunque QrReader ya se
+            # haya cerrado del todo.
+            # subprocess.Popen (not .run) and without waiting: a process with
+            # a large model loaded in RAM can take longer to fully die than
+            # any reasonable timeout would allow, even with /F. Waiting here,
+            # even with a limit, has a real problem: if the limit runs out,
+            # Python doesn't just stop waiting - it KILLS taskkill itself
+            # partway through, leaving the target process not fully killed.
+            # On Windows, DETACHED_PROCESS fully unlinks taskkill from
+            # QrReader, so it stays alive and finishes its job even after
+            # QrReader itself has completely closed.
+            try:
+                flags = (subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW) if os.name == 'nt' else 0
+                subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=flags)
+            except Exception as e:
+                print(f"Aviso al lanzar el cierre de Ollama: {e}")
 
-    def _clean_code(self, raw_code):
-        """Metodo para eliminar la parte estatica del codigo generada por el propio programa"""
-        """Method to delete the static part of the code generated by the program"""
-        if not raw_code.strip():
-            return ""
+        if os.name == 'nt':  # Windows
+            # Comodin amplio en vez de un nombre exacto: el proceso que sirve
+            # el modelo ha tenido nombres distintos segun la version/build de
+            # Ollama - confirmado "llama-server.exe" en la practica (este es
+            # el que consume la RAM) y "ollama_llama_server.exe" en su propio
+            # repositorio de GitHub. "*llama*" (con comodin a los dos lados,
+            # no solo de prefijo) engancha los dos; las otras dos lineas son
+            # respaldo directo por si el filtro fallara. El comodin en /IM
+            # solo funciona junto con un filtro /FI, de ahi la sintaxis con
+            # /FI e /IM *.
+            # Broad wildcard instead of an exact name: the process serving
+            # the model has had different names depending on the Ollama
+            # version/build - confirmed "llama-server.exe" in practice (this
+            # is the one eating RAM) and "ollama_llama_server.exe" on their
+            # own GitHub repo. "*llama*" (wildcard on both sides, not just a
+            # prefix) catches both; the other two lines are a direct backup
+            # in case the filter fails. The wildcard on /IM only works
+            # together with a /FI filter, hence the syntax with /FI and /IM *.
+            _fire_and_forget(["taskkill", "/F", "/FI", "IMAGENAME eq *llama*", "/IM", "*"])
+            _fire_and_forget(["taskkill", "/F", "/IM", "llama-server.exe"])  # respaldo directo, por si el filtro fallara
+            _fire_and_forget(["taskkill", "/F", "/IM", "ollama.exe"])  # respaldo directo, por si el filtro fallara
+        else:  # Linux/Mac
+            _fire_and_forget(["pkill", "-f", "llama"])
+            _fire_and_forget(["pkill", "-f", "ollama"])
 
-        lines = raw_code.split('\n')
-        
-        read = False
-        visible_lines = []
-        for line in enumerate(lines):
-            if read:
-                visible_lines.append(line[1])
-            if line[1] == "# --- Programa Principal ---":
-                read = True
-            
-        return "\n".join(visible_lines)
+        # Ya no se espera a self.ollama_process: los taskkill/pkill de arriba
+        # se encargan de matarlo igual, y ahora son independientes de este
+        # proceso - esperar aqui ya no aporta nada y solo reintroduciria el
+        # mismo problema de bloqueo.
+        # self.ollama_process is no longer waited on: the taskkill/pkill
+        # calls above kill it just the same, and are now independent of this
+        # process - waiting here wouldn't add anything and would only
+        # reintroduce the same blocking problem.
+        self.ollama_process = None
 
     def explain_code(self, code, callback_state):
         """
@@ -96,21 +151,20 @@ class AIManager:
             3. If it fails reads the code literally
         """
 
-        clean_code = self._clean_code(code)
+        clean_code = strip_static_header(code)
+        clean_code = strip_tts_wrapper_lines(clean_code)
         
         if not clean_code.strip():
-            self.audio_service.read_text("El archivo de código está vacío.")
+            self.audio_service.read_text(t("code_empty"))
             return
 
-        prompt = f"""Eres un asistente de accesibilidad. Explica en una o dos frases, con lenguaje cotidiano
-        y sin usar términos técnicos de programación, puedes especificar que acciones se pueden hacer y
-        "cuales son los resultados, qué hace este programa físico:\n\n{clean_code}"""
+        prompt = t("gemini_prompt", code=clean_code)
 
-        internet = not self._internet()
+        has_internet = self._check_internet_and_stop_local_ai()
 
-        if not internet and self.gemini_client is not None:
-            callback_state("Estado: Conectando con Gemini...", "#8E44AD")
-            self.audio_service.read_text("Conectando con Gemini para la explicación de código")
+        if has_internet and self.gemini_client is not None:
+            callback_state(t("status_connecting_gemini"), "#8E44AD")
+            self.audio_service.read_text(t("connecting_gemini_audio"))
             time.sleep(3)
             try:
                 config = types.GenerateContentConfig(max_output_tokens=80, temperature=0.2)
@@ -119,27 +173,22 @@ class AIManager:
                     contents=prompt,
                     config=config
                 )
-                callback_state("Estado: Explicación rápida por Gemini", "#2FA572")
+                callback_state(t("status_gemini_explained"), "#2FA572")
                 self.audio_service.read_text(answer.text.strip())
                 return 
             except Exception as e_gemini:
                 print(f"Fallo en Gemini: {e_gemini}")
-                callback_state("Estado: Fallo API Gemini. Iniciando IA local...", "#D4AC0D")
+                callback_state(t("status_gemini_failed"), "#D4AC0D")
         else:
             if self.gemini_client is None:
-                callback_state("Estado: Sin API Key. Iniciando IA local...", "#D4AC0D")
+                callback_state(t("status_no_api_key"), "#D4AC0D")
             else:
-                callback_state("Estado: Sin internet. Iniciando IA local...", "#D4AC0D")
+                callback_state(t("status_no_internet"), "#D4AC0D")
         try:
-            self.audio_service.read_text("Usando IA local, puede tardar en responder")
+            self.audio_service.read_text(t("using_local_ai"))
             self._start_ollama()
             
-            system_instructions = (
-                "Eres un asistente que explica programas de Micro:bit a personas sin conocimientos técnicos. "
-                "Responde SIEMPRE con una sola frase corta. "
-                "Menciona siempre la causa física (ej: pulsar botón A, agitar, radio) y el efecto (ej: mostrar corazón, sonido). "
-                "Prohibido usar términos de programación y prohibido escribir código."
-            )
+            system_instructions = t("ollama_system_instructions")
 
             local_answer = requests.post(
                 "http://localhost:11434/api/generate", 
@@ -162,14 +211,14 @@ class AIManager:
             if "```" in explanation:
                 explanation = explanation.split("```")[0].strip()
                 
-            callback_state("Estado: Explicación por IA Local", "#2FA572")
-            self.audio_service.read_text(explanation, internet)
+            callback_state(t("status_local_explained"), "#2FA572")
+            self.audio_service.read_text(explanation, not has_internet)
             return 
             
         except Exception as e_ollama:
             print(f"Fallo en Ollama local: {e_ollama}")
 
         self.shutdown_ollama()
-        callback_state("Estado: IAs no disponibles. Leyendo literalmente.", "#E67E22")
-        self.audio_service.read_text("IAs no disponibles. Modo sin conexión. ")
+        callback_state(t("status_ai_unavailable"), "#E67E22")
+        self.audio_service.read_text(t("ai_unavailable_audio"))
         self.audio_service.read_literal_code(code)

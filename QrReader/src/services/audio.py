@@ -1,17 +1,19 @@
 import os, asyncio, threading, uuid, tempfile, edge_tts, pygame, pyttsx3, queue, time, json
+from utils.code_text import strip_static_header
+from utils.language import get_language, get_voice
+from utils.strings import t
 
 class AudioService:
 
-    def __init__(self):
-        self.VOICE = "es-ES-ElviraNeural" 
+    def __init__(self, assets_dir):
+        self.VOICE = get_voice()
         
         pygame.mixer.init()
         self.tts_queue = queue.Queue()
         self.running = False
         self.worker_thread = None
         
-        self.BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        self.CACHE_DIR = os.path.join(self.BASE_DIR, 'data', 'assets', 'audio_cache')
+        self.CACHE_DIR = os.path.join(assets_dir, 'audio_cache', get_language())
         self.INDEX_FILE = os.path.join(self.CACHE_DIR, 'index.json')
         
         self.cache_sentences = {}
@@ -43,23 +45,32 @@ class AudioService:
         if pygame.mixer.get_init():
             pygame.mixer.quit()
 
+    def _clear_queue(self):
+        """Vacia la cola de audio sin depender de los atributos internos no publicos de Queue"""
+        """Empties the audio queue without depending on Queue's non-public internal attributes"""
+        while True:
+            try:
+                self.tts_queue.get_nowait()
+            except queue.Empty:
+                break
+
     def _playback_loop(self):
         """Reproduce el audio generado"""
         """Plays the generated audio"""
         while self.running:
-            text, internet = self.tts_queue.get()
+            text, force_offline = self.tts_queue.get()
             
             if text is None: 
                 self.tts_queue.task_done()
                 break
                 
-            self._process_blocking_voice(text, internet)
+            self._process_blocking_voice(text, force_offline)
             self.tts_queue.task_done()
 
-    def _process_blocking_voice(self, text, internet=False):
+    def _process_blocking_voice(self, text, force_offline=False):
         """Procesa el audio que bloquea a otros audios"""
         """Process the audio that blocks other audios"""
-        if not internet:
+        if not force_offline:
             if text in self.cache_sentences:
                 mp3_file = os.path.join(self.CACHE_DIR, self.cache_sentences[text])
                 if os.path.exists(mp3_file):
@@ -106,43 +117,32 @@ class AudioService:
         communicate = edge_tts.Communicate(text, self.VOICE, rate="+5%")
         await communicate.save(path)
 
-    def read_text(self, text, internet=False):
+    def read_text(self, text, force_offline=False):
         """Pone el nuevo texto a leer en la cola"""
         """Puts the new text to read in the queue"""
         if not self.running: 
             return
-        self.tts_queue.put((text, internet))
+        self.tts_queue.put((text, force_offline))
 
-    def read_text_interrupting(self, text, internet=False):
+    def read_text_interrupting(self, text, force_offline=False):
         """Lee textos interrumpiendo el audio previo"""
         """Read texts, interrupting the previous audio"""
         if not self.running: 
             return
             
-        with self.tts_queue.mutex:
-            self.tts_queue.queue.clear()
+        self._clear_queue()
             
         if pygame.mixer.get_init() and pygame.mixer.music.get_busy():
             pygame.mixer.music.stop()
             
-        self.tts_queue.put((text, internet))
+        self.tts_queue.put((text, force_offline))
 
-    def read_literal_code(self, code, internet=False):
+    def read_literal_code(self, code, force_offline=False):
         """Lee el codigo literalmente"""
         """Reads code literally"""
-        lines = code.split('\n')
-        read = False
-        visible_lines = []
-        
-        for line in lines:
-            if read:
-                visible_lines.append(line)
-            if line == "# --- Programa Principal ---":
-                read = True
-            
-        filter_code = "\n".join(visible_lines)
-        clean_code = filter_code.replace("*", "todo").replace("(", " paréntesis ").replace(")", "").replace(":", " dos puntos.")
-        self.read_text(f"El programa actual es el siguiente... {clean_code}", internet)
+        filter_code = strip_static_header(code)
+        clean_code = filter_code.replace("*", "todo").replace("(", " paréntesis ").replace(")", "").replace(":", " dos puntos.").replace("_", " ")
+        self.read_text(t("code_reading_intro", code=clean_code), force_offline)
 
     def read_qrs(self, actual_qr_texts):
         """Lee los QRs"""
@@ -150,11 +150,11 @@ class AudioService:
         qrs_to_read = list(actual_qr_texts)
         
         if not qrs_to_read:
-            self.read_text("No detecto ningún bloque en la mesa.")
+            self.read_text(t("no_blocks_on_table"))
         else:
             positioned_sentences = []
             for index, block in enumerate(qrs_to_read):
-                positioned_sentences.append(f"posición {index + 1}, {block}")
+                positioned_sentences.append(t("qr_position_item", index=index + 1, block=block))
                 
             joined_text = ". ".join(positioned_sentences).replace("_", " ")
-            self.read_text(f"Detectados {len(qrs_to_read)} bloques. Leyendo de arriba a abajo... {joined_text}.")
+            self.read_text(t("qrs_detected_reading", count=len(qrs_to_read), list=joined_text))

@@ -1,0 +1,44 @@
+# Este .gitignore vive en la raíz del repositorio (junto a BrailleReader,
+# QrReader.old, etc.) - las rutas de QrReader van prefijadas a propósito,
+# para no afectar sin querer a los proyectos hermanos.
+# This .gitignore lives at the repo root (alongside BrailleReader,
+# QrReader.old, etc.) - QrReader's paths are prefixed on purpose, so they
+# don't accidentally affect the sibling projects.
+
+# Clave de Gemini y variantes - sin prefijo a propósito: ningún .env de
+# ningún proyecto de este repositorio debería subirse nunca.
+QrReader/.env
+QrReader/.env.*
+!QrReader/.env.example
+
+# Salida de PyInstaller: se regenera sola, no aporta nada versionada.
+# Se distribuye por GitHub Releases en vez de subirla al repositorio.
+QrReader/build/
+QrReader/dist/
+QrReader/finalDist/
+
+# Estado de usuario generado en tiempo de ejecución (no es código fuente)
+#QrReader/data/config/settings.json
+#QrReader/workspace/
+
+# Ollama portable y sus modelos, si los pruebas en local dentro del proyecto
+# (son binarios y modelos de varios GB, no archivos de código)
+QrReader/ollama/
+QrReader/ollama_models/
+
+# Caché de voz pre-generada por audio_cacher.py: son muchos mp3, regenerables.
+# Descomenta las dos líneas si prefieres NO versionarla (así el repo pesa
+# mucho menos, pero cada persona que clone el proyecto tendrá que generarla
+# ella misma antes de tener voz offline desde el primer arranque)
+# QrReader/data/assets/audio_cache/es/
+# QrReader/data/assets/audio_cache/en/
+
+# Bytecode y cachés de Python - sin prefijo: útil para cualquier proyecto
+# Python de este repositorio, no solo QrReader.
+__pycache__/
+*.pyc
+*.pyo
+
+# Basura específica de Windows
+Thumbs.db
+desktop.ini

@@ -2,11 +2,8 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QLineEdit, QPushButton, QTableWidget, 
                              QTableWidgetItem, QHeaderView, QFileDialog)
 from PyQt6.QtCore import Qt
-
-class AutoCleanSearch(QLineEdit):
-    def mousePressEvent(self, event):
-        self.clear()                    
-        super().mousePressEvent(event)  
+from views.widgets import AutoCleanSearch
+from utils.strings import t
 
 class TabQRs(QWidget):
 
@@ -24,23 +21,23 @@ class TabQRs(QWidget):
         main_layout = QVBoxLayout(self)
 
         layout_top = QHBoxLayout()
-        lbl_title = QLabel("Mesa de Impresión de Códigos QR")
+        lbl_title = QLabel(t("title_qr_print"))
         lbl_title.setObjectName("titulo_seccion")
         layout_top.addWidget(lbl_title)
         layout_top.addStretch()
         
-        self.active_btn = QPushButton("Mostrar > 0")
+        self.active_btn = QPushButton(t("btn_show_active"))
         self.active_btn.setObjectName("btn_filter_actives")
         self.active_btn.setCheckable(True) 
         self.active_btn.toggled.connect(self.action_filter_actives)
         layout_top.addWidget(self.active_btn)
 
-        all_one_btn = QPushButton("Todos a 1")
+        all_one_btn = QPushButton(t("btn_all_one"))
         all_one_btn.setObjectName("all_one_btn")
         all_one_btn.clicked.connect(self.action_all_one)
         layout_top.addWidget(all_one_btn)
 
-        all_cero_btn = QPushButton("Limpiar a 0")
+        all_cero_btn = QPushButton(t("btn_clear_zero"))
         all_cero_btn.setObjectName("all_cero_btn")
         all_cero_btn.clicked.connect(self.action_all_cero)
         layout_top.addWidget(all_cero_btn)
@@ -48,16 +45,16 @@ class TabQRs(QWidget):
         main_layout.addLayout(layout_top)
 
         layout_search = QHBoxLayout()
-        layout_search.addWidget(QLabel("Buscar bloque:"))
+        layout_search.addWidget(QLabel(t("lbl_search_block")))
         self.search = AutoCleanSearch()
-        self.search.setPlaceholderText("Escribe para filtrar...")
+        self.search.setPlaceholderText(t("placeholder_search"))
         self.search.textChanged.connect(self._filter_table)
         layout_search.addWidget(self.search)
         main_layout.addLayout(layout_search)
         
         self.table = QTableWidget()
         self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["Nombre del Bloque", "-", "Cantidad", "+"])
+        self.table.setHorizontalHeaderLabels([t("table_header_block_name"), "-", t("table_header_quantity"), "+"])
         self.table.verticalHeader().setDefaultSectionSize(40)
         
         header = self.table.horizontalHeader()
@@ -69,17 +66,17 @@ class TabQRs(QWidget):
         main_layout.addWidget(self.table)
 
         layout_bottom = QHBoxLayout()
-        layout_bottom.addWidget(QLabel("Tamaño (cm):"))
+        layout_bottom.addWidget(QLabel(t("lbl_size_cm")))
         
         self.entry_size = QLineEdit("2.5")
         self.entry_size.setFixedWidth(60)
         self.entry_size.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout_bottom.addWidget(self.entry_size)
 
-        generate_pdf_btn = QPushButton("Generar PDF de Impresión")
-        generate_pdf_btn.setObjectName("generate_pdf_btn")
-        generate_pdf_btn.clicked.connect(self.action_generate_pdf)
-        layout_bottom.addWidget(generate_pdf_btn)
+        self.generate_pdf_btn = QPushButton(t("btn_generate_pdf"))
+        self.generate_pdf_btn.setObjectName("generate_pdf_btn")
+        self.generate_pdf_btn.clicked.connect(self.action_generate_pdf)
+        layout_bottom.addWidget(self.generate_pdf_btn)
         
         self.lbl_state_qr = QLabel("")
         layout_bottom.addWidget(self.lbl_state_qr)
@@ -97,16 +94,13 @@ class TabQRs(QWidget):
         """Accion para mostrar todos o los que tienen uno o mas"""
         """Action to show all or the ones with one or more"""
         if active:
-            self.active_btn.setText("Mostrar Todos")
+            self.active_btn.setText(t("btn_show_all"))
             for row in range(self.table.rowCount()):
                 entry = self.table.cellWidget(row, 2)
-                try:
-                    quant = int(entry.text().strip()) if entry else 0
-                except ValueError:
-                    quant = 0
+                quant = self._safe_int(entry.text()) if entry else 0
                 self.table.setRowHidden(row, quant == 0)
         else:
-            self.active_btn.setText("Mostrar > 0")
+            self.active_btn.setText(t("btn_show_active"))
             for row in range(self.table.rowCount()):
                 self.table.setRowHidden(row, False)
             if self.search.text():
@@ -157,7 +151,7 @@ class TabQRs(QWidget):
         elif self.search.text():
             self._filter_table(self.search.text())
             
-        self.lbl_state_qr.setText("Lista actualizada desde memoria.")
+        self.lbl_state_qr.setText(t("list_updated"))
 
     def action_all_one(self):
         """Pone todos los elementos a uno"""
@@ -180,48 +174,55 @@ class TabQRs(QWidget):
         """Generates the pdf with the selected QR's"""
         try:
             size_cm = float(self.entry_size.text().strip())
-            size_mm = int(size_cm * 10)
+            size_mm = round(size_cm * 10)
         except ValueError:
-            self.lbl_state_qr.setText("Error: Tamaño inválido. Usa formato '5.0'")
+            self.lbl_state_qr.setText(t("error_invalid_size"))
             return
 
         elems_to_generate = []
         for block, entry in self.qr_entries.items():
-            try:
-                cantidad = int(entry.text().strip())
-                if cantidad > 0:
-                    elems_to_generate.extend([block] * cantidad)
-            except ValueError:
-                continue
+            cantidad = self._safe_int(entry.text())
+            if cantidad > 0:
+                elems_to_generate.extend([block] * cantidad)
                 
         if not elems_to_generate:
-            self.lbl_state_qr.setText("No has seleccionado ninguna cantidad.")
+            self.lbl_state_qr.setText(t("error_no_quantity"))
             return
 
         dest_dir, _ = QFileDialog.getSaveFileName(
             self,
-            "Guardar PDF de Códigos QR",
-            "qrs_impresion.pdf", 
-            "Archivos PDF (*.pdf)"
+            t("dialog_save_pdf_title"),
+            t("dialog_pdf_default_name"), 
+            t("dialog_pdf_filter")
         )
 
         if not dest_dir:
-            self.lbl_state_qr.setText("Operación de guardado cancelada.")
+            self.lbl_state_qr.setText(t("save_cancelled"))
             return
+
+        self.generate_pdf_btn.setEnabled(False)
 
         def update_state(msg):
             self.lbl_state_qr.setText(msg)
 
-        self.qr_ctrl.generate_pdf(elems_to_generate, size_mm, dest_dir, update_state)
+        def on_finished():
+            self.generate_pdf_btn.setEnabled(True)
+
+        self.qr_ctrl.generate_pdf(elems_to_generate, size_mm, dest_dir, update_state, on_finished)
+
+    @staticmethod
+    def _safe_int(text, default=0):
+        """Convierte un texto a entero, devolviendo un valor por defecto si no se puede"""
+        """Converts a text to an integer, returning a default value if it can't be done"""
+        try:
+            return int(text.strip())
+        except ValueError:
+            return default
 
     def _modify_quantity(self, entry, delta):
         """Modifica la cantidad del elemento"""
         """Modifies the quantity of the element"""
-        try:
-            val = int(entry.text().strip())
-        except ValueError:
-            val = 0
-        new_val = max(0, val + delta)
+        new_val = max(0, self._safe_int(entry.text()) + delta)
         entry.setText(str(new_val))
         
         if new_val == 0 and self.active_btn.isChecked():

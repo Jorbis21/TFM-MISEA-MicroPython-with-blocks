@@ -12,11 +12,15 @@ class JsonController:
         """Guarda un bloque modificado/creado"""
         """Saves a modified/created block"""
         self.json_manager.save_block(old_name, new_name, block_info)
-        self.traducer.symbols_table = self.json_manager.build_symbols_table()
+        self._refresh_translator()
 
     def delete_block(self, clave):
         """Elimina el bloque seleccionado"""
         """Deletes the selected block"""
         self.json_manager.delete_block(clave)
-        self.traducer.symbols_table = self.json_manager.build_symbols_table()
+        self._refresh_translator()
 
+    def _refresh_translator(self):
+        """Actualiza la tabla de simbolos del traductor tras un cambio en el diccionario"""
+        """Updates the translator's symbols table after a change in the dictionary"""
+        self.traducer.symbols_table = self.json_manager.build_symbols_table()

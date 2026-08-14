@@ -50,7 +50,7 @@ class PythonHighlighter(QSyntaxHighlighter):
 
         comment_format = QTextCharFormat()
         comment_format.setForeground(QColor("#6A9955"))
-        self.style_rules.append((QRegularExpression(r'#.*'), comment_format))
+        self.style_rules.append((QRegularExpression(r'#(?!\s*ERROR).*'), comment_format))
 
     def highlightBlock(self, text):
         """Pinta las palabras"""

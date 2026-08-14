@@ -2,12 +2,15 @@ import time
 from PyQt6.QtCore import QTimer
 
 from controllers.camera_controller import CameraController
+from controllers.program_builder import ProgramBuilder
 from controllers.json_controller import JsonController
 from controllers.qr_controller import QRController
 from views.app_window import AppCamara
 
 from models.voice_control import InteractionEvent
-from utils.constants import EventType, VoiceCommand
+from utils.constants import EventType
+from utils.main_thread import run_on_main_thread
+from utils.strings import t
 
 class AppController:
 
@@ -17,23 +20,29 @@ class AppController:
         self.serial_monitor = serial_monitor
         self.voice_manager = voice_manager
 
+        camera_ctrl = CameraController(vision, audio_service)
+        program_builder = ProgramBuilder(
+            workspace_dir, code_dir, traducer, code_manager,
+            audio_service, vision, ai_manager, voice_manager
+        )
+
         self.window = AppCamara(
-            workspace_dir, 
-            assets_dir, 
-            CameraController(workspace_dir, code_dir, traducer, code_manager, 
-            audio_service, vision, ai_manager,  voice_manager), 
-            JsonController(json_manager, traducer), 
-            QRController(json_manager, workspace_dir)
+            workspace_dir=workspace_dir,
+            assets_dir=assets_dir,
+            camera_ctrl=camera_ctrl,
+            program_builder=program_builder,
+            audio_service=audio_service,
+            json_ctrl=JsonController(json_manager, traducer),
+            qr_ctrl=QRController(json_manager, workspace_dir),
         )
 
         self.window.spacebar_pressed.connect(self.on_spacebar_pressed)
         self.window.spacebar_released.connect(self.on_spacebar_released)
-        self.window.shortcut_command.connect(self.on_shortcut_command)
         self.window.changed_focus.connect(self.on_changed_focus)
         self.window.window_closed.connect(self.sys_shutdown)
         
-        self.voice_manager.callback_command = self.on_voice_command
-        self.voice_manager.callback_freeze_ui = self.window.freeze_ui
+        self.voice_manager.callback_command = lambda action: run_on_main_thread(self.on_voice_command, action)
+        self.voice_manager.callback_freeze_ui = lambda freeze: run_on_main_thread(self.window.freeze_ui, freeze)
 
         self.pressed_time = 0
         self.space_clicks = 0
@@ -45,13 +54,13 @@ class AppController:
         """Muestra la ventana y avisa de que el sistema esta listo"""
         """Shows the main window and warns that system is ready"""
         self.window.show()
-        self.audio_service.read_text("Sistema listo. La cámara está en modo horizontal.")
+        self.audio_service.read_text(t("sys_ready"))
 
     def sys_shutdown(self):
         """Se apaga todos los sistemas antes de salir de la aplicacion"""
         """Shutdowns all the systems before closing the app"""
-        self.voice_manager.stop()
         self.ai_manager.shutdown_ollama()
+        self.voice_manager.stop()
         self.serial_monitor.stop()
         self.audio_service.stop()
 
@@ -99,28 +108,7 @@ class AppController:
     """Comandos por voz"""
     """Voice commands"""
 
-    def on_shortcut_command(self, action):
-        """Ejecuta la accion recibida por atajo de teclado"""
-        """Runs the action recieved by keyboard shortcut"""
-        self._run_command(action)
-
     def on_voice_command(self, action):
         """Ejecuta la accion recibida por voz"""
         """Runs the action recieved by voice"""
-        self._run_command(action)
-
-    def _run_command(self, action):
-        """Ejecuta la accion segun el commando recibido"""
-        """Runs the action according to the recieved command"""
-        if action == VoiceCommand.CAPTURE:
-            self.window.camera_view.action_capture()
-        elif action == VoiceCommand.SEND:
-            self.window.camera_view.action_send()
-        elif action == VoiceCommand.EXPLAIN:
-            self.window.camera_view.action_ia_explain()
-        elif action == VoiceCommand.READ:
-            self.window.camera_view.action_read_qrs()
-        elif action == VoiceCommand.CHANGE_TTS:
-            self.window.camera_view.action_change_tts()
-        elif action == VoiceCommand.REVIEW:
-            self.window.camera_view.action_var_review()
+        self.window.dispatch(action)

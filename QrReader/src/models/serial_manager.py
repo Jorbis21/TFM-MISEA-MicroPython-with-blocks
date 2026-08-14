@@ -30,6 +30,15 @@ class SerialMonitor:
             self.serial_port.close()
         print("[Serial] Monitor detenido.")
 
+    def _interruptible_sleep(self, seconds):
+        """Duerme por partes, comprobando is_running, para que stop() no tenga que esperar toda la espera de reintento de golpe"""
+        """Sleeps in small chunks, checking is_running, so stop() doesn't have to wait out the full retry sleep at once"""
+        steps = int(seconds / 0.1)
+        for _ in range(steps):
+            if not self.is_running:
+                return
+            time.sleep(0.1)
+
     def _search_microbit_port(self):
         """Busca el puerto en el que esta la Microbit conectada"""
         """Searchs the port where the Microbit is conected"""
@@ -57,7 +66,7 @@ class SerialMonitor:
                         pass
                 
                 if self.serial_port is None or not self.serial_port.is_open:
-                    time.sleep(2)
+                    self._interruptible_sleep(2)
                     continue
 
             try:
@@ -79,7 +88,7 @@ class SerialMonitor:
                 if self.serial_port:
                     self.serial_port.close()
                 self.serial_port = None
-                time.sleep(1)
+                self._interruptible_sleep(1)
             except Exception as e:
                 print(f"[Serial] Error inesperado: {e}")
                 

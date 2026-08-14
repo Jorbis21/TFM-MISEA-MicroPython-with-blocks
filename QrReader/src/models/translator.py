@@ -1,26 +1,24 @@
-class MicrobitCompiler:
+from utils.strings import t
+from utils.constants import TTSMode
 
+
+class MicrobitCompiler:
     def __init__(self, config_dir, json_manager):
         self.config_dir = config_dir
         self.json_manager = json_manager
         self.symbols_table = self.json_manager.build_symbols_table()
         
-        self.var_memory = []  
         self.var_cont = 0        
-        self.tts_mode = "pc"  
+        self.tts_mode = TTSMode.PC.value
 
         self.analysis_mode = False
         self.var_needs = []
         self.presaved_answers = []
 
     def set_mode_tts(self, mode):
-        """Cambia el modo de tts"""
-        """Change the tts mode"""
         self.tts_mode = mode
 
     def _is_num_value(self, token):
-        """Comprueba si un valor es numero"""
-        """Checks if a value is num"""
         try:
             float(token)
             return True
@@ -28,8 +26,6 @@ class MicrobitCompiler:
             return False
         
     def normalize_text(self, text, is_variable=False):
-        """Limpia el texto de tildes"""
-        """Cleans the text of accents"""
         if not text: return ""
         text = text.strip().lower()
         replacements = {'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ü': 'u'}
@@ -40,30 +36,43 @@ class MicrobitCompiler:
         return text
 
     def _apply_type(self, text):
-        """Limpia el texto de numeros en letras"""
-        """Cleans the text of numbers in text"""
         text = text.strip().lower()
-        letters_nums = {
-            "cero": "0", "uno": "1", "dos": "2", "tres": "3", "cuatro": "4",
-            "cinco": "5", "seis": "6", "siete": "7", "ocho": "8", "nueve": "9",
-            "diez": "10", "once": "11", "doce": "12", "trece": "13", "catorce": "14",
-            "quince": "15", "dieciséis": "16", "diecisiete": "17", "dieciocho": "18",
-            "diecinueve": "19", "veinte": "20", "treinta": "30", "cuarenta": "40",
-            "cincuenta": "50", "sesenta": "60", "setenta": "70", "ochenta": "80",
-            "noventa": "90", "cien": "100"
-        }
-        
-        if text.startswith("número ") or text.startswith("numero "):
-            text = text.replace("número ", "", 1).replace("numero ", "", 1).strip()
+        letters_nums = t("number_words")
 
-        multi_text = text.replace(" coma ", " ").replace(",", " ").replace(" y ", " ")
+        for prefix in t("number_prefix"):
+            if text.startswith(prefix):
+                text = text[len(prefix):].strip()
+                break
+
+        multi_text = text
+        for connector in t("decimal_connectors"):
+            multi_text = multi_text.replace(connector, " ")
+        multi_text = multi_text.replace(",", " ").replace(t("junction_word"), " ")
         multi_words = [p for p in multi_text.split() if p]
         multi_words = [str(letters_nums.get(p, p)) for p in multi_words]
-        
+
+        # Notas musicales, en solfeo (do, re, mi...) o en notacion anglosajona
+        # (c, d, e...) - se admiten las dos indistintamente, incluso mezcladas
+        # en la misma secuencia, y se traducen siempre a la notacion que
+        # espera music.play(). Se exigen al menos 2 palabras reconocidas como
+        # notas para no confundir una palabra suelta (p.ej. "a") con una
+        # melodia de una sola nota.
+        # Musical notes, in solfege (do, re, mi...) or letter notation
+        # (c, d, e...) - both are accepted indistinctly, even mixed within
+        # the same sequence, and always get translated to the notation
+        # music.play() expects. At least 2 recognized note words are
+        # required, so a lone word (e.g. "a") isn't mistaken for a
+        # one-note melody.
+        note_map = t("note_names")
+        if len(multi_words) >= 2 and all(w in note_map for w in multi_words):
+            notes = [note_map[w] for w in multi_words]
+            quoted = ", ".join(f"'{n}'" for n in notes)
+            return f"[{quoted}]", notes
+
         is_image = False
         img_words = multi_words.copy()
         
-        if img_words and img_words[0] == "imagen":
+        if img_words and img_words[0] == t("image_word"):
             is_image = True
             img_words.pop(0) 
             
@@ -80,11 +89,21 @@ class MicrobitCompiler:
                 return f"{values[0]}, {values[1]}, {values[2]}", values
             except ValueError:
                 pass
-            
-        if text in letters_nums:
-            text = letters_nums[text]
-            
-        parsed_text = text.replace(" coma ", ".").replace(" con ", ".").replace(",", ".").replace(" .", ".").replace(". ", ".")
+
+        # Sustituye cada palabra numérica por su dígito antes del parseo decimal,
+        # para que "tres coma cinco" / "three point five" den 3.5 en vez de
+        # quedarse como texto (esto no funcionaba ni en el original: solo
+        # sustituía si el texto ENTERO era una única palabra numérica).
+        # Substitutes each number word for its digit before decimal parsing,
+        # so "tres coma cinco" / "three point five" produce 3.5 instead of
+        # staying as text (this didn't work even in the original: it only
+        # substituted when the WHOLE text was a single number word).
+        substituted_text = " ".join(str(letters_nums.get(p, p)) for p in text.split())
+
+        parsed_text = substituted_text
+        for connector in t("decimal_connectors"):
+            parsed_text = parsed_text.replace(connector, ".")
+        parsed_text = parsed_text.replace(",", ".").replace(" .", ".").replace(". ", ".")
         
         try:
             val = int(parsed_text)
@@ -100,18 +119,17 @@ class MicrobitCompiler:
         clean_text = self.normalize_text(text, is_variable=False)
         return f'"{clean_text}"', clean_text
 
+    # --- LÓGICA DE VARIABLES (MVC PURO - 2 PASADAS) ---
+
     def analize_matrix(self, command_matrix):
-        """Recorre la matriz para listar qué interacciones necesita"""
-        """Iterate through the matrix to list which interactions are needed"""
+        """Pasada 1: Recorre la matriz lógicamente para listar qué interacciones necesita."""
         self.analysis_mode = True
         self.var_needs = []
-        self._run_internal_generation(command_matrix, None)
+        self._run_internal_generation(command_matrix, None) # Compila en el vacío
         self.analysis_mode = False
         return self.var_needs
 
     def _solve_variable(self, block_type, context=""):
-        """Resuelve la variable"""
-        """Resolves the variable"""
         if self.analysis_mode:
             self.var_needs.append({"type": block_type, "context": context})
             self.var_cont += 1
@@ -123,31 +141,40 @@ class MicrobitCompiler:
             return f"var_{self.var_cont}"
 
     def _manage_declaration(self, tokens):
-        """Maneja la declaracion"""
-        """Manages the declaration"""
-        name = self._solve_variable("declare_var", "declarar una variable nueva")
-        text_value = self._solve_variable("assign_val", f"el valor para {name}")
-        
-        value_code, real_value = self._apply_type(text_value)
-        self.var_memory.append({name: real_value})
-        tokens.clear() 
+        name = self._solve_variable("declare_var", t("context_declare_var"))
+
+        # Si hay un bloque a la derecha de "declarar variable" (una
+        # referencia a otra variable, un "value variable", un numero...) se
+        # usa ESE como valor inicial. Antes se preguntaba siempre un valor
+        # nuevo por voz y se descartaba (tokens.clear()) cualquier bloque que
+        # hubiera ahi, ignorandolo por completo.
+        # If there's a block to the right of "declarar variable" (a
+        # reference to another variable, a "value variable", a number...)
+        # THAT is used as the initial value. It used to always ask for a new
+        # value by voice and discard (tokens.clear()) whatever block was
+        # actually there, ignoring it completely.
+        if tokens:
+            value_code = self._consume_vc_arg(tokens, context=t("context_value_for", name=name))
+            if "# ERROR" in value_code:
+                return value_code
+        else:
+            text_value = self._solve_variable("assign_val", t("context_value_for", name=name))
+            value_code, _ = self._apply_type(text_value)
+
         return f"{name} = {value_code}"
 
     def _manage_asignation(self, tokens, context=""):
-        """Maneja la asignacion"""
-        """Manages the asignation"""
         text_value = self._solve_variable("assign_val", context)
         value_code, _ = self._apply_type(text_value)
         return value_code
 
     def _manage_reference(self, tokens, context=""):
-        """Maneja la referencia"""
-        """Manages the reference"""
         return self._solve_variable("reference_var", context)
 
+    # --- MOTOR PRINCIPAL ---
+
     def generate_code(self, command_matrix, out_path, answers=None):
-        """Genera el archivo usando las respuestas"""
-        """Generates the file using the answers"""
+        """Pasada 2: Genera el archivo usando las answers precalculadas."""
         if answers is not None:
             self.presaved_answers = answers.copy()
             
@@ -159,9 +186,6 @@ class MicrobitCompiler:
             print("Código compilado con éxito.")
 
     def _run_internal_generation(self, command_matrix, out_path):
-        """Corre la generacion de codigo interna"""
-        """Runs the internal code generation"""
-        self.var_memory = []
         self.var_cont = 0
             
         if not command_matrix: return []
@@ -172,11 +196,11 @@ class MicrobitCompiler:
             "import music",
             "import random",
             "from math import *",
-            "\n# --- Sonido de inicialización ---",
+            f"\n{t('marker_init_sound')}",
             "music.pitch(587, 100)",
             "music.pitch(698, 100)",
             "music.pitch(783, 100)",
-            "# --- Programa Principal ---\n"
+            f"{t('marker_main_program')}\n"
         ]
 
         active_levels = [0] 
@@ -204,17 +228,11 @@ class MicrobitCompiler:
         return final_code
 
     def _process_token_rows(self, tokens, indent=""):
-        """Procesa la fila de tokens"""
-        """Process the tokens row"""
         if not tokens: return ""
-        error_stack = []
         
         def check_row(block, expect, remain_tokens):
-            error_stack.append({"block": block, "expect": expect})
             if not remain_tokens:
-                error = error_stack.pop()
-                return f"# ERROR: El bloque '{error['block']}' esperaba {error['expect']} a su derecha."
-            error_stack.pop()
+                return t("err_expected_right", block=block, expect=expect)
             return None
 
         first_block = tokens.pop(0)
@@ -224,19 +242,19 @@ class MicrobitCompiler:
             info = self.symbols_table.get(first_block, {})
         
         if not info:
-            return f"# ERROR: El bloque '{first_block}' es desconocido o no está en el diccionario."
+            return t("err_unknown_block", block=first_block)
             
         type = info.get("type", "")
         base_code = info.get("code", str(first_block))
         
         if type == "declare_var": return self._manage_declaration(tokens)
-        elif type == "assign_val": return self._manage_asignation(tokens, context="una orden general")
-        elif type == "reference_var": return self._manage_reference(tokens, context="una orden general")
+        elif type == "assign_val": return self._manage_asignation(tokens, context=t("context_general_order"))
+        elif type == "reference_var": return self._manage_reference(tokens, context=t("context_general_order"))
 
         if type == "control_method":
-            stack_error = check_row(first_block, "un sujeto o sensor", tokens)
+            stack_error = check_row(first_block, t("context_control_method_subject"), tokens)
             if stack_error: return stack_error
-            subject = self._consume_vc_arg(tokens, context=f"el método de control de {first_block}")
+            subject = self._consume_vc_arg(tokens, context=t("context_control_method_of", block=first_block))
             if "# ERROR" in subject: return subject
             
             if ".is_pressed" in base_code or ".is_touched" in base_code:
@@ -257,25 +275,25 @@ class MicrobitCompiler:
             else: return f"if {subject}{base_code}():"
 
         elif type == "control_function":
-            stack_error = check_row(first_block, "un argumento o condición", tokens)
+            stack_error = check_row(first_block, t("context_control_function_arg"), tokens)
             if stack_error: return stack_error
-            arg = self._consume_vc_arg(tokens, context=f"la función {first_block}")
+            arg = self._consume_vc_arg(tokens, context=t("context_function_of", block=first_block))
             if "# ERROR" in arg: return arg
             return f"if {base_code}({arg}):"
 
         elif type == "method":
-            stack_error = check_row(first_block, "un sujeto para aplicarse", tokens)
+            stack_error = check_row(first_block, t("context_method_subject_needed"), tokens)
             if stack_error: return stack_error
-            subject = self._consume_vc_arg(tokens, context=f"el sujeto de {first_block}")
+            subject = self._consume_vc_arg(tokens, context=t("context_subject_of", block=first_block))
             if "# ERROR" in subject: return subject
             
             num_args = info.get("args", 0)
             extra_args = []
             satisfied_args = 0
             while satisfied_args < num_args:
-                error_arg = check_row(first_block, f"el argumento número {satisfied_args+1}", tokens)
+                error_arg = check_row(first_block, t("context_arg_number", n=satisfied_args+1), tokens)
                 if error_arg: return error_arg
-                arg_ext = self._consume_vc_arg(tokens, context=f"el argumento de {first_block}")
+                arg_ext = self._consume_vc_arg(tokens, context=t("context_arg_of", block=first_block))
                 if "# ERROR" in arg_ext: return arg_ext
                 extra_args.append(arg_ext)
                 satisfied_args += len(arg_ext.split(","))
@@ -288,8 +306,8 @@ class MicrobitCompiler:
             if subject == "display" and ("scroll" in base_code or "show" in base_code):
                 arg_var = extra_args[0] if extra_args else '""'
                 if "Image" in arg_var or ":" in arg_var: return res
-                if self.tts_mode == "pc": return f"print('TTS:' + str({arg_var}))\n{indent}{res}"
-                elif self.tts_mode == "board": return f"speech.say(str({arg_var}))\n{indent}{res}"
+                if self.tts_mode == TTSMode.PC.value: return f"print('TTS:' + str({arg_var}))\n{indent}{res}"
+                elif self.tts_mode == TTSMode.BOARD.value: return f"speech.say(str({arg_var}))\n{indent}{res}"
             return res
                 
         elif type == "function":
@@ -301,9 +319,9 @@ class MicrobitCompiler:
             else:
                 satisfied_args = 0
                 while satisfied_args < num_args:
-                    error_arg = check_row(first_block, f"el argumento número {satisfied_args+1}", tokens)
+                    error_arg = check_row(first_block, t("context_arg_number", n=satisfied_args+1), tokens)
                     if error_arg: return error_arg
-                    arg_func = self._consume_vc_arg(tokens, context=f"el argumento de {first_block}")
+                    arg_func = self._consume_vc_arg(tokens, context=t("context_arg_of", block=first_block))
                     if "# ERROR" in arg_func: return arg_func
                     args.append(arg_func)
                     satisfied_args += len(arg_func.split(","))
@@ -312,14 +330,14 @@ class MicrobitCompiler:
             if "display.scroll" in base_code or "display.show" in base_code:
                 arg_var = args[0] if args else '""'
                 if "Image" in arg_var or ":" in arg_var: return res
-                if self.tts_mode == "pc": return f"print('TTS:' + str({arg_var}))\n{indent}{res}"
-                elif self.tts_mode == "board": return f"speech.say(str({arg_var}))\n{indent}{res}"
+                if self.tts_mode == TTSMode.PC.value: return f"print('TTS:' + str({arg_var}))\n{indent}{res}"
+                elif self.tts_mode == TTSMode.BOARD.value: return f"speech.say(str({arg_var}))\n{indent}{res}"
             return res
             
         elif type == "control":
             cond = ""
             if tokens:
-                cond = self._consume_vc_arg(tokens, context=f"la condición de {first_block}")
+                cond = self._consume_vc_arg(tokens, context=t("context_condition_of", block=first_block))
                 if "# ERROR" in cond: return cond
             
             clean_code = base_code.replace(":", "").strip()
@@ -328,21 +346,15 @@ class MicrobitCompiler:
                 
         else:
             tokens.insert(0, first_block)
-            res = self._consume_vc_arg(tokens, context=f"el bloque junto a {first_block}")
-            if not res: return f"# ERROR: El bloque '{first_block}' está suelto."
+            res = self._consume_vc_arg(tokens, context=t("context_block_next_to", block=first_block))
+            if not res: return t("err_loose_block", block=first_block)
             return res
 
     def _consume_vc_arg(self, tokens, context=""):
-        """Consume el argumento the tipo vc"""
-        """Consume the var and cond arguments"""
         if not tokens: return ""
-        error_stack = []
         def check_stack(block, expect):
-            error_stack.append({"block": block, "expect": expect})
             if not tokens:
-                error = error_stack.pop()
-                return f"\n# ERROR: Después de '{error['block']}', faltaba {error['expect']}."
-            error_stack.pop()
+                return t("err_missing_after", block=block, expect=expect)
             return None
 
         val = tokens.pop(0)
@@ -363,7 +375,7 @@ class MicrobitCompiler:
             if next_type == "logic_operator":
                 op = tokens.pop(0)
                 result += next_info.get("code", op)
-                error = check_stack(op, "otra condición")
+                error = check_stack(op, t("context_another_condition"))
                 if error: return result + error
                 if tokens: result += self._consume_vc_arg(tokens, context)
                 break
@@ -380,9 +392,9 @@ class MicrobitCompiler:
                 extra_args = []
                 satisfied_args = 0
                 while satisfied_args < num_args:
-                    error = check_stack(method, f"argumento {satisfied_args+1}")
+                    error = check_stack(method, t("context_arg_n_short", n=satisfied_args+1))
                     if error: return result + error
-                    arg_func = self._consume_vc_arg(tokens, context=f"argumento de {method}")
+                    arg_func = self._consume_vc_arg(tokens, context=t("context_arg_of_short", block=method))
                     if "# ERROR" in arg_func: return result + arg_func
                     extra_args.append(arg_func) 
                     satisfied_args += len(arg_func.split(","))

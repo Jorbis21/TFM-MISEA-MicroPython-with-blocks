@@ -1,0 +1,1232 @@
+{
+    "absolute value": {
+        "args": 1,
+        "code": "abs",
+        "pronunciation": "absolute value",
+        "type": "function"
+    },
+    "acceleration x": {
+        "code": "accelerometer.get_x()",
+        "pronunciation": "acceleration x",
+        "type": "value"
+    },
+    "acceleration y": {
+        "code": "accelerometer.get_y()",
+        "pronunciation": "acceleration y",
+        "type": "value"
+    },
+    "acceleration z": {
+        "code": "accelerometer.get_z()",
+        "pronunciation": "acceleration z",
+        "type": "value"
+    },
+    "all arrows": {
+        "code": "Image.ALL_ARROWS",
+        "pronunciation": "all arrows image",
+        "type": "value"
+    },
+    "all clocks": {
+        "code": "Image.ALL_CLOCKS",
+        "pronunciation": "all clocks image",
+        "type": "value"
+    },
+    "and": {
+        "code": " and ",
+        "pronunciation": "and",
+        "type": "logic_operator"
+    },
+    "angry": {
+        "code": "Image.ANGRY",
+        "pronunciation": "angry image",
+        "type": "value"
+    },
+    "arccosine": {
+        "args": 1,
+        "code": "acos",
+        "pronunciation": "arccosine",
+        "type": "function"
+    },
+    "arcsine": {
+        "args": 1,
+        "code": "asin",
+        "pronunciation": "arcsine",
+        "type": "function"
+    },
+    "arctangent": {
+        "args": 1,
+        "code": "atan",
+        "pronunciation": "arctangent",
+        "type": "function"
+    },
+    "arctangent2": {
+        "args": 2,
+        "code": "atan2",
+        "pronunciation": "arctangent2",
+        "type": "function"
+    },
+    "array": {
+        "code": "[",
+        "pronunciation": "array",
+        "type": "sintaxis"
+    },
+    "arrow east": {
+        "code": "Image.ARROW_E",
+        "pronunciation": "arrow east image",
+        "type": "value"
+    },
+    "arrow north": {
+        "code": "Image.ARROW_N",
+        "pronunciation": "arrow north image",
+        "type": "value"
+    },
+    "arrow northeast": {
+        "code": "Image.ARROW_NE",
+        "pronunciation": "arrow northeast image",
+        "type": "value"
+    },
+    "arrow northwest": {
+        "code": "Image.ARROW_NW",
+        "pronunciation": "arrow northwest image",
+        "type": "value"
+    },
+    "arrow south": {
+        "code": "Image.ARROW_S",
+        "pronunciation": "arrow south image",
+        "type": "value"
+    },
+    "arrow southeast": {
+        "code": "Image.ARROW_SE",
+        "pronunciation": "arrow southeast image",
+        "type": "value"
+    },
+    "arrow southwest": {
+        "code": "Image.ARROW_SW",
+        "pronunciation": "arrow southwest image",
+        "type": "value"
+    },
+    "arrow west": {
+        "code": "Image.ARROW_W",
+        "pronunciation": "arrow west image",
+        "type": "value"
+    },
+    "ascii code": {
+        "args": 1,
+        "code": "ord",
+        "pronunciation": "ascii code",
+        "type": "function"
+    },
+    "asleep": {
+        "code": "Image.ASLEEP",
+        "pronunciation": "asleep image",
+        "type": "value"
+    },
+    "assign value": {
+        "code": "val_",
+        "pronunciation": "assign value",
+        "type": "assign_val"
+    },
+    "ba ding": {
+        "code": "music.BA_DING",
+        "pronunciation": "ba ding song",
+        "type": "value"
+    },
+    "baddy": {
+        "code": "music.BADDY",
+        "pronunciation": "baddy song",
+        "type": "value"
+    },
+    "birthday": {
+        "code": "music.BIRTHDAY",
+        "pronunciation": "birthday song",
+        "type": "value"
+    },
+    "bitwise and": {
+        "code": " & ",
+        "pronunciation": "bitwise and",
+        "type": "logic_operator"
+    },
+    "bitwise or": {
+        "code": " | ",
+        "pronunciation": "bitwise or",
+        "type": "logic_operator"
+    },
+    "bitwise xor": {
+        "code": " ^ ",
+        "pronunciation": "bitwise xor",
+        "type": "logic_operator"
+    },
+    "blues": {
+        "code": "music.BLUES",
+        "pronunciation": "blues song",
+        "type": "value"
+    },
+    "bunny": {
+        "code": "Image.RABBIT",
+        "pronunciation": "bunny image",
+        "type": "value"
+    },
+    "butterfly": {
+        "code": "Image.BUTTERFLY",
+        "pronunciation": "butterfly image",
+        "type": "value"
+    },
+    "button a": {
+        "class": "button",
+        "code": "button_a",
+        "pronunciation": "button a",
+        "type": "subject"
+    },
+    "button b": {
+        "class": "button",
+        "code": "button_b",
+        "pronunciation": "button b",
+        "type": "subject"
+    },
+    "calibrate compass": {
+        "args": 0,
+        "code": "compass.calibrate()",
+        "pronunciation": "calibrate compass",
+        "type": "function"
+    },
+    "character": {
+        "args": 1,
+        "code": "chr",
+        "pronunciation": "character",
+        "type": "function"
+    },
+    "chase": {
+        "code": "music.CHASE",
+        "pronunciation": "chase song",
+        "type": "value"
+    },
+    "chessboard": {
+        "code": "Image.CHESS_BOARD",
+        "pronunciation": "chessboard image",
+        "type": "value"
+    },
+    "christmas": {
+        "code": "Image.XMAS",
+        "pronunciation": "christmas image",
+        "type": "value"
+    },
+    "clear": {
+        "args": 0,
+        "code": "display.clear()",
+        "pronunciation": "clear screen",
+        "type": "function"
+    },
+    "clock 1": {
+        "code": "Image.CLOCK1",
+        "pronunciation": "clock 1 image",
+        "type": "value"
+    },
+    "clock 10": {
+        "code": "Image.CLOCK10",
+        "pronunciation": "clock 10 image",
+        "type": "value"
+    },
+    "clock 11": {
+        "code": "Image.CLOCK11",
+        "pronunciation": "clock 11 image",
+        "type": "value"
+    },
+    "clock 12": {
+        "code": "Image.CLOCK12",
+        "pronunciation": "clock 12 image",
+        "type": "value"
+    },
+    "clock 2": {
+        "code": "Image.CLOCK2",
+        "pronunciation": "clock 2 image",
+        "type": "value"
+    },
+    "clock 3": {
+        "code": "Image.CLOCK3",
+        "pronunciation": "clock 3 image",
+        "type": "value"
+    },
+    "clock 4": {
+        "code": "Image.CLOCK4",
+        "pronunciation": "clock 4 image",
+        "type": "value"
+    },
+    "clock 5": {
+        "code": "Image.CLOCK5",
+        "pronunciation": "clock 5 image",
+        "type": "value"
+    },
+    "clock 6": {
+        "code": "Image.CLOCK6",
+        "pronunciation": "clock 6 image",
+        "type": "value"
+    },
+    "clock 7": {
+        "code": "Image.CLOCK7",
+        "pronunciation": "clock 7 image",
+        "type": "value"
+    },
+    "clock 8": {
+        "code": "Image.CLOCK8",
+        "pronunciation": "clock 8 image",
+        "type": "value"
+    },
+    "clock 9": {
+        "code": "Image.CLOCK9",
+        "pronunciation": "clock 9 image",
+        "type": "value"
+    },
+    "colon": {
+        "code": ":\n",
+        "pronunciation": "colon",
+        "type": "sintaxis"
+    },
+    "compass heading": {
+        "code": "compass.heading()",
+        "pronunciation": "compass heading",
+        "type": "value"
+    },
+    "complement": {
+        "code": " ~",
+        "pronunciation": "complement",
+        "type": "logic_operator"
+    },
+    "configure radio": {
+        "args": 2,
+        "code": "radio.config",
+        "pronunciation": "configure radio",
+        "type": "function"
+    },
+    "confused": {
+        "code": "Image.CONFUSED",
+        "pronunciation": "confused image",
+        "type": "value"
+    },
+    "contains": {
+        "code": " in ",
+        "pronunciation": "contains",
+        "type": "logic_operator"
+    },
+    "cosine": {
+        "args": 1,
+        "code": "cos",
+        "pronunciation": "cosine",
+        "type": "function"
+    },
+    "count of": {
+        "args": 1,
+        "code": ".count",
+        "pronunciation": "count of",
+        "type": "method"
+    },
+    "cow": {
+        "code": "Image.COW",
+        "pronunciation": "cow image",
+        "type": "value"
+    },
+    "crotchet": {
+        "code": "Image.MUSIC_CROTCHET",
+        "pronunciation": "crotchet image",
+        "type": "value"
+    },
+    "dadadadum": {
+        "code": "music.DADADADUM",
+        "pronunciation": "dadadadum song",
+        "type": "value"
+    },
+    "declare variable": {
+        "code": "var_",
+        "pronunciation": "declare variable",
+        "type": "declare_var"
+    },
+    "degrees": {
+        "args": 1,
+        "code": "degrees",
+        "pronunciation": "degrees",
+        "type": "function"
+    },
+    "diamond": {
+        "code": "Image.DIAMOND",
+        "pronunciation": "diamond image",
+        "type": "value"
+    },
+    "divided by": {
+        "code": " / ",
+        "pronunciation": "divided by",
+        "type": "logic_operator"
+    },
+    "duck": {
+        "code": "Image.DUCK",
+        "pronunciation": "duck image",
+        "type": "value"
+    },
+    "eighth note": {
+        "code": "Image.EIGHTH_NOTE",
+        "pronunciation": "eighth note image",
+        "type": "value"
+    },
+    "else": {
+        "code": "else:",
+        "pronunciation": "else",
+        "type": "control"
+    },
+    "else if": {
+        "code": "elif ",
+        "pronunciation": "else if",
+        "type": "control"
+    },
+    "ends with": {
+        "args": 1,
+        "code": ".endswith",
+        "pronunciation": "ends with",
+        "type": "method"
+    },
+    "entertainer": {
+        "code": "music.ENTERTAINER",
+        "pronunciation": "entertainer song",
+        "type": "value"
+    },
+    "equal": {
+        "code": " == ",
+        "pronunciation": "equal",
+        "type": "logic_operator"
+    },
+    "fabulous": {
+        "code": "Image.FABULOUS",
+        "pronunciation": "fabulous image",
+        "type": "value"
+    },
+    "false": {
+        "code": "False",
+        "pronunciation": "false",
+        "type": "value"
+    },
+    "find from end": {
+        "args": 1,
+        "code": ".rfind",
+        "pronunciation": "find from end",
+        "type": "method"
+    },
+    "find from start": {
+        "args": 1,
+        "code": ".find",
+        "pronunciation": "find from start",
+        "type": "method"
+    },
+    "floor division": {
+        "code": " // ",
+        "pronunciation": "floor division",
+        "type": "logic_operator"
+    },
+    "for each": {
+        "code": "for ",
+        "pronunciation": "for each",
+        "type": "control"
+    },
+    "forever": {
+        "code": "while True:",
+        "pronunciation": "forever",
+        "type": "control"
+    },
+    "free fall": {
+        "code": "'free fall'",
+        "pronunciation": "free fall",
+        "type": "value"
+    },
+    "funeral": {
+        "code": "music.FUNERAL",
+        "pronunciation": "funeral song",
+        "type": "value"
+    },
+    "funk": {
+        "code": "music.FUNK",
+        "pronunciation": "funk song",
+        "type": "value"
+    },
+    "gesture": {
+        "args": 1,
+        "code": "accelerometer.is_gesture",
+        "pronunciation": "gesture",
+        "type": "function"
+    },
+    "ghost": {
+        "code": "Image.GHOST",
+        "pronunciation": "ghost image",
+        "type": "value"
+    },
+    "giggle": {
+        "code": "Sound.GIGGLE",
+        "pronunciation": "giggle sound",
+        "type": "value"
+    },
+    "giraffe": {
+        "code": "Image.GIRAFFE",
+        "pronunciation": "giraffe image",
+        "type": "value"
+    },
+    "glad": {
+        "code": "Sound.HAPPY",
+        "pronunciation": "glad sound",
+        "type": "value"
+    },
+    "greater or equal": {
+        "code": " >= ",
+        "pronunciation": "greater or equal",
+        "type": "logic_operator"
+    },
+    "greater than": {
+        "code": " > ",
+        "pronunciation": "greater than",
+        "type": "logic_operator"
+    },
+    "happy": {
+        "code": "Image.HAPPY",
+        "pronunciation": "happy image",
+        "type": "value"
+    },
+    "heart": {
+        "code": "Image.HEART",
+        "pronunciation": "heart image",
+        "type": "value"
+    },
+    "hello": {
+        "code": "Sound.HELLO",
+        "pronunciation": "hello sound",
+        "type": "value"
+    },
+    "house": {
+        "code": "Image.HOUSE",
+        "pronunciation": "house image",
+        "type": "value"
+    },
+    "if": {
+        "code": "if",
+        "pronunciation": "if",
+        "type": "control"
+    },
+    "image yes": {
+        "code": "Image.YES",
+        "pronunciation": "yes image",
+        "type": "value"
+    },
+    "is letter": {
+        "args": 0,
+        "code": ".isalpha()",
+        "pronunciation": "is letter",
+        "type": "method"
+    },
+    "is lowercase": {
+        "args": 0,
+        "code": ".islower()",
+        "pronunciation": "is lowercase",
+        "type": "method"
+    },
+    "is number": {
+        "args": 0,
+        "code": ".isdigit()",
+        "pronunciation": "is number",
+        "type": "method"
+    },
+    "is pressed": {
+        "code": ".is_pressed()",
+        "pronunciation": "is pressed",
+        "requires": "button",
+        "type": "method"
+    },
+    "is space": {
+        "args": 0,
+        "code": ".isspace()",
+        "pronunciation": "is space",
+        "type": "method"
+    },
+    "is touched": {
+        "code": ".is_touched()",
+        "pronunciation": "is touched",
+        "requires": "pin",
+        "type": "method"
+    },
+    "is uppercase": {
+        "args": 0,
+        "code": ".isupper()",
+        "pronunciation": "is uppercase",
+        "type": "method"
+    },
+    "jump down": {
+        "code": "music.JUMP_DOWN",
+        "pronunciation": "jump down song",
+        "type": "value"
+    },
+    "jump up": {
+        "code": "music.JUMP_UP",
+        "pronunciation": "jump up song",
+        "type": "value"
+    },
+    "left triangle": {
+        "code": "Image.LEFT_TRIANGLE",
+        "pronunciation": "left triangle image",
+        "type": "value"
+    },
+    "length": {
+        "args": 1,
+        "code": "len",
+        "pronunciation": "length",
+        "type": "function"
+    },
+    "less or equal": {
+        "code": " <= ",
+        "pronunciation": "less or equal",
+        "type": "logic_operator"
+    },
+    "less than": {
+        "code": " < ",
+        "pronunciation": "less than",
+        "type": "logic_operator"
+    },
+    "light level": {
+        "code": "display.read_light_level()",
+        "pronunciation": "light level",
+        "type": "value"
+    },
+    "logarithm": {
+        "args": 1,
+        "code": "log",
+        "pronunciation": "logarithm",
+        "type": "function"
+    },
+    "logo": {
+        "class": "touch_pin",
+        "code": "pin_logo",
+        "pronunciation": "logo",
+        "type": "subject"
+    },
+    "logo down": {
+        "code": "'logo down'",
+        "pronunciation": "logo down",
+        "type": "value"
+    },
+    "logo up": {
+        "code": "'logo up'",
+        "pronunciation": "logo up",
+        "type": "value"
+    },
+    "loud": {
+        "code": "microphone.current_event() == SoundEvent.LOUD",
+        "pronunciation": "loud",
+        "type": "value"
+    },
+    "magnetic field": {
+        "code": "compass.get_field_strength()",
+        "pronunciation": "magnetic field",
+        "type": "value"
+    },
+    "magnetic force x": {
+        "code": "compass.get_x()",
+        "pronunciation": "magnetic force x",
+        "type": "value"
+    },
+    "magnetic force y": {
+        "code": "compass.get_y()",
+        "pronunciation": "magnetic force y",
+        "type": "value"
+    },
+    "magnetic force z": {
+        "code": "compass.get_z()",
+        "pronunciation": "magnetic force z",
+        "type": "value"
+    },
+    "meh": {
+        "code": "Image.MEH",
+        "pronunciation": "meh image",
+        "type": "value"
+    },
+    "minus": {
+        "code": " - ",
+        "pronunciation": "minus",
+        "type": "logic_operator"
+    },
+    "modulo": {
+        "code": " % ",
+        "pronunciation": "modulo",
+        "type": "logic_operator"
+    },
+    "mysterious": {
+        "code": "Sound.MYSTERIOUS",
+        "pronunciation": "mysterious sound",
+        "type": "value"
+    },
+    "no": {
+        "code": "Image.NO",
+        "pronunciation": "no image",
+        "type": "value"
+    },
+    "not equal": {
+        "code": " != ",
+        "pronunciation": "not equal",
+        "type": "logic_operator"
+    },
+    "number": {
+        "code": "num",
+        "pronunciation": "number",
+        "type": "value"
+    },
+    "number e": {
+        "code": "e",
+        "pronunciation": "number e",
+        "type": "value"
+    },
+    "nyan": {
+        "code": "music.NYAN",
+        "pronunciation": "nyan song",
+        "type": "value"
+    },
+    "ode": {
+        "code": "music.ODE",
+        "pronunciation": "ode song",
+        "type": "value"
+    },
+    "on gesture": {
+        "code": "accelerometer.is_gesture",
+        "pronunciation": "on gesture",
+        "type": "control_function"
+    },
+    "or": {
+        "code": " or ",
+        "pronunciation": "or",
+        "type": "logic_operator"
+    },
+    "pacman": {
+        "code": "Image.PACMAN",
+        "pronunciation": "pacman image",
+        "type": "value"
+    },
+    "pi": {
+        "code": "pi",
+        "pronunciation": "pi",
+        "type": "value"
+    },
+    "pin 0": {
+        "class": "pin",
+        "code": "pin0",
+        "pronunciation": "pin 0",
+        "type": "subject"
+    },
+    "pin 1": {
+        "class": "pin",
+        "code": "pin1",
+        "pronunciation": "pin 1",
+        "type": "subject"
+    },
+    "pin 2": {
+        "class": "pin",
+        "code": "pin2",
+        "pronunciation": "pin 2",
+        "type": "subject"
+    },
+    "pitchfork": {
+        "code": "Image.PITCHFORK",
+        "pronunciation": "pitchfork image",
+        "type": "value"
+    },
+    "play pitch": {
+        "args": 1,
+        "code": "music.pitch",
+        "pronunciation": "play pitch",
+        "type": "function"
+    },
+    "play song": {
+        "args": 1,
+        "code": "music.play",
+        "pronunciation": "play song",
+        "type": "function"
+    },
+    "play sound": {
+        "args": 1,
+        "code": "audio.play",
+        "pronunciation": "play sound",
+        "type": "function"
+    },
+    "plus": {
+        "code": " + ",
+        "pronunciation": "plus",
+        "type": "logic_operator"
+    },
+    "power down": {
+        "code": "music.POWER_DOWN",
+        "pronunciation": "power down song",
+        "type": "value"
+    },
+    "power of": {
+        "code": " ** ",
+        "pronunciation": "power of",
+        "type": "logic_operator"
+    },
+    "power up": {
+        "code": "music.POWER_UP",
+        "pronunciation": "power up song",
+        "type": "value"
+    },
+    "prelude": {
+        "code": "music.PRELUDE",
+        "pronunciation": "prelude song",
+        "type": "value"
+    },
+    "punchline": {
+        "code": "music.PUNCHLINE",
+        "pronunciation": "punchline song",
+        "type": "value"
+    },
+    "python": {
+        "code": "music.PYTHON",
+        "pronunciation": "python song",
+        "type": "value"
+    },
+    "quarter note": {
+        "code": "Image.QUARTER_NOTE",
+        "pronunciation": "quarter note image",
+        "type": "value"
+    },
+    "quaver": {
+        "code": "Image.MUSIC_QUAVER",
+        "pronunciation": "quaver image",
+        "type": "value"
+    },
+    "quavers": {
+        "code": "Image.MUSIC_QUAVERS",
+        "pronunciation": "quavers image",
+        "type": "value"
+    },
+    "quiet": {
+        "code": "microphone.current_event() == SoundEvent.QUIET",
+        "pronunciation": "quiet",
+        "type": "value"
+    },
+    "radians": {
+        "args": 1,
+        "code": "radians",
+        "pronunciation": "radians",
+        "type": "function"
+    },
+    "random number": {
+        "args": 2,
+        "code": "random.randint",
+        "pronunciation": "random number",
+        "type": "function"
+    },
+    "read analog": {
+        "code": ".read_analog()",
+        "pronunciation": "read analog",
+        "requires": "pin",
+        "type": "method"
+    },
+    "read digital": {
+        "code": ".read_digital()",
+        "pronunciation": "read digital",
+        "requires": "pin",
+        "type": "method"
+    },
+    "read from computer": {
+        "args": 1,
+        "code": "print",
+        "pronunciation": "receive from computer",
+        "type": "function"
+    },
+    "receive by radio": {
+        "code": "radio.receive()",
+        "pronunciation": "receive by radio",
+        "type": "value"
+    },
+    "replace": {
+        "args": 2,
+        "code": ".replace",
+        "pronunciation": "replace",
+        "type": "method"
+    },
+    "ringtone": {
+        "code": "music.RINGTONE",
+        "pronunciation": "ringtone song",
+        "type": "value"
+    },
+    "rollerskate": {
+        "code": "Image.ROLLERSKATE",
+        "pronunciation": "rollerskate image",
+        "type": "value"
+    },
+    "round down": {
+        "args": 1,
+        "code": "floor",
+        "pronunciation": "round down",
+        "type": "function"
+    },
+    "round to decimal": {
+        "args": 2,
+        "code": "round",
+        "pronunciation": "round to decimal place",
+        "type": "function"
+    },
+    "round up": {
+        "args": 1,
+        "code": "ceil",
+        "pronunciation": "round up",
+        "type": "function"
+    },
+    "sad": {
+        "code": "Image.SAD",
+        "pronunciation": "sad image",
+        "type": "value"
+    },
+    "sadness": {
+        "code": "Sound.SAD",
+        "pronunciation": "sad sound",
+        "type": "value"
+    },
+    "say": {
+        "args": 1,
+        "code": "speech.say",
+        "pronunciation": "say",
+        "type": "function"
+    },
+    "scissors": {
+        "code": "Image.SCISSORS",
+        "pronunciation": "scissors image",
+        "type": "value"
+    },
+    "screen down": {
+        "code": "'face down'",
+        "pronunciation": "screen down",
+        "type": "value"
+    },
+    "screen up": {
+        "code": "'face up'",
+        "pronunciation": "screen up",
+        "type": "value"
+    },
+    "scroll": {
+        "args": 1,
+        "code": "display.scroll",
+        "pronunciation": "scroll",
+        "type": "function"
+    },
+    "send by radio": {
+        "args": 1,
+        "code": "radio.send",
+        "pronunciation": "send by radio",
+        "type": "function"
+    },
+    "set pixel": {
+        "args": 3,
+        "code": "display.set_pixel",
+        "pronunciation": "set pixel",
+        "type": "function"
+    },
+    "set tempo to": {
+        "args": 1,
+        "code": "music.set_tempo",
+        "pronunciation": "set tempo to",
+        "type": "function"
+    },
+    "set volume to": {
+        "args": 1,
+        "code": "set_volume",
+        "pronunciation": "set volume to",
+        "type": "function"
+    },
+    "shake": {
+        "code": "'shake'",
+        "pronunciation": "shake",
+        "type": "value"
+    },
+    "shift left": {
+        "code": " << ",
+        "pronunciation": "shift left",
+        "type": "logic_operator"
+    },
+    "shift right": {
+        "code": " >> ",
+        "pronunciation": "shift right",
+        "type": "logic_operator"
+    },
+    "show": {
+        "args": 1,
+        "code": "display.show",
+        "pronunciation": "show",
+        "type": "function"
+    },
+    "silly": {
+        "code": "Image.SILLY",
+        "pronunciation": "silly image",
+        "type": "value"
+    },
+    "sine": {
+        "args": 1,
+        "code": "sin",
+        "pronunciation": "sine",
+        "type": "function"
+    },
+    "skull": {
+        "code": "Image.SKULL",
+        "pronunciation": "skull image",
+        "type": "value"
+    },
+    "sleep": {
+        "args": 1,
+        "code": "sleep",
+        "pronunciation": "sleep",
+        "type": "function"
+    },
+    "slide": {
+        "code": "Sound.SLIDE",
+        "pronunciation": "slide sound",
+        "type": "value"
+    },
+    "small diamond": {
+        "code": "Image.SMALL_DIAMOND",
+        "pronunciation": "small diamond image",
+        "type": "value"
+    },
+    "small heart": {
+        "code": "Image.HEART_SMALL",
+        "pronunciation": "small heart image",
+        "type": "value"
+    },
+    "small square": {
+        "code": "Image.SMALL_SQUARE",
+        "pronunciation": "small square image",
+        "type": "value"
+    },
+    "smile": {
+        "code": "Image.SMILE",
+        "pronunciation": "smile image",
+        "type": "value"
+    },
+    "snake": {
+        "code": "Image.SNAKE",
+        "pronunciation": "snake image",
+        "type": "value"
+    },
+    "soaring": {
+        "code": "Sound.SOARING",
+        "pronunciation": "soaring sound",
+        "type": "value"
+    },
+    "sound level": {
+        "code": "microphone.sound_level()",
+        "pronunciation": "microphone level",
+        "type": "value"
+    },
+    "spring": {
+        "code": "Sound.SPRING",
+        "pronunciation": "spring sound",
+        "type": "value"
+    },
+    "square": {
+        "code": "Image.SQUARE",
+        "pronunciation": "square image",
+        "type": "value"
+    },
+    "square root": {
+        "args": 1,
+        "code": "sqrt",
+        "pronunciation": "square root",
+        "type": "function"
+    },
+    "starts with": {
+        "args": 1,
+        "code": ".startswith",
+        "pronunciation": "starts with",
+        "type": "method"
+    },
+    "stick figure": {
+        "code": "Image.STICK_FIGURE",
+        "pronunciation": "stick figure image",
+        "type": "value"
+    },
+    "stop music": {
+        "args": 0,
+        "code": "music.stop()",
+        "pronunciation": "stop music",
+        "type": "function"
+    },
+    "strip": {
+        "args": 0,
+        "code": ".strip()",
+        "pronunciation": "strip",
+        "type": "method"
+    },
+    "surprised": {
+        "code": "Image.SURPRISED",
+        "pronunciation": "surprised image",
+        "type": "value"
+    },
+    "sword": {
+        "code": "Image.SWORD",
+        "pronunciation": "sword image",
+        "type": "value"
+    },
+    "t shirt": {
+        "code": "Image.TSHIRT",
+        "pronunciation": "t shirt image",
+        "type": "value"
+    },
+    "tangent": {
+        "args": 1,
+        "code": "tan",
+        "pronunciation": "tangent",
+        "type": "function"
+    },
+    "target": {
+        "code": "Image.TARGET",
+        "pronunciation": "target image",
+        "type": "value"
+    },
+    "temperature": {
+        "code": "temperature()",
+        "pronunciation": "temperature",
+        "type": "value"
+    },
+    "tilt left": {
+        "code": "'tilt left'",
+        "pronunciation": "tilt left",
+        "type": "value"
+    },
+    "tilt right": {
+        "code": "'tilt right'",
+        "pronunciation": "tilt right",
+        "type": "value"
+    },
+    "time in micros": {
+        "code": "ticks_us()",
+        "pronunciation": "time in microseconds",
+        "type": "value"
+    },
+    "time in ms": {
+        "code": "ticks_ms()",
+        "pronunciation": "time in milliseconds",
+        "type": "value"
+    },
+    "times": {
+        "code": " * ",
+        "pronunciation": "times",
+        "type": "logic_operator"
+    },
+    "times pressed": {
+        "code": ".get_presses()",
+        "pronunciation": "times pressed",
+        "requires": "button",
+        "type": "method"
+    },
+    "to binary": {
+        "args": 1,
+        "code": "bin",
+        "pronunciation": "to binary",
+        "type": "function"
+    },
+    "to integer": {
+        "args": 1,
+        "code": "int",
+        "pronunciation": "to integer",
+        "type": "function"
+    },
+    "to lowercase": {
+        "args": 0,
+        "code": ".lower()",
+        "pronunciation": "to lowercase",
+        "type": "method"
+    },
+    "to uppercase": {
+        "args": 0,
+        "code": ".upper()",
+        "pronunciation": "to uppercase",
+        "type": "method"
+    },
+    "tortoise": {
+        "code": "Image.TORTOISE",
+        "pronunciation": "tortoise image",
+        "type": "value"
+    },
+    "triangle": {
+        "code": "Image.TRIANGLE",
+        "pronunciation": "triangle image",
+        "type": "value"
+    },
+    "true": {
+        "code": "True",
+        "pronunciation": "true",
+        "type": "value"
+    },
+    "turn off speaker": {
+        "args": 0,
+        "code": "speaker.off()",
+        "pronunciation": "turn off speaker",
+        "type": "function"
+    },
+    "turn on radio": {
+        "args": 0,
+        "code": "radio.on()",
+        "pronunciation": "turn on radio",
+        "type": "function"
+    },
+    "turn on speaker": {
+        "args": 0,
+        "code": "speaker.on()",
+        "pronunciation": "turn on speaker",
+        "type": "function"
+    },
+    "twinkle": {
+        "code": "Sound.TWINKLE",
+        "pronunciation": "twinkle sound",
+        "type": "value"
+    },
+    "umbrella": {
+        "code": "Image.UMBRELLA",
+        "pronunciation": "umbrella image",
+        "type": "value"
+    },
+    "value": {
+        "code": "Inserte_value",
+        "pronunciation": "value",
+        "type": "value"
+    },
+    "variable": {
+        "code": "var_",
+        "pronunciation": "variable",
+        "type": "reference_var"
+    },
+    "wawawawaa": {
+        "code": "music.WAWAWAWAA",
+        "pronunciation": "wawawawaa song",
+        "type": "value"
+    },
+    "wedding": {
+        "code": "music.WEDDING",
+        "pronunciation": "wedding song",
+        "type": "value"
+    },
+    "when pressed": {
+        "code": ".is_pressed()",
+        "pronunciation": "when pressed",
+        "type": "control_method"
+    },
+    "while": {
+        "code": "while ",
+        "pronunciation": "while",
+        "type": "control"
+    },
+    "write analog": {
+        "args": 1,
+        "code": ".write_analog",
+        "pronunciation": "write analog",
+        "requires": "pin",
+        "type": "method"
+    },
+    "write digital": {
+        "args": 1,
+        "code": ".write_digital",
+        "pronunciation": "write digital",
+        "requires": "pin",
+        "type": "method"
+    },
+    "yawn": {
+        "code": "Sound.YAWN",
+        "pronunciation": "yawn sound",
+        "type": "value"
+    }
+}

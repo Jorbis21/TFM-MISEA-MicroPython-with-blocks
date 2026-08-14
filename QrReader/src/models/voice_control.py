@@ -1,10 +1,12 @@
-import os, threading, time, numpy as np, soundfile as sf
+import os, re, threading, time, numpy as np, soundfile as sf
 from faster_whisper import WhisperModel
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import QTimer, QThread
+from PyQt6.QtCore import QThread
 from dataclasses import dataclass
 
 from utils.constants import EventType, VoiceCommand
+from utils.strings import t
+from utils.language import get_language
 
 @dataclass
 class InteractionEvent:
@@ -33,14 +35,10 @@ class VoiceCommandManager:
         threading.Thread(target=self._load_model, daemon=True).start()
 
     def stop(self):
-        """Para the grabar y descarta la grabacion"""
-        """Stops recording and discards the record"""
         self.running = False
         self.discard_dictation_record()
 
     def _load_model(self):
-        """Carga el modelo de Whisper"""
-        """Loads the Whisper model"""
         print("Cargando motor de voz (Whisper Medium)...")
         self.model = WhisperModel(
             "medium", 
@@ -49,14 +47,12 @@ class VoiceCommandManager:
             cpu_threads=4
         )
         print("Motor de voz listo.")
-        self.audio_service.read_text("El control por voz está listo.")
+        self.audio_service.read_text(t("voice_ready"))
 
     def _process_audio(self):
-        """Procesa y limpia el audio"""
-        """Process and cleans the audio"""
         try:
             sf.write(self.temp_file, np.array(self.audio_data), self.samplerate)
-            segments, info = self.model.transcribe(self.temp_file, language="es")
+            segments, info = self.model.transcribe(self.temp_file, language=get_language())
             
             transcribed_text = " ".join([segment.text for segment in segments]).strip().lower()
             clean_text = transcribed_text.replace("?", "").replace("¿", "").replace("!", "").replace("¡", "").rstrip(".")
@@ -71,47 +67,41 @@ class VoiceCommandManager:
             if self.dictation_mode:
                 self.actual_event = InteractionEvent(type=EventType.VOICE, text="")
 
-    def _analize_intetion(self, text):
-        """Decide cual es la intencion del usuario"""
-        """Decides what's the user intention"""
+    def _analyze_intention(self, text):
         if not text: return
-            
-        spacing_text = f" {text} "
-            
-        if "foto" in text or "capturar" in text or "cámara" in text:
+
+        words = set(re.findall(r"[\wáéíóúñ]+", text.lower()))
+
+        if words & set(t("kw_capture")):
             self.callback_command(VoiceCommand.CAPTURE)
-        elif "enviar" in text or "subir" in text or "placa" in text or "microbit" in text:
+        elif words & set(t("kw_send")):
             self.callback_command(VoiceCommand.SEND)
-        elif "explicar" in text or "inteligencia" in text or " ia " in spacing_text or "qué hace" in text:
+        elif words & set(t("kw_explain")) or t("kw_explain_phrase") in text:
             self.callback_command(VoiceCommand.EXPLAIN)
-        elif "leer" in text or "mesa" in text or "qr" in text:
+        elif words & set(t("kw_read")):
             self.callback_command(VoiceCommand.READ)
-        elif "voz" in text or "audio" in text or "hablar" in text or "sonido" in text:
+        elif words & set(t("kw_tts")):
             self.callback_command(VoiceCommand.CHANGE_TTS)
-        elif "repasar" in text or "modificar" in text or "variables" in text:
+        elif words & set(t("kw_review")):
             self.callback_command(VoiceCommand.REVIEW)
         else:
-            self.audio_service.read_text("Comando no reconocido.")
+            self.audio_service.read_text(t("command_not_recognized"))
 
     @staticmethod
     def _interpret_confirmation(event: InteractionEvent):
-        """Decide como avanzar en las interacciones"""
-        """Decides how to continue with the interactions"""
         if event.type == EventType.SKIP:
-            return "omitir"
+            return "skip"
         if event.type == EventType.TAP:
-            return "confirmar" if event.afirmative else "repetir"
-            
-        value = event.text.lower()
-        if "pasar" in value or "omitir" in value:
-            return "omitir"
-        if "sí" in value or "si" in value or "correcto" in value:
-            return "confirmar"
-        return "repetir"
+            return "confirm" if event.afirmative else "retry"
+
+        tokens = set(re.findall(r"[\wáéíóúñ]+", event.text.lower()))
+        if tokens & set(t("kw_skip")):
+            return "skip"
+        if tokens & set(t("kw_yes")):
+            return "confirm"
+        return "retry"
 
     def start_dictation_record(self):
-        """Comienza la grabacion del audio"""
-        """Starts the audio recording"""
         if self.model is None or self.is_recording: return
         self.is_recording = True
         self.audio_data = []
@@ -123,7 +113,6 @@ class VoiceCommandManager:
             time.sleep(0.4) 
             if self.is_recording and self.record_id == current_id: 
                 try:
-                    import numpy as np
                     import sounddevice as sd
                     t = np.linspace(0, 0.15, int(self.samplerate * 0.15), False)
                     tone = np.sin(1000 * 2 * np.pi * t) * 0.5  
@@ -153,8 +142,6 @@ class VoiceCommandManager:
         threading.Thread(target=_start_hardware, daemon=True).start()
 
     def discard_dictation_record(self):
-        """Descarta el audio grabado"""
-        """Discards the recorded audio"""
         if not self.is_recording: return
         self.is_recording = False
         if self.stream:
@@ -166,8 +153,6 @@ class VoiceCommandManager:
         self.audio_data = []
 
     def stop_dictation_and_process(self):
-        """Para de grabar y procesa el audio"""
-        """Stops recording and process the audio"""
         if not self.is_recording: return
         self.is_recording = False
         if self.stream:
@@ -177,23 +162,19 @@ class VoiceCommandManager:
             except Exception: pass
             self.stream = None
             
-        self.audio_service.read_text("Procesando.")
+        self.audio_service.read_text(t("processing"))
         threading.Thread(target=self._process_audio, daemon=True).start()
 
     def inject_event(self, event: InteractionEvent):
-        """Inyecta el evento"""
-        """Inyects the event"""
         if self.dictation_mode:
             self.actual_event = event
         else:
             if event.type == EventType.VOICE and event.text:
-                self._analize_intetion(event.text)
+                self._analyze_intention(event.text)
 
     def listen_dict_sync(self) -> InteractionEvent:
-        """Escucha la grabacion sincronamente"""
-        """listens the recording synchronously"""
         if self.callback_freeze_ui: 
-            QTimer.singleShot(0, lambda: self.callback_freeze_ui(True))
+            self.callback_freeze_ui(True)
             
         self.dictation_mode = True
         self.actual_event = None
@@ -212,47 +193,67 @@ class VoiceCommandManager:
         finally:
             self.dictation_mode = False
             if self.callback_freeze_ui: 
-                QTimer.singleShot(0, lambda: self.callback_freeze_ui(False))
+                self.callback_freeze_ui(False)
 
-    def voice_confirmation_loop(self, question, default_value="desconocido", open_question=True):
-        """Bucle de confirmacion de variables"""
-        """Variables confirmation loop"""
+    def voice_confirmation_loop(self, pregunta, valor_por_defecto="desconocido"):
+        """Hace una pregunta de texto libre y confirma la respuesta reconocida antes de devolverla"""
+        """Asks a free-text question and confirms the recognized answer before returning it"""
         last_text = ""
 
         while True:
-            self.audio_service.read_text(question)
+            self.audio_service.read_text(pregunta)
             answer: InteractionEvent = self.listen_dict_sync()
 
             if answer.type == EventType.SKIP:
-                self.audio_service.read_text("Saltando paso. Usando valor por defecto.")
-                return default_value
+                self.audio_service.read_text(t("skip_using_default"))
+                return valor_por_defecto
 
-            if open_question:
-                if answer.type == EventType.TAP:
-                    self.audio_service.read_text("Por favor, dígame la respuesta hablando, no uses los toques rápidos.")
-                    continue
-                if not answer.text:
-                    continue
-                last_text = answer.text
-            else:
-                if answer.type == EventType.TAP:
-                    return "sí" if answer.afirmative else "no"
-                    
-                if not answer.text:
-                    continue
-                    
-                if answer.text in ["sí", "si", "no", "pasar", "omitir"]:
-                    return answer.text
-                last_text = answer.text
+            if answer.type == EventType.TAP:
+                self.audio_service.read_text(t("tap_not_allowed_speak"))
+                continue
+            if not answer.text:
+                continue
+            last_text = answer.text
 
-            self.audio_service.read_text(f"He entendido {last_text}. ¿Es correcto?")
+            self.audio_service.read_text(t("understood_confirm", text=last_text))
             confirm: InteractionEvent = self.listen_dict_sync()
             intention = self._interpret_confirmation(confirm)
 
-            if intention == "confirmar":
+            if intention == "confirm":
                 return last_text
-            elif intention == "omitir":
-                self.audio_service.read_text("Omitiendo validación.")
+            elif intention == "skip":
+                self.audio_service.read_text(t("skipping_validation"))
                 return last_text
             else:
-                self.audio_service.read_text("De acuerdo, vamos a repetirlo.")
+                self.audio_service.read_text(t("lets_repeat"))
+
+    def confirm_yes_no(self, pregunta, default=False):
+        """Hace una pregunta cerrada de sí/no y devuelve un booleano, sin depender de qué palabra concreta se reconoció"""
+        """Asks a closed yes/no question and returns a boolean, independent of which specific word was recognized"""
+        yes_words = set(t("kw_yes"))
+        skip_words = set(t("kw_skip"))
+
+        while True:
+            self.audio_service.read_text(pregunta)
+            answer: InteractionEvent = self.listen_dict_sync()
+
+            if answer.type == EventType.SKIP:
+                self.audio_service.read_text(t("skip_using_default"))
+                return default
+
+            if answer.type == EventType.TAP:
+                return answer.afirmative
+
+            if not answer.text:
+                continue
+
+            tokens = set(re.findall(r"[\wáéíóúñ]+", answer.text.lower()))
+            if tokens & skip_words:
+                self.audio_service.read_text(t("skip_using_default"))
+                return default
+            if tokens & yes_words:
+                return True
+            if "no" in tokens:
+                return False
+
+            self.audio_service.read_text(t("lets_repeat"))

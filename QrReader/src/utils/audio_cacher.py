@@ -1,98 +1,103 @@
 import os
-import ast
+import sys
+import re
 import json
 import asyncio
 import hashlib
 import edge_tts
 
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-CACHE_DIR = os.path.join(BASE_DIR, 'data', 'assets', 'audio_cache')
-INDEX_FILE = os.path.join(CACHE_DIR, 'index.json')
-VOICE = "es-ES-ElviraNeural"
+# Misma ubicacion que el script original (2 niveles hasta la raiz del proyecto).
+# Same location as the original script (2 levels up to the project root).
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.abspath(os.path.join(_SCRIPT_DIR, '..', '..'))
 
-DIRECTORIOS_IGNORADOS = {'.git', 'venv', 'env', '__pycache__', 'data', 'workspace'}
+# Para poder hacer "from utils.strings import STRINGS" sin depender de con que
+# directorio de trabajo se lance el script.
+# So "from utils.strings import STRINGS" works regardless of the working
+# directory the script is launched from.
+SRC_DIR = os.path.join(BASE_DIR, 'src')
+if SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
 
-class BuscadorFrasesVoz(ast.NodeVisitor):
-    def __init__(self):
-        self.frases = set()
+from utils.strings import STRINGS  # noqa: E402
+from utils.language import _VOICES as VOICES  # noqa: E402
 
-    def visit_Call(self, node):
-        # 1. Llamadas directas a funciones de voz con texto literal
-        if isinstance(node.func, ast.Attribute):
-            if node.func.attr in ['read_text', 'read_text_interrupting', 'voice_confirmation_loop']:
-                if node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
-                    self.frases.add(node.args[0].value)
-        
-        # 2. Capturar automáticamente los títulos de todos los QPushButton("...") de la interfaz
-        if isinstance(node.func, ast.Name) and node.func.id == 'QPushButton':
-            if node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
-                self.frases.add(node.args[0].value)
-                
-        self.generic_visit(node)
+CACHE_ROOT = os.path.join(BASE_DIR, 'data', 'assets', 'audio_cache')
 
-    def visit_Assign(self, node):
-        # 3. Capturar cadenas asignadas a la variable 'texto' (como las descripciones de iconos: "Rotar cámara", etc.)
-        for target in node.targets:
-            if isinstance(target, ast.Name) and target.id == 'texto':
-                if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
-                    self.frases.add(node.value.value)
-        self.generic_visit(node)
+# Claves que no son frases pronunciables: vocabulario de reconocimiento por voz
+# (nunca se leen en alto, solo se escuchan) o fragmentos usados para construir
+# otras frases, no frases completas en si mismas.
+# Keys that aren't speakable phrases: voice-recognition vocabulary (never read
+# aloud, only listened for) or fragments used to build other phrases, not
+# complete phrases on their own.
+NON_SPEECH_KEYS = {
+    "number_words", "number_prefix", "decimal_connectors",
+    "junction_word", "image_word", "list_join_and",
+    "gemini_prompt", "ollama_system_instructions",
+}
 
-def extraer_frases_del_codigo():
-    buscador = BuscadorFrasesVoz()
-    archivos_procesados = 0
+PLACEHOLDER_RE = re.compile(r"\{[^{}]*\}")
 
-    for raiz, carpetas, archivos in os.walk(BASE_DIR):
-        carpetas[:] = [c for c in carpetas if c not in DIRECTORIOS_IGNORADOS]
-        
-        for archivo in archivos:
-            if archivo.endswith('.py'):
-                ruta_completa = os.path.join(raiz, archivo)
-                with open(ruta_completa, 'r', encoding='utf-8') as f:
-                    try:
-                        arbol = ast.parse(f.read(), filename=archivo)
-                        buscador.visit(arbol)
-                        archivos_procesados += 1
-                    except SyntaxError:
-                        print(f"Error de sintaxis al leer {archivo}, omitiendo...")
 
-    print(f"Se han analizado {archivos_procesados} archivos .py en todo el proyecto.")
-    return buscador.frases
+def extract_static_phrases(lang_dict):
+    """Recoge todas las frases fijas y pronunciables de un idioma: descarta claves de reconocimiento, fragmentos, y cualquier frase con {variables} porque esas se generan al vuelo"""
+    """Collects all the fixed, speakable phrases of a language: discards recognition keys, fragments, and any phrase with {variables} since those are generated on the fly"""
+    phrases = set()
+    for key, value in lang_dict.items():
+        if key.startswith("kw_") or key in NON_SPEECH_KEYS:
+            continue
+        if isinstance(value, str):
+            if value and not PLACEHOLDER_RE.search(value):
+                phrases.add(value)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, str) and item and not PLACEHOLDER_RE.search(item):
+                    phrases.add(item)
+    return phrases
 
-async def descargar_frases(frases):
-    os.makedirs(CACHE_DIR, exist_ok=True)
-    
+
+async def cache_language(lang, voice):
+    dest_dir = os.path.join(CACHE_ROOT, lang)
+    os.makedirs(dest_dir, exist_ok=True)
+    index_file = os.path.join(dest_dir, 'index.json')
+
     indice = {}
-    if os.path.exists(INDEX_FILE):
-        with open(INDEX_FILE, 'r', encoding='utf-8') as f:
+    if os.path.exists(index_file):
+        with open(index_file, 'r', encoding='utf-8') as f:
             indice = json.load(f)
 
+    frases = extract_static_phrases(STRINGS[lang])
+    print(f"\n[{lang}] {len(frases)} frases estáticas encontradas en el catálogo de textos.")
+
     nuevas_descargas = 0
-    print("\nComprobando caché de audio para botones y sistema...")
-    
     for frase in frases:
         hash_frase = hashlib.md5(frase.encode('utf-8')).hexdigest()
         nombre_archivo = f"voz_{hash_frase}.mp3"
-        ruta_archivo = os.path.join(CACHE_DIR, nombre_archivo)
+        ruta_archivo = os.path.join(dest_dir, nombre_archivo)
 
         if frase not in indice or not os.path.exists(ruta_archivo):
-            print(f"Descargando audio para: '{frase}'...")
+            print(f"[{lang}] Descargando audio para: '{frase}'...")
             try:
-                communicate = edge_tts.Communicate(frase, VOICE, rate="+5%")
+                communicate = edge_tts.Communicate(frase, voice, rate="+5%")
                 await communicate.save(ruta_archivo)
                 indice[frase] = nombre_archivo
                 nuevas_descargas += 1
             except Exception as e:
-                print(f"Error al descargar la frase '{frase}': {e}")
+                print(f"[{lang}] Error al descargar la frase '{frase}': {e}")
 
-    with open(INDEX_FILE, 'w', encoding='utf-8') as f:
+    with open(index_file, 'w', encoding='utf-8') as f:
         json.dump(indice, f, indent=4, ensure_ascii=False)
-        
-    print(f"\n¡Caché actualizada! Se han descargado {nuevas_descargas} audios nuevos.")
-    print(f"Total de frases estáticas cacheadas: {len(indice)}")
+
+    print(f"[{lang}] Caché actualizada. {nuevas_descargas} audios nuevos. Total cacheadas: {len(indice)}.")
+
+
+async def cache_all_languages():
+    for lang, voice in VOICES.items():
+        await cache_language(lang, voice)
+
 
 if __name__ == "__main__":
-    print("--- CONSTRUCTOR DE CACHÉ DE VOZ INTELIGENTE ---")
-    frases_encontradas = extraer_frases_del_codigo()
-    print(f"Se han encontrado {len(frases_encontradas)} frases totales (incluyendo botones).")
-    asyncio.run(descargar_frases(frases_encontradas))
+    print("--- CONSTRUCTOR DE CACHÉ DE VOZ (ES + EN) ---")
+    print("Ya no se rebusca el código fuente: se lee directamente el catálogo de utils/strings.py,")
+    print("así que cualquier texto nuevo que uses con t(\"clave\") se cachea automáticamente.")
+    asyncio.run(cache_all_languages())

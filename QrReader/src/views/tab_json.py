@@ -5,11 +5,8 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QTableWidgetItem, QHeaderView, QComboBox, QFrame)
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt
-
-class AutoCleanSearch(QLineEdit):
-    def mousePressEvent(self, event):
-        self.clear()                    
-        super().mousePressEvent(event)  
+from views.widgets import AutoCleanSearch
+from utils.strings import t
 
 class TabJSON(QWidget):
     def __init__(self, json_ctrl, assets_dir):
@@ -32,36 +29,36 @@ class TabJSON(QWidget):
         layout_form = QVBoxLayout(panel_form)
         layout_form.setAlignment(Qt.AlignmentFlag.AlignTop)
         
-        self.lbl_title = QLabel("Añadir Nuevo Bloque")
+        self.lbl_title = QLabel(t("title_add_block"))
         self.lbl_title.setObjectName("titulo_seccion")
         layout_form.addWidget(self.lbl_title)
 
-        layout_form.addWidget(QLabel("Texto del QR:"))
+        layout_form.addWidget(QLabel(t("lbl_qr_text")))
         self.entry_name = QLineEdit()
-        self.entry_name.setPlaceholderText("ej: encender leds")
+        self.entry_name.setPlaceholderText(t("placeholder_qr_text"))
         layout_form.addWidget(self.entry_name)
 
-        layout_form.addWidget(QLabel("Código Python:"))
+        layout_form.addWidget(QLabel(t("lbl_python_code")))
         self.entry_code = QLineEdit()
-        self.entry_code.setPlaceholderText("ej: display.show")
+        self.entry_code.setPlaceholderText(t("placeholder_python_code"))
         layout_form.addWidget(self.entry_code)
 
-        layout_form.addWidget(QLabel("Tipo de Nodo:"))
+        layout_form.addWidget(QLabel(t("lbl_node_type")))
         self.cb_type = QComboBox()
         self.cb_type.addItems(["function", "value", "control", "subject", "method", "logic_operator"])
         layout_form.addWidget(self.cb_type)
 
-        layout_form.addWidget(QLabel("Argumentos:"))
+        layout_form.addWidget(QLabel(t("lbl_arguments")))
         self.entry_args = QLineEdit("0")
         layout_form.addWidget(self.entry_args)
 
         btns_layout = QHBoxLayout()
-        self.save_btn = QPushButton("Guardar Bloque")
+        self.save_btn = QPushButton(t("btn_save_block"))
         self.save_btn.setObjectName("save_btn")
         self.save_btn.clicked.connect(self.action_save)
         btns_layout.addWidget(self.save_btn)
         
-        self.cancel_btn = QPushButton("Cancelar Edición")
+        self.cancel_btn = QPushButton(t("btn_cancel_edit"))
         self.cancel_btn.setObjectName("cancel_btn_edit")
         self.cancel_btn.clicked.connect(self._reset_form)
         self.cancel_btn.hide() 
@@ -75,14 +72,14 @@ class TabJSON(QWidget):
         panel_list = QFrame()
         layout_list = QVBoxLayout(panel_list)
         
-        lbl_lista = QLabel("Bloques Actuales en Memoria")
+        lbl_lista = QLabel(t("title_blocks_in_memory"))
         lbl_lista.setObjectName("titulo_seccion")
         layout_list.addWidget(lbl_lista)
 
         layout_search = QHBoxLayout()
-        layout_search.addWidget(QLabel("Buscar:"))
+        layout_search.addWidget(QLabel(t("lbl_search")))
         self.search = AutoCleanSearch()
-        self.search.setPlaceholderText("Escribe para filtrar bloques...")
+        self.search.setPlaceholderText(t("placeholder_search_blocks"))
         self.search.textChanged.connect(self._filter_table)
         layout_search.addWidget(self.search)
 
@@ -97,7 +94,7 @@ class TabJSON(QWidget):
 
         self.table = QTableWidget()
         self.table.setColumnCount(4) 
-        self.table.setHorizontalHeaderLabels(["Bloque -> Traducción", "Editar", "Borrar", "Sel"])
+        self.table.setHorizontalHeaderLabels([t("table_header_block_translation"), t("table_header_edit"), t("table_header_delete"), t("table_header_sel")])
         self.table.verticalHeader().setDefaultSectionSize(40)
         self.table.itemChanged.connect(self._verify_selection)
         
@@ -129,22 +126,22 @@ class TabJSON(QWidget):
             args = 0
             
         if not name or not code:
-            self.lbl_state.setText("Error: El nombre y el código son obligatorios.")
+            self.lbl_state.setText(t("error_name_code_required"))
             return
 
         new_node = {"code": code, "type": type}
-        if type in ["functon", "method"]: new_node["args"] = args
+        if type in ["function", "method"]: new_node["args"] = args
         if type == "subject": new_node["class"] = "general"
 
         old_node = self.original_key if self.editing else None
         
         try:
             self.json_ctrl.save_block(old_node, name, new_node)
-            self.lbl_state.setText(f"¡Bloque '{name}' guardado con éxito!")
+            self.lbl_state.setText(t("block_saved_success", name=name))
             self._reset_form()
             self._load_list()
         except Exception as e:
-            self.lbl_state.setText(f"Error al guardar: {e}")
+            self.lbl_state.setText(t("error_saving", error=e))
 
     def action_delete(self, key):
         """Accion de borrar un bloque"""
@@ -154,9 +151,9 @@ class TabJSON(QWidget):
             self._load_list()
             if self.editing and self.original_key == key:
                 self._reset_form()
-            self.lbl_state.setText(f"Bloque '{key}' eliminado.")
+            self.lbl_state.setText(t("block_deleted", name=key))
         except Exception as e:
-            self.lbl_state.setText(f"Error al eliminar: {e}")
+            self.lbl_state.setText(t("error_deleting", error=e))
 
     def action_delete_selected(self):
         """Accion de borrar bloques seleccionados"""
@@ -170,18 +167,25 @@ class TabJSON(QWidget):
         if not keys_to_delete: return
 
         successes = 0
+        failures = []
         for key in keys_to_delete:
             try:
                 self.json_ctrl.delete_block(key)
                 if self.editing and self.original_key == key:
                     self._reset_form()
                 successes += 1
-            except Exception:
-                pass
+            except Exception as e:
+                failures.append(f"{key} ({e})")
 
         if successes > 0:
             self._load_list()
-            self.lbl_state.setText(f"Se han eliminado {successes} bloques seleccionados.")
+
+        if not failures:
+            self.lbl_state.setText(t("blocks_deleted_success", count=successes))
+        elif successes > 0:
+            self.lbl_state.setText(t("blocks_deleted_partial", count=successes, failures=", ".join(failures)))
+        else:
+            self.lbl_state.setText(t("blocks_deleted_none", failures=", ".join(failures)))
 
 
     def _filter_table(self, text):
@@ -252,13 +256,13 @@ class TabJSON(QWidget):
         self.editing = True
         self.original_key = key
         
-        self.lbl_title.setText(f"Editando: {key}")
-        self.save_btn.setText("Actualizar Bloque")
+        self.lbl_title.setText(t("title_editing", name=key))
+        self.save_btn.setText(t("btn_update_block"))
         self.cancel_btn.show()
 
         self.entry_name.setText(key)
-        self.entry_code.setText(info.get("codigo", ""))
-        self.cb_type.setCurrentText(info.get("type", "funcion"))
+        self.entry_code.setText(info.get("code", ""))
+        self.cb_type.setCurrentText(info.get("type", "function"))
         self.entry_args.setText(str(info.get("args", "0")))
 
     def _reset_form(self):
@@ -266,10 +270,11 @@ class TabJSON(QWidget):
         """Resets the form"""
         self.editing = False
         self.original_key = None
-        self.lbl_title.setText("Añadir Nuevo Bloque")
-        self.save_btn.setText("Guardar Bloque")
+        self.lbl_title.setText(t("title_add_block"))
+        self.save_btn.setText(t("btn_save_block"))
         self.cancel_btn.hide()
         self.entry_name.clear()
         self.entry_code.clear()
+        self.cb_type.setCurrentIndex(0)
         self.entry_args.setText("0")
         self.lbl_state.setText("")

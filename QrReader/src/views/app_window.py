@@ -2,24 +2,26 @@ import os
 
 from PyQt6.QtGui import QShortcut, QKeySequence, QIcon
 from PyQt6.QtCore import Qt, pyqtSignal, QEvent
-from PyQt6.QtWidgets import QApplication, QMainWindow, QTabWidget, QPushButton
+from PyQt6.QtWidgets import QApplication, QMainWindow, QTabWidget, QPushButton, QWidget, QHBoxLayout, QMessageBox, QDialog
 
 from views.tab_camara import TabCamara
 from views.tab_json import TabJSON
 from views.tab_qrs import TabQRs
+from utils.constants import VoiceCommand
+from utils.strings import t
+from utils.language import get_language, set_language
 
 class AppCamara(QMainWindow):
 
     spacebar_pressed = pyqtSignal()
     spacebar_released = pyqtSignal()
-    shortcut_command = pyqtSignal(str)
     changed_focus = pyqtSignal(str)
     window_closed = pyqtSignal()
 
-    def __init__(self, workspace_dir, assets_dir, camera_ctrl, json_ctrl, qr_ctrl):
+    def __init__(self, workspace_dir, assets_dir, camera_ctrl, program_builder, audio_service, json_ctrl, qr_ctrl):
         super().__init__()
         
-        self.setWindowTitle("ONCE: MicroPython por bloques")
+        self.setWindowTitle(t("window_title"))
         self.setWindowIcon(QIcon(os.path.join(assets_dir, "icons", "once.png")))
         self.resize(1280, 800)
 
@@ -33,22 +35,36 @@ class AppCamara(QMainWindow):
         self.theme_contrast = QShortcut(QKeySequence("Ctrl+T"), self)
         self.theme_contrast.activated.connect(self.change_contrast)
 
-        self.camera_view = TabCamara(workspace_dir, assets_dir, camera_ctrl)
-        self.camera_view.parent_window = self  
+        self.language_shortcut = QShortcut(QKeySequence("Ctrl+I"), self)
+        self.language_shortcut.activated.connect(self.change_language)
+
+        self.camera_view = TabCamara(workspace_dir, assets_dir, camera_ctrl, program_builder, audio_service)
         
         self.qr_view = TabQRs(qr_ctrl)
         self.json_view = TabJSON(json_ctrl, assets_dir)
 
-        self.contrast_btn = QPushButton("Modo Contraste")
+        self.language_btn = QPushButton(t("btn_change_language"))
+        self.language_btn.setObjectName("btn_idioma")
+        self.language_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.language_btn.clicked.connect(self.change_language)
+
+        self.contrast_btn = QPushButton(t("btn_contrast_mode"))
         self.contrast_btn.setObjectName("btn_contraste")
         self.contrast_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.contrast_btn.clicked.connect(self.change_contrast)
 
-        self.tabs.setCornerWidget(self.contrast_btn, Qt.Corner.TopRightCorner)
+        corner_widget = QWidget()
+        corner_layout = QHBoxLayout(corner_widget)
+        corner_layout.setContentsMargins(0, 0, 0, 0)
+        corner_layout.setSpacing(6)
+        corner_layout.addWidget(self.language_btn)
+        corner_layout.addWidget(self.contrast_btn)
 
-        self.tabs.addTab(self.camera_view, "Cámara y Control")
-        self.tabs.addTab(self.qr_view, "Generador de QRs")
-        self.tabs.addTab(self.json_view, "Editor de Diccionario")
+        self.tabs.setCornerWidget(corner_widget, Qt.Corner.TopRightCorner)
+
+        self.tabs.addTab(self.camera_view, t("tab_camera"))
+        self.tabs.addTab(self.qr_view, t("tab_qrs"))
+        self.tabs.addTab(self.json_view, t("tab_json"))
         self.tabs.currentChanged.connect(self._manage_camera_state)
 
         self._set_contrast_state(silent=True)
@@ -66,14 +82,47 @@ class AppCamara(QMainWindow):
         self._set_contrast_state(silent=False)
         self.camera_view.update_icons(self.high_contrast_mode)
 
+    def change_language(self):
+        """Abre el selector de idioma para cambiarlo en cualquier momento; avisa de que hace falta reiniciar para aplicarlo. No disponible en modo contraste (igual que las pestañas de gestión)"""
+        """Opens the language picker to change it at any time; warns that a restart is needed to apply it. Not available in contrast mode (same as the management tabs)"""
+        if self.high_contrast_mode:
+            return
+        from views.language_dialog import LanguageDialog
+        dialog = LanguageDialog(allow_cancel=True)
+        dialog.setWindowIcon(self.windowIcon())
+        if dialog.exec() == QDialog.DialogCode.Accepted and dialog.chosen_language:
+            if dialog.chosen_language != get_language():
+                set_language(dialog.chosen_language)
+                QMessageBox.information(
+                    self,
+                    "Idioma / Language",
+                    "El cambio de idioma se aplicará al reiniciar la aplicación.\n"
+                    "The language change will apply when you restart the app."
+                )
+
     def freeze_ui(self, freeze):
         """Congela la interfaz"""
         """Freeze the interface"""
         self.tabs.setEnabled(not freeze)
         if freeze: 
-            self.camera_view.status_label.setText("Estado: Interfaz bloqueada (Esperando respuesta por voz...)")
+            self.camera_view.status_label.setText(t("status_ui_frozen"))
         else: 
-            self.camera_view.status_label.setText("Estado: Cámara Activa")
+            self.camera_view.status_label.setText(t("status_camera_active"))
+
+    def dispatch(self, action):
+        """Ejecuta en la vista de camara la accion que corresponde al comando recibido (voz o atajo)"""
+        """Runs the camera view action that corresponds to the received command (voice or shortcut)"""
+        actions = {
+            VoiceCommand.CAPTURE: self.camera_view.action_capture,
+            VoiceCommand.SEND: self.camera_view.action_send,
+            VoiceCommand.EXPLAIN: self.camera_view.action_ia_explain,
+            VoiceCommand.READ: self.camera_view.action_read_qrs,
+            VoiceCommand.CHANGE_TTS: self.camera_view.action_change_tts,
+            VoiceCommand.REVIEW: self.camera_view.action_var_review,
+        }
+        func = actions.get(action)
+        if func:
+            func()
 
     def eventFilter(self, obj, event):
         """Filtra las pulsaciones del teclado"""
@@ -132,24 +181,21 @@ class AppCamara(QMainWindow):
         """Configura los diferentes atajos de teclado"""
         """Configures the shortcuts"""
         QShortcut(QKeySequence("Ctrl+S"), self).activated.connect(self.camera_view.action_save_shortcut)
-        
-        QShortcut(QKeySequence("A"), self).activated.connect(lambda: self.camera_view.process_chortcut("a", "Tomar foto", self.camera_view.action_capture))
-        QShortcut(QKeySequence("Ñ"), self).activated.connect(lambda: self.camera_view.process_chortcut("ñ", "Tomar foto", self.camera_view.action_capture))
-        
-        QShortcut(QKeySequence("S"), self).activated.connect(lambda: self.camera_view.process_chortcut("s", "Enviar a MicroBit", self.camera_view.action_send))
-        QShortcut(QKeySequence("L"), self).activated.connect(lambda: self.camera_view.process_chortcut("l", "Enviar a MicroBit", self.camera_view.action_send))
-        
-        QShortcut(QKeySequence("D"), self).activated.connect(lambda: self.camera_view.process_chortcut("d", "Explicar con IA", self.camera_view.action_ia_explain))
-        QShortcut(QKeySequence("K"), self).activated.connect(lambda: self.camera_view.process_chortcut("k", "Explicar con IA", self.camera_view.action_ia_explain))
-        
-        QShortcut(QKeySequence("F"), self).activated.connect(lambda: self.camera_view.process_chortcut("f", "Leer QRs Mesa", self.camera_view.action_read_qrs))
-        QShortcut(QKeySequence("J"), self).activated.connect(lambda: self.camera_view.process_chortcut("j", "Leer QRs Mesa", self.camera_view.action_read_qrs))
-        
-        QShortcut(QKeySequence("G"), self).activated.connect(lambda: self.camera_view.process_chortcut("g", "Modo de lectura por variable", self.camera_view.action_change_tts))
-        QShortcut(QKeySequence("H"), self).activated.connect(lambda: self.camera_view.process_chortcut("h", "Modo de lectura por variable", self.camera_view.action_change_tts))
-        
-        QShortcut(QKeySequence("V"), self).activated.connect(lambda: self.camera_view.process_chortcut("v", "Modificar variables", self.camera_view.action_var_review))
-        QShortcut(QKeySequence("N"), self).activated.connect(lambda: self.camera_view.process_chortcut("n", "Modificar variables", self.camera_view.action_var_review))
+
+        shortcuts = [
+            (("A", "Ñ"), t("shortcut_capture"), self.camera_view.action_capture),
+            (("S", "L"), t("shortcut_send"), self.camera_view.action_send),
+            (("D", "K"), t("shortcut_explain"), self.camera_view.action_ia_explain),
+            (("F", "J"), t("shortcut_read"), self.camera_view.action_read_qrs),
+            (("G", "H"), t("shortcut_tts"), self.camera_view.action_change_tts),
+            (("V", "N"), t("shortcut_review"), self.camera_view.action_var_review),
+        ]
+
+        for keys, label, func in shortcuts:
+            for key in keys:
+                QShortcut(QKeySequence(key), self).activated.connect(
+                    lambda k=key.lower(), l=label, f=func: self.camera_view.process_chortcut(k, l, f)
+                )
 
     def _on_focus_changed(self, old_widget, new_widget):
         """Cambia el foco del boton seleccionado y omite algunos"""
@@ -159,12 +205,12 @@ class AppCamara(QMainWindow):
 
         if isinstance(new_widget, QPushButton):
             name_obj = new_widget.objectName()
-            if name_obj in ["contrast_btn", "combo_cameras", "edit_btn"]: return
+            if name_obj in ["btn_contraste", "btn_idioma", "combo_cameras", "edit_btn"]: return
                 
             text = new_widget.text().strip()
             if name_obj == "overlay_btn":
-                if new_widget == self.camera_view.rotate_btn: text = "Rotar cámara"
-                elif new_widget == self.camera_view.shutdown_btn: text = "Apagar cámara"
+                if new_widget == self.camera_view.rotate_btn: text = t("focus_rotate_camera")
+                elif new_widget == self.camera_view.shutdown_btn: text = t("focus_shutdown_camera")
             
             if text:
                 self.changed_focus.emit(text)
@@ -185,16 +231,18 @@ class AppCamara(QMainWindow):
             if self.tabs.count() == 3:
                 self.tabs.removeTab(2)
                 self.tabs.removeTab(1)
-            self.contrast_btn.setText("Modo Estándar")
+            self.language_btn.setVisible(False)
+            self.contrast_btn.setText(t("btn_standard_mode"))
             if not silent: 
-                self.changed_focus.emit("Modo de alto contraste activado.")
+                self.changed_focus.emit(t("focus_high_contrast_on"))
         else:
             if self.tabs.count() == 1:
-                self.tabs.addTab(self.qr_view, "Generador de QRs")
-                self.tabs.addTab(self.json_view, "Editor de Diccionario")
-            self.contrast_btn.setText("Modo Contraste")
+                self.tabs.addTab(self.qr_view, t("tab_qrs"))
+                self.tabs.addTab(self.json_view, t("tab_json"))
+            self.language_btn.setVisible(True)
+            self.contrast_btn.setText(t("btn_contrast_mode"))
             if not silent: 
-                self.changed_focus.emit("Modo estándar activado.")
+                self.changed_focus.emit(t("focus_standard_on"))
                 
     def _load_actual_theme(self):
             """Carga el tema actual"""

@@ -1,4 +1,23 @@
 {
-    "matrix": [],
-    "history": []
+    "matrix": [
+        [
+            "para siempre"
+        ],
+        [
+            "",
+            "",
+            "al presionar",
+            "boton a"
+        ],
+        [
+            "",
+            "",
+            "",
+            "reproducir melodia",
+            "valor variable"
+        ]
+    ],
+    "history": [
+        "do, re, mi"
+    ]
 }

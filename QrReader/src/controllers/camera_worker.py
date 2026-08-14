@@ -72,4 +72,13 @@ class CameraWorker(QThread):
         """Pausa la ejecucion del hilo"""
         """Pauses the ejecution of the thread"""
         self.running = False
-        self.wait()
+        # Limite de tiempo: si la lectura de la camara (self.cap.read(), dentro
+        # de run()) tarda un poco en ese instante, un self.wait() sin limite
+        # bloquearia el hilo principal (esto se llama tanto al cerrar la
+        # ventana como al pausar la camara al cambiar de pestaña), y Windows
+        # marcaria la ventana como "no responde" hasta que el hilo terminase.
+        # Con limite, la interfaz ya no se congela en ese caso. Es un
+        # compromiso: si de verdad se agota el tiempo, quien llama a stop()
+        # sigue adelante (libera la camara) sin la garantia total de que el
+        # hilo ya ha terminado del todo - mejor eso que una interfaz colgada.
+        self.wait(1000)
