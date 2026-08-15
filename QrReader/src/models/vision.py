@@ -104,7 +104,7 @@ class VisionEngine:
             return None, None, []
         
         if rotate:
-            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+            frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
         
         self.actual_frame = frame.copy()
         elems = list(self.detected_elems)
