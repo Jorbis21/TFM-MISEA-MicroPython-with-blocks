@@ -1,6 +1,7 @@
 # TFM MISEA | MicroPython with blocks.
 
 [![License: Non-Commercial](https://img.shields.io/badge/License-Non_Commercial-red.svg)](#license)
+
 ### TECHNOLOGY WITH PURPOSE: Design of a system that enables block-based programming learning for people with visual impairment.
 
 Desktop application designed so that blind or low-vision people can program the BBC Micro:bit board without needing to see a screen. Code blocks are represented as physical blocks with braille stickers and QR codes: the camera detects them, and the program automatically translates them into working MicroPython code through a pushdown automaton, with voice prompts whenever a variable is needed.
@@ -11,7 +12,7 @@ _Developed in collaboration with ONCE (Spanish National Organization of the Blin
 
 The BrailleReader folder was an attempt at computer vision using high-contrast braille for code generation. It was dropped due to the difficulty of detecting some letters. Should anyone want to develop it further, QR-style corner squares could be used for simpler reading.
 
-Lastly, the QrReader.old folder was the first semi-functional version of the application, without important elements such as the pushdown automaton or voice control.
+Lastly, the QrReader.old folder was the first semi-functional version of the application, without important elements such as the pushdown automaton or voice control. However, this version could read handwritten numbers through OCR.
 
 ### What it does
 
@@ -24,6 +25,24 @@ Lastly, the QrReader.old folder was the first semi-functional version of the app
 - **Dictionary editor**: add, edit or delete available blocks without touching any code.
 - **Bilingual** (Spanish / English), with its own voices and audio cache for each language.
 - **High-contrast mode** for low vision.
+
+The repository has a folder with all the block designs. There are three types of blocks.
+
+- Indentation blocks, whose shape forces the user to leave a gap that the program interprets as an indentation in the code.
+- Function blocks, which allow the use of Python functions.
+- Variable-condition blocks, which allow giving values, returning them, and using typical programming logic.
+- Also important is the "Forever" block, which applies the main loop.
+
+These blocks are further grouped by shapes placed in the top-right corner of the blocks, to make it easier to identify a group of blocks.
+- Square: screen.
+- Circle: music.
+- Circle-dot: sounds.
+- Triangle: action/interaction with the user.
+- Plus sign: math functions.
+- Pentagon: radio.
+- Equals sign: logic and conditionals.
+- Star: data measured by the board.
+- Squiggle: string-handling functions.
 
 ### Download
 
@@ -103,7 +122,7 @@ _Desarrollado en colaboración con la ONCE (Organización Nacionad de Ciegos Esp
 
 La carpeta de BrailleReader fue un intento de visión artificial usando lenguaje braille en alto contraste para la generación del código. Fue descartado por la dificultad de la detección de algunas letras. En caso de que alguien quiera desarrollarlo más se podría usar cuadrados en las esquinas estilo Qr para una lectura más simplificada.
 
-Y por último la carpeta QrReader.old fue la primera versión semi-funcional de la aplicación sin uso de elementos importantes como el autómata de pila o el control por voz.
+Y por último la carpeta QrReader.old fue la primera versión semi-funcional de la aplicación sin uso de elementos importantes como el autómata de pila o el control por voz. Sin embargo esta versión podía leer números escritos a través de OCR.
 ### Qué hace
 
 - **Lectura de bloques por cámara**: coloca los bloques en el orden deseado, la app detecta la disposición física a través de visión artificial y genera el código MicroPython correspondiente usando una autómata de pila.
@@ -116,6 +135,23 @@ Y por último la carpeta QrReader.old fue la primera versión semi-funcional de 
 - **Bilingüe** (español / inglés), con voces y caché de audio propias para cada idioma.
 - **Modo alto contraste** para baja visión.
 
+En el repositorio hay una carpeta con todos los diseños de los bloques. 
+Hay tres tipos de bloques.
+- Los bloques de indentación que su forma obliga al usuario a dejar un espacio que el programa interpreta como una indentación en el código.
+- Los bloques de función que permiten usar funciones de Python.
+- Y los bloques de variable-condición que permiten dar valores, devolverlos y usar lógica típica de la programación.
+- Importante también el bloque de Para siempre que aplica el bucle principal.
+
+Estos bloques están divididos a su vez por formas puestas en la esquina superior derecha de los bloques para que sea más fácil identificar un grupo de bloques.
+- Cuadrado: pantalla.
+- Círculo: música.
+- Círculo-punto: sonidos.
+- Triángulo: acción/interacción con el usuario.
+- Suma: funciones matemáticas.
+- Pentágono: radio.
+- Igual: lógica y condicionales.
+- Estrella: datos que mide la placa.
+- Virgulilla: funciones relacionadas con el manejo de Strings.
 ### Descargar
 
 La aplicación no necesita instalación: se descarga, se descomprime, y se ejecuta.
