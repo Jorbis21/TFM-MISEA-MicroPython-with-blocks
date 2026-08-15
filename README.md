@@ -1,6 +1,7 @@
 # TFM MISEA | MicroPython with blocks.
 
 [![License: Non-Commercial](https://img.shields.io/badge/License-Non_Commercial-red.svg)](#license)
+[![DOI](https://zenodo.org/badge/1147552426.svg)](https://doi.org/10.5281/zenodo.21953411)
 
 ### TECHNOLOGY WITH PURPOSE: Design of a system that enables block-based programming learning for people with visual impairment.
 
@@ -112,6 +113,8 @@ You can read the full legal text in the [LICENSE](https://github.com/Jorbis21/TF
 # TFM MISEA | MicroPython con bloques.
 
 [![License: Non-Commercial](https://img.shields.io/badge/License-Non_Commercial-red.svg)](#licencia)
+[![DOI](https://zenodo.org/badge/1147552426.svg)](https://doi.org/10.5281/zenodo.21953411)
+
 ### TECNOLOGÍA CON SENTIDO: Diseño de un sistema que permite el aprendizaje de programación por bloques para personas con deficiencia visual.
 
 Aplicación de escritorio diseñada para que personas ciegas o con baja visión programen la placa BBC Micro:bit sin necesidad de ver una pantalla. Los bloques de código se representan como bloques físicos con pegatinas braille y códigos QR: la cámara los detecta, y el programa los traduce automáticamente a código MicroPython funcional a través de un autómata de pila, con lectura por voz en caso de necesitar variables.
