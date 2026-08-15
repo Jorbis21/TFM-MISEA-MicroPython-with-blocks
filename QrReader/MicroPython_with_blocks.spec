@@ -41,7 +41,19 @@ a = Analysis(
         (os.path.join(PROJECT_ROOT, 'data', 'config', 'blocks_en.json'), os.path.join('data', 'config')),
         (os.path.join(PROJECT_ROOT, 'data', 'styles'), os.path.join('data', 'styles')),
     ],
-    hiddenimports=[],
+    # uflash se importa de forma diferida dentro de una funcion
+    # (code_manager.py, dentro de upload()), no al principio del archivo -
+    # el analisis estatico de PyInstaller no lo detecta solo en ese caso,
+    # comprobado empaquetando un caso minimo. Sin esto, "Enviar a MicroBit"
+    # falla con "modulo uflash no encontrado" en el .exe aunque funcione
+    # perfectamente ejecutando desde el codigo fuente.
+    # uflash gets imported lazily inside a function (code_manager.py, inside
+    # upload()), not at module top-level - PyInstaller's static analysis
+    # doesn't detect it on its own in that case, confirmed by packaging a
+    # minimal test case. Without this, "Send to MicroBit" fails with
+    # "uflash module not found" in the .exe even though it works perfectly
+    # running from source.
+    hiddenimports=['uflash'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
