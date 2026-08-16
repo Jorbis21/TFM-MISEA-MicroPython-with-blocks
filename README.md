@@ -56,7 +56,7 @@ The portable builds for Windows, Linux and Mac are in the repository's [Releases
 
 To have local AI working from the very first launch, unzip both files, first the application one and then the model, inside the application's folder. If you're only interested in the Gemini explanation (with an internet connection) or the literal code reading, the first zip is enough, but a `.env` file is required in the folder.
 
-## Mac and Linux application has not been tested.
+## `Mac and Linux application has not been tested.`
 
 ### Cloud AI explanation
 
@@ -168,7 +168,7 @@ Los portables para Windows, Linux y Mac están en la [sección de Releases](http
 
 Para tener IA local funcionando desde el primer arranque, descomprime los dos zips primero el de la aplicación y después el modelo dentro de la carpeta de la aplicación. Si solo te interesa la explicación por Gemini (con conexión a internet) o la lectura literal del código, con el primer zip basta, pero es necesario un .env en la carpeta.
 
-## La aplicación de Linux y Mac no han sido probadas.
+## `La aplicación de Linux y Mac no han sido probadas.`
 
 ### Explicación por IA en la nube
 
