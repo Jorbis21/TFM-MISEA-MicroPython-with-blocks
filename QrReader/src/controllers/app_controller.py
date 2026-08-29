@@ -49,6 +49,7 @@ class AppController:
         self.voice_manager.callback_freeze_ui = lambda freeze: run_on_main_thread(self.window.freeze_ui, freeze)
 
         self.pressed_time = 0
+        self.recording_actually_started = False
         self.space_clicks = 0
         self.space_timer = QTimer()
         self.space_timer.setSingleShot(True)
@@ -81,10 +82,19 @@ class AppController:
         """Manage the start of the recording system"""
         self.pressed_time = time.time()
         self.voice_manager.start_dictation_record()
+        self.recording_actually_started = self.voice_manager.is_recording
+        if not self.recording_actually_started:
+            self.audio_service.read_text_interrupting(t("still_processing_wait"))
 
     def on_spacebar_released(self):
         """Gestiona la grabacion de voz al mantener presionado el espacio"""
         """Manage the voice recording when holding the spacebar"""
+        if not self.recording_actually_started:
+            # El intento se bloqueo al pulsar (seguia procesando la respuesta
+            # anterior, o el modelo aun no estaba listo): no debe contar ni
+            # como dictado ni como toque, para no desordenar space_clicks
+            return
+
         duracion = time.time() - self.pressed_time
         
         if duracion < 0.4:

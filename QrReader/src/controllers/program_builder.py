@@ -60,10 +60,14 @@ class ProgramBuilder:
         self.audio_service.read_text_interrupting(t("starting_var_review"))
         variables = self.traducer.analize_matrix(self.super_matrix)
         answers = self._run_var_interaction(variables, review_mode=True)
-        self.traducer.generate_code(self.super_matrix, self.code_dir, answers)
-        self.save_state()
-        self.audio_service.read_text(t("vars_modified"))
-        callback_act_ui()
+        try:
+            self.traducer.generate_code(self.super_matrix, self.code_dir, answers)
+            self.save_state()
+            self.audio_service.read_text(t("vars_modified"))
+            callback_act_ui()
+        except Exception as e:
+            print(f"Error al finalizar la revision de variables: {e}")
+            self.audio_service.read_text_interrupting(t("var_review_failed"))
 
     def get_view_code(self):
         """Obtiene el codigo tal como debe mostrarse en el editor"""
@@ -189,7 +193,12 @@ class ProgramBuilder:
             if "var_" in context and sim_memory:
                 context = re.sub(r'var_\d+', lambda m: sim_memory[-1], context)
 
-            raw_answer = self._voice_interact(type, context, sim_memory, review_mode, history, review_index)
+            try:
+                raw_answer = self._voice_interact(type, context, sim_memory, review_mode, history, review_index)
+            except Exception as e:
+                print(f"Error interactuando por voz para una variable: {e}")
+                self.audio_service.read_text_interrupting(t("var_review_failed"))
+                break
 
             is_var = (type != "assign_val")
             clean_ans = self.traducer.normalize_text(raw_answer, is_variable=is_var)
@@ -203,7 +212,7 @@ class ProgramBuilder:
 
             answers.append(clean_ans)
 
-            if type == "declare_var":
+            if type in ("declare_var", "for_each_var"):
                 sim_memory.append(clean_ans)
 
         if not review_mode:

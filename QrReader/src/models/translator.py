@@ -46,6 +46,51 @@ class MicrobitCompiler:
             text = text.replace(" ", "_")
         return text
 
+    def _parse_compound_number(self, text):
+        """Interpreta números compuestos dichos con varias palabras (p.ej. 'doce mil doscientos
+        veinticuatro') sumando y multiplicando en vez de sustituir palabra por palabra, hasta
+        aproximadamente 999.999. Devuelve el entero, o None si el texto no es un número compuesto
+        reconocible en su totalidad"""
+        """Interprets multi-word spoken compound numbers (e.g. 'twelve thousand two hundred and
+        twenty four') by adding and multiplying instead of a word-by-word substitution, up to
+        roughly 999,999. Returns the integer, or None if the text isn't a fully recognisable
+        compound number"""
+        words = [w for w in text.strip().lower().split() if w]
+        if not words:
+            return None
+
+        number_words = t("number_words")
+        multipliers = t("number_multipliers")
+        junction = t("junction_word").strip()
+
+        total = 0
+        current = 0
+        recognized_words = 0
+
+        for word in words:
+            if word == junction:
+                continue
+            if word in multipliers:
+                factor = multipliers[word]
+                current = current if current > 0 else 1
+                if factor >= 1000:
+                    total += current * factor
+                    current = 0
+                else:
+                    current = current * factor
+                recognized_words += 1
+            elif word in number_words:
+                current += int(number_words[word])
+                recognized_words += 1
+            else:
+                return None
+
+        total += current
+
+        if recognized_words < 2 and not (recognized_words == 1 and words[0] in multipliers):
+            return None
+        return total
+
     def _apply_type(self, text):
         """Convierte un texto dicho o escrito por el usuario en el literal de Python que le corresponde: notas musicales, una imagen en formato Image(), una terna RGB, un número (entero o decimal, admitiendo palabras numéricas), o si nada de eso encaja, una cadena de texto. Devuelve una tupla (código, valor)"""
         """Converts a text spoken or typed by the user into its corresponding Python literal: musical notes, an image in Image() format, an RGB triplet, a number (integer or decimal, accepting number words), or if none of that fits, a text string. Returns a tuple (code, value)"""
@@ -84,7 +129,9 @@ class MicrobitCompiler:
                 img_form = f"{digits[0:5]}:{digits[5:10]}:{digits[10:15]}:{digits[15:20]}:{digits[20:25]}"
                 return f"Image('{img_form}')", img_form
 
-        if len(multi_words) == 3:
+        said_junction = t("junction_word") in text
+
+        if len(multi_words) == 3 and not said_junction:
             try:
                 values = [int(p) for p in multi_words]
                 return f"{values[0]}, {values[1]}, {values[2]}", values
@@ -92,23 +139,36 @@ class MicrobitCompiler:
                 pass
 
         substituted_text = " ".join(str(letters_nums.get(p, p)) for p in text.split())
+        said_decimal = any(connector in text for connector in t("decimal_connectors"))
 
         parsed_text = substituted_text
-        for connector in t("decimal_connectors"):
-            parsed_text = parsed_text.replace(connector, ".")
-        parsed_text = parsed_text.replace(",", ".").replace(" .", ".").replace(". ", ".")
-        
+        if said_decimal:
+            for connector in t("decimal_connectors"):
+                parsed_text = parsed_text.replace(connector, ".")
+            parsed_text = parsed_text.replace(",", ".").replace(" .", ".").replace(". ", ".")
+        else:
+            # Sin "coma"/"con" dichos explícitamente, cualquier punto o coma que
+            # ya viniera en el texto transcrito es una agrupación de miles de
+            # Whisper (p.ej. "12.224"), no un separador decimal: se elimina en
+            # vez de convertirse en punto, para no confundir 12224 con 12.224.
+            parsed_text = parsed_text.replace(".", "").replace(",", "").replace(" ", "")
+
         try:
             val = int(parsed_text)
             return str(val), val
         except ValueError:
             pass
-        try:
-            val = float(parsed_text)
-            return str(val), val
-        except ValueError:
-            pass
-            
+        if said_decimal:
+            try:
+                val = float(parsed_text)
+                return str(val), val
+            except ValueError:
+                pass
+
+        compound_val = self._parse_compound_number(multi_text)
+        if compound_val is not None:
+            return str(compound_val), compound_val
+
         clean_text = self.normalize_text(text, is_variable=False)
         return f'"{clean_text}"', clean_text
 
@@ -160,6 +220,30 @@ class MicrobitCompiler:
         """Pregunta por voz a qué variable existente se refiere el bloque 'variable', y devuelve su nombre"""
         """Asks by voice which existing variable the 'variable' block refers to, and returns its name"""
         return self._solve_variable("reference_var", context)
+
+    def _manage_for_each(self, tokens, block_name):
+        """Gestiona el bloque 'para cada': exige un bloque 'valor variable' inmediatamente a su
+        derecha (si no está, devuelve error); si está, pregunta por voz una variable (nueva o ya
+        existente, según el flujo habitual de 'reference_var') y el número de veces que se repite
+        el bucle, y genera un 'for <variable> in range(<numero>):'"""
+        """Handles the 'for each' block: requires a 'assign value' block immediately to its
+        right (returns an error if missing); if present, asks by voice for a variable (new or
+        already existing, following the usual 'reference_var' flow) and the number of times the
+        loop repeats, and generates a 'for <variable> in range(<number>):'"""
+        if not tokens:
+            return t("err_expected_right", block=block_name, expect=t("generic_assign_val_key"))
+
+        next_token = tokens[0]
+        next_info = self.symbols_table.get(next_token, {})
+        if next_info.get("type") != "assign_val":
+            return t("err_expected_right", block=block_name, expect=t("generic_assign_val_key"))
+        tokens.pop(0)
+
+        var_name = self._solve_variable("for_each_var", t("context_for_each_var"))
+        range_text = self._solve_variable("assign_val", t("context_for_each_range"))
+        range_code, _ = self._apply_type(range_text)
+
+        return f"for {var_name} in range({range_code}):"
 
 
     def generate_code(self, command_matrix, out_path, answers=None):
@@ -330,6 +414,9 @@ class MicrobitCompiler:
             return res
             
         elif type == "control":
+            if base_code.strip() == "for":
+                return self._manage_for_each(tokens, first_block)
+
             cond = ""
             if tokens:
                 cond = self._consume_vc_arg(tokens, context=t("context_condition_of", block=first_block))

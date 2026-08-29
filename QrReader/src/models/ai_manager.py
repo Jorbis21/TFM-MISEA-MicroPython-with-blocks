@@ -163,7 +163,7 @@ class AIManager:
                         "num_predict": 80
                     }
                 }, 
-                timeout=30
+                timeout=12
             )
             local_answer.raise_for_status()
             

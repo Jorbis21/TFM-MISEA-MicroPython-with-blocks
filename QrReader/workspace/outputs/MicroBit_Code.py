@@ -12,4 +12,11 @@ music.pitch(783, 100)
 
 while True:
     if button_a.is_pressed():
-        music.play(['c', 'd', 'e'])
+        print('TTS:' + str(3))
+        display.show(3)
+        sleep(200)
+    if pin_logo.is_touched():
+        display.clear()
+        display.set_pixel(2, 2, 5)
+    if accelerometer.is_gesture('shake'):
+        music.play(music.NYAN)

@@ -5,7 +5,6 @@
         ],
         [
             "",
-            "",
             "al presionar",
             "boton a"
         ],
@@ -13,11 +12,49 @@
             "",
             "",
             "",
-            "reproducir melodia",
+            "mostrar",
             "valor variable"
+        ],
+        [
+            "",
+            "",
+            "",
+            "dormir",
+            "valor variable"
+        ],
+        [
+            "",
+            "al presionar",
+            "logo"
+        ],
+        [
+            "",
+            "",
+            "",
+            "limpiar"
+        ],
+        [
+            "",
+            "",
+            "",
+            "encender pixel",
+            "valor variable"
+        ],
+        [
+            "",
+            "al gesto",
+            "agitar"
+        ],
+        [
+            "",
+            "",
+            "reproducir melodia",
+            "nyan"
         ]
     ],
     "history": [
-        "do, re, mi"
+        "3",
+        "200",
+        "dos, dos, cinco"
     ]
 }

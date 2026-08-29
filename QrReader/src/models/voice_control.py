@@ -26,6 +26,7 @@ class VoiceCommandManager:
         self.callback_freeze_ui = callback_freeze_ui
         self.audio_service = audio_service
         self.is_recording = False
+        self.is_processing = False
         self.audio_data = []
         self.samplerate = 16000
         self.stream = None
@@ -53,7 +54,7 @@ class VoiceCommandManager:
             "medium", 
             device="cpu", 
             compute_type="int8", 
-            cpu_threads=4
+            cpu_threads=2
         )
         print("Motor de voz listo.")
         self.audio_service.read_text(t("voice_ready"))
@@ -77,6 +78,8 @@ class VoiceCommandManager:
             print(f"Error procesando voz: {e}")
             if self.dictation_mode:
                 self.actual_event = InteractionEvent(type=EventType.VOICE, text="")
+        finally:
+            self.is_processing = False
 
     def _analyze_intention(self, text):
         """Busca en el texto transcrito alguna de las palabras clave de cada comando y dispara el correspondiente; si no reconoce ninguna, avisa de que no se ha entendido"""
@@ -119,7 +122,7 @@ class VoiceCommandManager:
     def start_dictation_record(self):
         """Empieza a grabar audio del micrófono en un hilo aparte, con un pitido corto de confirmación tras un breve retraso para no cortar el inicio de lo que diga el usuario"""
         """Starts recording audio from the microphone on a separate thread, with a short confirmation beep after a brief delay so it doesn't cut off the start of what the user says"""
-        if self.model is None or self.is_recording: return
+        if self.model is None or self.is_recording or self.is_processing: return
         self.is_recording = True
         self.audio_data = []
         
@@ -180,7 +183,8 @@ class VoiceCommandManager:
     def stop_dictation_and_process(self):
         """Para la grabación y lanza la transcripción del audio capturado en un hilo aparte, avisando primero de que se está procesando"""
         """Stops the recording and launches the transcription of the captured audio on a separate thread, first announcing that it's being processed"""
-        if not self.is_recording: return
+        if not self.is_recording:
+            return
         self.is_recording = False
         if self.stream:
             try:
@@ -190,6 +194,7 @@ class VoiceCommandManager:
             self.stream = None
             
         self.audio_service.read_text(t("processing"))
+        self.is_processing = True
         threading.Thread(target=self._process_audio, daemon=True).start()
 
     def inject_event(self, event: InteractionEvent):
@@ -217,7 +222,7 @@ class VoiceCommandManager:
 
             if not self.running:
                 return InteractionEvent(type=EventType.SKIP)
-                
+            
             return self.actual_event
             
         finally:
