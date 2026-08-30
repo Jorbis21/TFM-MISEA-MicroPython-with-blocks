@@ -181,6 +181,17 @@ class AudioService:
             return
         self.tts_queue.put((text, force_offline))
 
+    def shut_up(self):
+        """Calla el audio actual y descarta lo que quedase en cola, sin encolar nada nuevo"""
+        """Silences current audio and discards anything pending in the queue, without queuing anything new"""
+        if not self.running:
+            return
+
+        self._clear_queue()
+
+        if pygame.mixer.get_init() and pygame.mixer.music.get_busy():
+            pygame.mixer.music.stop()
+
     def read_text_interrupting(self, text, force_offline=False):
         """Lee textos interrumpiendo el audio previo"""
         """Read texts, interrupting the previous audio"""

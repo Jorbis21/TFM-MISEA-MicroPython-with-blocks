@@ -80,6 +80,12 @@ class AppController:
     def on_spacebar_pressed(self):
         """Gestiona el inicio del sistema de grabacion"""
         """Manage the start of the recording system"""
+        # Callar de inmediato lo que se estuviese leyendo: si el alumno ya
+        # sabe que va a responder, no tiene que esperar a que termine la
+        # frase entera. Solo lo hace la barra espaciadora; los atajos de
+        # letra, el raton y la navegacion por tabulador no interrumpen.
+        self.audio_service.shut_up()
+
         self.pressed_time = time.time()
         self.voice_manager.start_dictation_record()
         self.recording_actually_started = self.voice_manager.is_recording
