@@ -1,4 +1,5 @@
 from controllers.camera_worker import CameraWorker
+from utils.camera_prefs import get_saved_camera_name, save_camera_name
 
 
 class CameraController:
@@ -47,6 +48,16 @@ class CameraController:
         self.camera_thr.free_all()
 
     def detect_cameras(self):
-        """Detecta las camaras conectadas al ordenador"""
-        """Detects the connected cameras to the computer"""
+        """Detecta las camaras conectadas al ordenador: lista de (indice, nombre)"""
+        """Detects the connected cameras to the computer: list of (index, name)"""
         return self.camera_thr.detect_cameras()
+
+    def choose_preferred_camera(self, cameras):
+        """Devuelve la posicion de la camara con la que arrancar (la ultima elegida, o la SVPRO, o una externa)"""
+        """Returns the position of the camera to start with (the last chosen one, or the SVPRO, or an external one)"""
+        return self.camera_thr.choose_preferred(cameras, get_saved_camera_name())
+
+    def remember_camera(self, name):
+        """Recuerda la camara elegida por el usuario para la proxima vez"""
+        """Remembers the camera chosen by the user for next time"""
+        save_camera_name(name)

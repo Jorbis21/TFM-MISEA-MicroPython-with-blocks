@@ -132,6 +132,23 @@ class AppCamara(QMainWindow):
         """Filtra las pulsaciones del teclado"""
         """Filters the keyboard inputs"""
         if event.type() in (QEvent.Type.KeyPress, QEvent.Type.KeyRelease):
+            # Solo se interceptan las teclas dirigidas a ESTA ventana. Si hay
+            # abierto un desplegable (la lista de camaras), un dialogo o un
+            # mensaje, las flechas y el Enter son suyos: antes se los quedaba
+            # este filtro, movia el foco por detras y el Enter hacia click en
+            # el boton que tenia el foco en la ventana (normalmente
+            # "Tomar foto") en vez de elegir la camara.
+            # Only keys aimed at THIS window are intercepted. If a drop-down
+            # (the camera list), a dialog or a message box is open, the arrows
+            # and Enter belong to it: previously this filter swallowed them,
+            # moved the focus behind it, and Enter clicked the button that had
+            # the focus in the window (usually "Take photo") instead of
+            # choosing the camera.
+            if QApplication.activePopupWidget() is not None:
+                return super().eventFilter(obj, event)
+            if isinstance(obj, QWidget) and obj.window() is not self:
+                return super().eventFilter(obj, event)
+
             focus = self.focusWidget()
             writing = False
             if focus is not None:
@@ -206,6 +223,16 @@ class AppCamara(QMainWindow):
         """Change the focus of the selected button and omit some"""
         if not old_widget or not new_widget: return
         if self.tabs.currentIndex() != 0: return
+
+        # Al cerrarse el desplegable de camaras (o un dialogo) el foco vuelve
+        # solo al boton que lo tenia antes; eso no es una navegacion del
+        # usuario y no debe anunciarse ("Tomar foto" tras elegir camara).
+        # Ademas, ignorar cualquier cambio de foco fuera de esta ventana.
+        # When the camera drop-down (or a dialog) closes, the focus goes back
+        # on its own to the button that had it before; that's not user
+        # navigation and must not be announced ("Take photo" after choosing a
+        # camera). Also ignore any focus change outside this window.
+        if old_widget.window() is not self or new_widget.window() is not self: return
 
         if isinstance(new_widget, QPushButton):
             name_obj = new_widget.objectName()

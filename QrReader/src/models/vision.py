@@ -99,7 +99,10 @@ class VisionEngine:
     def get_marked_frame(self, rotate):
         """Lee la cámara, guarda el frame, le dibuja los rectángulos y lo devuelve"""
         """Reads the camera, saves the frame, paints the rectangles and returns it"""
-        ret, frame = self.cap.read()
+        cap = self.cap
+        if cap is None or not cap.isOpened():
+            return None, None, []
+        ret, frame = cap.read()
         if not ret:
             return None, None, []
         
@@ -213,6 +216,13 @@ class VisionEngine:
 
         return {"right": right_links, "down": [down_link] if down_link else []}
 
+    def reset_detections(self):
+        """Olvida los QRs detectados y el ultimo frame, p.ej. al cambiar de camara"""
+        """Forgets the detected QRs and the last frame, e.g. when switching cameras"""
+        self.actual_frame = None
+        self.detected_elems = []
+        self.qrs_history = []
+
     def free_camera(self):
         """Libera la camara"""
         """Releases the camera"""
@@ -224,6 +234,7 @@ class VisionEngine:
         """Starts the camera"""
         if camera_index is not None:
             self.camera_index = camera_index
+        self.reset_detections()
             
         self.cap = cv2.VideoCapture(self.camera_index, cv2.CAP_DSHOW if os.name == 'nt' else cv2.CAP_ANY)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)

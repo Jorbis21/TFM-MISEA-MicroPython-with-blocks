@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 
 from utils.main_thread import init_main_thread_dispatcher
 from utils.language import init_language, has_saved_language, set_language
+from utils.camera_prefs import init_camera_prefs
 from utils.app_paths import get_resource_dir, get_data_dir
 from views.language_dialog import LanguageDialog
 
@@ -50,6 +51,7 @@ def main():
 
     first_run = not has_saved_language(settings_dir)
     init_language(settings_dir)
+    init_camera_prefs(settings_dir)
 
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(os.path.join(assets_dir, "icons", "once.png")))

@@ -26,6 +26,7 @@ class TabCamara(QWidget):
         self.edit_mode = False
         self.rotate_camera = False
         self.shutdown_camera = False
+        self._camera_paused = False
         self.highcontrast_mode = True
         self.clicks = 0
         self.last_key = None
@@ -33,6 +34,7 @@ class TabCamara(QWidget):
         
         self.actual_qr_texts = []
         self._ia_explaining = False
+        self._building = False
         self.pitches_block = []
         self.frame_actual_bgr = None
 
@@ -161,10 +163,24 @@ class TabCamara(QWidget):
         self.combo_cameras.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         
         real_cameras = self.ctrl.detect_cameras()
-        for cam_id in real_cameras:
-            name = t("camera_main") if cam_id == 0 else t("camera_secondary", idx=cam_id)
+        for cam_id, device_name in real_cameras:
+            if device_name:
+                name = device_name
+            else:
+                name = t("camera_main") if cam_id == 0 else t("camera_secondary", idx=cam_id)
+            # El nombre real del dispositivo se guarda aparte para recordarlo
+            # The real device name is stored separately to remember it
             self.combo_cameras.addItem(name, userData=cam_id)
-            
+            self.combo_cameras.setItemData(self.combo_cameras.count() - 1, device_name, Qt.ItemDataRole.UserRole + 1)
+
+        # Arrancar directamente en la camara preferida (la SVPRO o la ultima
+        # elegida). Se hace ANTES de conectar la señal para no disparar un
+        # cambio de camara ni guardar nada todavia.
+        # Start directly on the preferred camera (the SVPRO or the last one
+        # chosen). Done BEFORE connecting the signal so it doesn't trigger a
+        # camera switch nor save anything yet.
+        self.combo_cameras.setCurrentIndex(self.ctrl.choose_preferred_camera(real_cameras))
+
         if len(real_cameras) <= 1:
             self.combo_cameras.hide()
             
@@ -196,6 +212,12 @@ class TabCamara(QWidget):
     def update_frame(self, frame_bgr, frame_rgb, texts):
         """Actualiza el frame de la camara"""
         """Updates the camera frame"""
+        # Un frame que llega en cola despues de apagar/pausar la camara no debe
+        # volver a pintarse sobre el fondo negro
+        # A frame arriving queued after turning off/pausing the camera must not
+        # be painted again over the black background
+        if self.shutdown_camera or self._camera_paused:
+            return
         if frame_rgb is not None:
             self.frame_actual_bgr = frame_bgr
             self.actual_qr_texts = texts
@@ -280,16 +302,40 @@ class TabCamara(QWidget):
         self.rotate_btn.setIcon(QIcon(rotate_icon_dir))
         self.shutdown_btn.setIcon(QIcon(shutdown_icon_dir))
 
+    def _is_busy(self):
+        """Indica si ya hay una captura/revision en curso o se esta esperando una respuesta por voz"""
+        """Tells whether a capture/review is already running or a voice answer is being awaited"""
+        voice = self.program.voice_manager
+        return self._building or (voice is not None and voice.dictation_mode)
+
     def action_capture(self):
         """Accion de captura de imagen"""
         """Capture image action"""
-        if self.frame_actual_bgr is None: return
-        self.program.process_whole_frame(self.frame_actual_bgr, self.img_dir, self.read_generated_code)
+        # Evita capturas anidadas: la captura abre bucles de voz que bloquean
+        # en el hilo principal procesando eventos, y un atajo o boton pulsado
+        # durante ese bucle lanzaria otra captura dentro de la primera.
+        # Avoids nested captures: capturing opens voice loops that block the
+        # main thread while pumping events, and a shortcut or button pressed
+        # during that loop would start another capture inside the first one.
+        if self._is_busy(): return
+        if self.frame_actual_bgr is None:
+            self.audio.read_text(t("camera_not_active"))
+            return
+        self._building = True
+        try:
+            self.program.process_whole_frame(self.frame_actual_bgr, self.img_dir, self.read_generated_code)
+        finally:
+            self._building = False
 
     def action_var_review(self):
         """Accion de revision de variables"""
         """Variable review action"""
-        self.program.var_review(self.read_generated_code)
+        if self._is_busy(): return
+        self._building = True
+        try:
+            self.program.var_review(self.read_generated_code)
+        finally:
+            self._building = False
 
     def action_send(self):
         """Accion de enviar el codigo a la placa"""
@@ -403,6 +449,7 @@ class TabCamara(QWidget):
         if self.shutdown_camera:
             self.ctrl.pause_camera_hardware()
             self._stop_qr_count_tracking()
+            self.frame_actual_bgr = None
             
             self.video_label.clear()
             self.video_label.setStyleSheet("background-color: black;")
@@ -421,8 +468,17 @@ class TabCamara(QWidget):
             self.ctrl.pause_camera_hardware()
             self._stop_qr_count_tracking()
             self.video_label.clear() 
+            # Olvidar el ultimo frame de la camara anterior para que una
+            # captura justo despues del cambio no use una imagen vieja
+            # Forget the previous camera's last frame so a capture right
+            # after switching doesn't use a stale image
+            self.frame_actual_bgr = None
+            self.actual_qr_texts = []
             real_id = self.combo_cameras.itemData(index)
             self.ctrl.start_camera_hardware(real_id, self.rotate_camera)
+        # Recordar la eleccion para arrancar con ella la proxima vez
+        # Remember the choice to start with it next time
+        self.ctrl.remember_camera(self.combo_cameras.itemData(index, Qt.ItemDataRole.UserRole + 1))
 
     def cleanup(self):
         """Limpia los recursos de la camara"""
@@ -433,14 +489,17 @@ class TabCamara(QWidget):
     def pause_camera(self):
         """Pausa la camara"""
         """Pause the camera"""
+        self._camera_paused = True
         self.ctrl.pause_camera_hardware()
         self._stop_qr_count_tracking()
+        self.frame_actual_bgr = None
         self.video_label.clear()
         self.video_label.setStyleSheet("background-color: black;")
 
     def resume_camera(self):
         """Reinicia la camara"""
         """Resume the camera"""
+        self._camera_paused = False
         if not self.shutdown_camera:
             self.video_label.setStyleSheet("")
             idx = self.combo_cameras.currentData()
