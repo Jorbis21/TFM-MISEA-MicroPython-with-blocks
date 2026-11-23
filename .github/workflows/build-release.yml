@@ -4,16 +4,19 @@ name: Construir y publicar release
 #   git tag v1.1.0
 #   git push --tags
 #
-# Por cada sistema operativo sube DOS archivos a la misma Release:
-#   - MicroPython_with_blocks-<so>.zip              -> la app + el motor de Ollama (sin CUDA)
-#   - MicroPython_with_blocks-<so>-phi3-model.zip   -> solo el modelo phi3 (2.2GB, aparte
-#                                       porque junto con el resto pasaria
-#                                       del limite de 2GB por archivo de
-#                                       GitHub Releases)
+# Por cada sistema operativo sube TRES archivos a la misma Release:
+#   - MicroPython_with_blocks-<so>.zip                 -> la app + el motor de Ollama (sin CUDA)
+#   - MicroPython_with_blocks-<so>-phi3-model.zip      -> solo el modelo phi3 (2.2GB)
+#   - MicroPython_with_blocks-<so>-whisper-model.zip   -> solo el modelo de voz
+#                                       Whisper medium (~1.5GB)
+#   Los modelos van aparte porque junto con el resto pasarian del limite de
+#   2GB por archivo de GitHub Releases.
 #
-# Quien se lo descargue tiene que extraer los DOS zips dentro de la misma
-# carpeta: el segundo añade una carpeta ollama_models/ junto a MicroPython_with_blocks.exe,
-# que es donde el programa ya sabe buscarla.
+# Quien se lo descargue tiene que extraer los TRES zips dentro de la misma
+# carpeta: los de modelos añaden ollama_models/ y whisper_models/ junto a
+# MicroPython_with_blocks.exe, que es donde el programa ya sabe buscarlas.
+# Con whisper_models/ dentro, el reconocimiento de voz funciona sin internet
+# (equipos del centro detras del proxy, que no deja descargar el modelo).
 on:
   push:
     tags:
@@ -31,12 +34,15 @@ jobs:
           - os: windows-latest
             asset_core: MicroPython_with_blocks-windows.zip
             asset_model: MicroPython_with_blocks-windows-phi3-model.zip
+            asset_whisper: MicroPython_with_blocks-windows-whisper-model.zip
           - os: ubuntu-latest
             asset_core: MicroPython_with_blocks-linux.zip
             asset_model: MicroPython_with_blocks-linux-phi3-model.zip
+            asset_whisper: MicroPython_with_blocks-linux-whisper-model.zip
           - os: macos-latest
             asset_core: MicroPython_with_blocks-macos.zip
             asset_model: MicroPython_with_blocks-macos-phi3-model.zip
+            asset_whisper: MicroPython_with_blocks-macos-whisper-model.zip
 
     runs-on: ${{ matrix.os }}
 
@@ -168,7 +174,28 @@ jobs:
           
           kill $OLLAMA_PID
 
-      # --- Empaquetar: app+motor en un zip, el modelo en otro aparte ---
+      # --- Whisper medium: el modelo de reconocimiento de voz ---
+      # Se descarga aqui, en GitHub (que tiene internet sin proxy), para que
+      # los equipos del centro no tengan que descargarlo al arrancar. Se
+      # guarda en QrReader/whisper_models/medium (NO dentro de dist/, para
+      # que no engorde el zip principal) y se empaqueta en su propio zip.
+      # La cache evita volver a bajar ~1.5GB en cada release: solo se
+      # descarga la primera vez (o si se cambia la "key").
+
+      - name: Cache del modelo Whisper medium
+        uses: actions/cache@v4
+        with:
+          # Las rutas de actions/cache son relativas a la raiz del repo, no
+          # al working-directory de arriba: por eso lleva QrReader/ delante
+          path: QrReader/whisper_models/medium
+          key: whisper-medium-${{ runner.os }}-v1
+
+      - name: Descargar el modelo Whisper medium (si no estaba en la cache)
+        run: |
+          pip install huggingface_hub
+          python download_whisper_model.py .
+
+      # --- Empaquetar: app+motor en un zip, cada modelo en otro aparte ---
 
       - name: Empaquetar (Windows)
         if: runner.os == 'Windows'
@@ -176,6 +203,8 @@ jobs:
           # Reemplazamos Compress-Archive por 7z para evitar el límite de 2GB
           7z a "${{ matrix.asset_core }}" .\dist\MicroPython_with_blocks
           7z a "${{ matrix.asset_model }}" .\ollama_models
+          # -mx0 = sin comprimir: el modelo apenas se comprime y asi tarda mucho menos
+          7z a -mx0 "${{ matrix.asset_whisper }}" .\whisper_models
 
       - name: Empaquetar (Linux/Mac)
         if: runner.os != 'Windows'
@@ -183,10 +212,12 @@ jobs:
           chmod +x dist/MicroPython_with_blocks/MicroPython_with_blocks
           cd dist && zip -r ../${{ matrix.asset_core }} MicroPython_with_blocks && cd ..
           zip -r ${{ matrix.asset_model }} ollama_models
+          # -0 = sin comprimir: el modelo apenas se comprime y asi tarda mucho menos
+          zip -r -0 ${{ matrix.asset_whisper }} whisper_models
 
-      - name: Crear la release si hace falta, y subir los dos archivos
+      - name: Crear la release si hace falta, y subir los tres archivos
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "${{ github.ref_name }}" --title "MicroPython_with_blocks ${{ github.ref_name }}" --generate-notes || true
-          gh release upload "${{ github.ref_name }}" "${{ matrix.asset_core }}" "${{ matrix.asset_model }}" --clobber
+          gh release upload "${{ github.ref_name }}" "${{ matrix.asset_core }}" "${{ matrix.asset_model }}" "${{ matrix.asset_whisper }}" --clobber

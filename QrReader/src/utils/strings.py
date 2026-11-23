@@ -178,6 +178,9 @@ STRINGS = {
 
         # --- Control por voz ---
         "voice_ready": "El control por voz está listo.",
+        "voice_model_failed": "No se ha podido cargar el reconocimiento de voz en este equipo. Puedes responder con toques del espacio: dos toques para sí, uno para no y tres para saltar.",
+        "voice_still_loading": "El reconocimiento de voz todavía se está cargando. Mientras tanto, responde con toques: dos para sí, uno para no.",
+        "voice_unavailable_use_taps": "El reconocimiento de voz no está disponible. Responde con toques: dos para sí, uno para no y tres para saltar.",
         "processing": "Procesando.",
         "still_processing_wait": "Un momento, todavía estoy procesando lo anterior.",
         "command_not_recognized": "Comando no reconocido.",
@@ -432,6 +435,9 @@ STRINGS = {
 
         # --- Voice control ---
         "voice_ready": "Voice control is ready.",
+        "voice_model_failed": "Voice recognition could not be loaded on this computer. You can answer by tapping the spacebar: two taps for yes, one for no and three to skip.",
+        "voice_still_loading": "Voice recognition is still loading. Meanwhile, answer with taps: two for yes, one for no.",
+        "voice_unavailable_use_taps": "Voice recognition is not available. Answer with taps: two for yes, one for no and three to skip.",
         "processing": "Processing.",
         "still_processing_wait": "One moment, I'm still processing what you said before.",
         "command_not_recognized": "Command not recognized.",

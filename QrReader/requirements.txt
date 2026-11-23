@@ -11,8 +11,10 @@ soundfile
 sounddevice
 google-genai
 edge-tts
-pygame
+pygame-ce
 pyttsx3
 requests
 numpy
 uflash
+huggingface_hub
+pygrabber; sys_platform == "win32"

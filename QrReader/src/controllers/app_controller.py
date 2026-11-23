@@ -50,6 +50,7 @@ class AppController:
 
         self.pressed_time = 0
         self.recording_actually_started = False
+        self.taps_only = False
         self.space_clicks = 0
         self.space_timer = QTimer()
         self.space_timer.setSingleShot(True)
@@ -89,19 +90,43 @@ class AppController:
         self.pressed_time = time.time()
         self.voice_manager.start_dictation_record()
         self.recording_actually_started = self.voice_manager.is_recording
+        self.taps_only = False
         if not self.recording_actually_started:
-            self.audio_service.read_text_interrupting(t("still_processing_wait"))
+            reason = self.voice_manager.busy_reason()
+            if reason in ("loading", "error"):
+                # Sin modelo de voz los toques siguen funcionando (2 toques =
+                # si, 1 = no, 3 = saltar): no hacen falta para nada a Whisper,
+                # y asi nunca se queda la app atrapada en una pregunta
+                # Without the voice model taps still work (2 taps = yes, 1 =
+                # no, 3 = skip): they don't need Whisper at all, and this way
+                # the app never gets trapped in a question
+                self.taps_only = True
+            elif reason == "processing":
+                self.audio_service.read_text_interrupting(t("still_processing_wait"))
 
     def on_spacebar_released(self):
         """Gestiona la grabacion de voz al mantener presionado el espacio"""
         """Manage the voice recording when holding the spacebar"""
-        if not self.recording_actually_started:
-            # El intento se bloqueo al pulsar (seguia procesando la respuesta
-            # anterior, o el modelo aun no estaba listo): no debe contar ni
-            # como dictado ni como toque, para no desordenar space_clicks
+        duracion = time.time() - self.pressed_time
+
+        if self.taps_only:
+            self.taps_only = False
+            if duracion < 0.4:
+                self.space_clicks += 1
+                self.space_timer.start(400)
+            else:
+                # Ha intentado hablar, pero no hay reconocimiento de voz
+                # Tried to speak, but there's no voice recognition
+                key = "voice_still_loading" if self.voice_manager.busy_reason() == "loading" else "voice_unavailable_use_taps"
+                self.audio_service.read_text_interrupting(t(key))
             return
 
-        duracion = time.time() - self.pressed_time
+        if not self.recording_actually_started:
+            # El intento se bloqueo al pulsar (seguia procesando la respuesta
+            # anterior): no debe contar ni como dictado ni como toque, para no
+            # desordenar space_clicks
+            return
+
         
         if duracion < 0.4:
             self.voice_manager.discard_dictation_record()

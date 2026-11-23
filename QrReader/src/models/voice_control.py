@@ -6,6 +6,15 @@ from utils.constants import EventType, VoiceCommand
 from utils.strings import t
 from utils.language import get_language
 from utils.main_thread import pump_events_if_on_main_thread
+from utils.app_paths import get_data_dir, get_resource_dir
+
+"""Modelo de Whisper que se usa (los mas pequeños reconocen las palabras demasiado mal)"""
+"""Whisper model used (the smaller ones recognize words too poorly)"""
+WHISPER_MODEL = "medium"
+
+"""Si una grabacion lleva mas de esto 'en curso' es que se perdio la suelta de la tecla: se descarta"""
+"""If a recording has been 'in progress' longer than this, the key release was lost: it's discarded"""
+MAX_RECORDING_SECONDS = 60
 
 @dataclass
 class InteractionEvent:
@@ -38,6 +47,9 @@ class VoiceCommandManager:
         
         self.record_id = 0
         self.model = None
+        # "loading" mientras se carga, "ready" si se cargo, "error" si fallo
+        # "loading" while loading, "ready" if loaded, "error" if it failed
+        self.model_status = "loading"
         threading.Thread(target=self._load_model, daemon=True).start()
 
     def stop(self):
@@ -46,18 +58,77 @@ class VoiceCommandManager:
         self.running = False
         self.discard_dictation_record()
 
+    def _find_bundled_model(self):
+        """Busca el modelo medium ya incluido en el portable (carpeta whisper_models/medium junto al ejecutable o entre sus recursos)"""
+        """Looks for the medium model already included in the portable (whisper_models/medium folder next to the executable or among its resources)"""
+        for base in (get_data_dir(), get_resource_dir()):
+            path = os.path.join(base, "whisper_models", WHISPER_MODEL)
+            if os.path.isfile(os.path.join(path, "model.bin")):
+                return path
+        return None
+
     def _load_model(self):
         """Carga el modelo de Whisper en segundo plano y avisa por voz cuando el control por voz ya está listo"""
         """Loads the Whisper model in the background and announces by voice once voice control is ready"""
-        print("Cargando motor de voz (Whisper Medium)...")
-        self.model = WhisperModel(
-            "medium", 
-            device="cpu", 
-            compute_type="int8", 
-            cpu_threads=2
-        )
-        print("Motor de voz listo.")
-        self.audio_service.read_text(t("voice_ready"))
+        # Antes no habia try: si la carga fallaba (sin internet o con un proxy
+        # que no deja descargar el modelo, poca RAM...) el hilo moria en
+        # silencio, self.model se quedaba en None para siempre y cada
+        # pulsacion del espacio respondia "todavia estoy procesando", sin
+        # poder ni siquiera saltar la pregunta.
+        # There used to be no try: if loading failed (no internet or a proxy
+        # that blocks downloading the model, low RAM...) the thread died
+        # silently, self.model stayed None forever and every spacebar press
+        # answered "still processing", without even being able to skip the
+        # question.
+        threads = max(2, min(4, (os.cpu_count() or 2) // 2))
+
+        # 1) El modelo que va dentro del portable: no necesita red para nada
+        # 1) The model shipped inside the portable: needs no network at all
+        # 2) Si no esta (p.ej. ejecutando desde el codigo fuente), se descarga
+        #    a la carpeta whisper_models/ de la app (o se usa si ya se bajo)
+        # 2) If it's not there (e.g. running from source), it's downloaded to
+        #    the app's whisper_models/ folder (or used if already downloaded)
+        bundled = self._find_bundled_model()
+        attempts = []
+        if bundled:
+            attempts.append((bundled, {}))
+        cache_dir = os.path.join(get_data_dir(), "whisper_models", "cache")
+        attempts.append((WHISPER_MODEL, {"download_root": cache_dir, "local_files_only": True}))
+        attempts.append((WHISPER_MODEL, {"download_root": cache_dir, "local_files_only": False}))
+
+        for model_ref, extra in attempts:
+            try:
+                print(f"Cargando motor de voz (Whisper {WHISPER_MODEL}) desde: {model_ref}"
+                      f"{' (descargando)' if extra.get('local_files_only') is False else ''}...")
+                if extra.get("download_root"):
+                    os.makedirs(extra["download_root"], exist_ok=True)
+                self.model = WhisperModel(
+                    model_ref,
+                    device="cpu",
+                    compute_type="int8",
+                    cpu_threads=threads,
+                    **extra,
+                )
+                self.model_status = "ready"
+                print("Motor de voz listo.")
+                self.audio_service.read_text(t("voice_ready"))
+                return
+            except Exception as e:
+                print(f"Aviso: no se pudo cargar Whisper desde {model_ref}: {e}")
+
+        self.model_status = "error"
+        print("ERROR: el reconocimiento de voz no está disponible en este equipo. "
+              "Comprueba que el portable incluye la carpeta whisper_models/medium.")
+        self.audio_service.read_text(t("voice_model_failed"))
+
+    def busy_reason(self):
+        """Explica por que no se puede grabar ahora: 'loading', 'error', 'recording', 'processing', o None si se puede"""
+        """Explains why recording isn't possible now: 'loading', 'error', 'recording', 'processing', or None if it is"""
+        if self.model is None:
+            return self.model_status if self.model_status != "ready" else "loading"
+        if self.is_recording: return "recording"
+        if self.is_processing: return "processing"
+        return None
 
     def _process_audio(self):
         """Guarda el audio grabado a disco, lo transcribe con Whisper en el idioma activo, limpia el texto resultante, y lo despacha como evento de interacción"""
@@ -122,6 +193,15 @@ class VoiceCommandManager:
     def start_dictation_record(self):
         """Empieza a grabar audio del micrófono en un hilo aparte, con un pitido corto de confirmación tras un breve retraso para no cortar el inicio de lo que diga el usuario"""
         """Starts recording audio from the microphone on a separate thread, with a short confirmation beep after a brief delay so it doesn't cut off the start of what the user says"""
+        # Red de seguridad: si se perdio la suelta del espacio (la ventana perdio
+        # el foco mientras se mantenia pulsado, etc.) la grabacion se quedaria
+        # "en curso" para siempre y bloquearia todas las siguientes
+        # Safety net: if the spacebar release was lost (the window lost focus
+        # while it was held, etc.) the recording would stay "in progress"
+        # forever and block every following one
+        if self.is_recording and time.time() - self.record_id > MAX_RECORDING_SECONDS:
+            print("Aviso: grabación anterior colgada, se descarta.")
+            self.discard_dictation_record()
         if self.model is None or self.is_recording or self.is_processing: return
         self.is_recording = True
         self.audio_data = []
